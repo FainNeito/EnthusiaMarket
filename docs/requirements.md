@@ -247,6 +247,12 @@ Reference: study of `advanced-region-market` (ARM) plugin. Eight features select
 
 **Unwanted.** IF a mob/entity spawn or item-frame placement inside a stall would exceed the active entity limit group's per-type or total cap THE SYSTEM SHALL cancel the event.
 
+#### REQ-332 — Configurable unlimited item frames
+
+**Ubiquitous.** THE SYSTEM SHALL default `item_frame` and `glow_item_frame` to `-1` (unlimited) in every bundled entity limit group.
+
+**Optional.** WHERE an item-frame type has an effective negative cap THE SYSTEM SHALL permit its placement without applying the shared `_total` cap. WHERE its effective cap is nonnegative THE SYSTEM SHALL enforce both its per-type cap and the shared total cap, including zero prohibiting placement. Other entity types SHALL retain their existing limits and counting semantics. Existing operator configuration SHALL be preserved.
+
 #### REQ-222 — Per-stall entity-limit override
 
 **Optional.** THE SYSTEM SHALL allow admins to grant individual stalls extra entity allowance (`extraEntities[<type>]`, `extraTotal`) via `/em stall entitylimit set`.

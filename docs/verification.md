@@ -26,6 +26,20 @@ Hosted checks remain a separate gate. The preceding head had three Codacy comple
 
 Project-local SPEAR EARS/state helpers and a project SPEAR skill are absent; the existing SPEAR Paper Brownfield skill is used. No validator or state-tool success is claimed. This behavior-preserving refinement reuses existing EARS requirements and tests; documentation and CI dependency changes do not introduce new player behavior requiring a separate behavioral proof.
 
+## REQ-332 configurable item frames — SPEAR evidence
+
+Spec: unlimited normal/glow item frames by default; `-1` bypasses their placement's shared total, while finite/zero caps and other entity limits remain enforced. Operator configuration is preserved.
+
+Prove: before implementation, nine focused listener cases ran with two failures and zero errors/skips: bundled defaults were finite, and explicitly unlimited frames were still rejected by `_total`. New cases also cover zero/finite frame caps, finite frames at the total boundary and other entities retaining their total cap.
+
+Engine/architecture: change bundled defaults and put the frame-specific total decision in the existing domain policy; retain the infrastructure event adapter and counter. No companion API or database migration changes.
+
+Refine: clean full suite passed on Java 25/Paper 26.2 against LumaGuilds 3.0.17: 811 tests, zero failures/errors, seven skipped (including six MariaDB cases). The nine listener tests are green; architecture checks are included. Detekt passed on Java 21. The earlier Market head `da2b960` passed Codacy without annotations; hosted checks for this frame-change head remain a separate pending gate. Project-local EARS/state tooling remains absent.
+
+The shaded unmerged local review artifact `build/libs/EnthusiaMarket-1.0.0-spear-review.3.jar` built successfully after these checks; SHA-256 `b251e2d6d59eebe040d36db334514aa44d1816c007836e5c927a218116391439`. It was not uploaded or activated.
+
+For an existing installation, edit each desired group in `plugins/EnthusiaMarket/entitylimits.yml` to set `item_frame: -1` and `glow_item_frame: -1`, then restart through an authorized operational action. Limits are loaded when the listener is constructed; the existing `/em reload` command only reloads the main configuration and translations. This PR neither overwrites that file nor changes production. Nonnegative values remain configurable per type; per-stall extra allowances retain their existing additive meaning.
+
 ## Future release gate
 
 Read-only inspection of `BadgersMC/enthusia-network` found Market pinned to `b31fc322b9dfa900bb12da67e67f4c2665822275` and LumaGuilds to `c427d5dbc4838c95bcde45d57be14a6b6980ff8e`. Before a future deployment, merge the Market fixes, update the owning monorepo pins through its normal PR, and validate the combined clean canonical build and artifact provenance. No monorepo update, merge, upload, restart or production change was performed here. Live Java/Bedrock, WorldGuard and real creature-item acceptance remains open as documented in reported-bug-fixes.md.

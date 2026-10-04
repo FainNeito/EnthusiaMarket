@@ -233,7 +233,11 @@ Tasks whose full briefing exceeds ~1500 tokens are decomposed further by `/spear
 
 Semantic versioning. Start at `0.1.0`. Bump major on breaking public-API or DB schema change (migrations always additive within a major).
 
-## 7. Out of scope (this doc)
+## 7. REQ-332 item-frame policy
+
+`EntityLimitGroup.appliesTotalTo` owns the domain decision that a normal/glow frame with an effective negative per-type cap is unlimited. `EntityLimitListener` applies that decision before its existing shared-total check, preserving per-type checks, per-stall allowance merging, event wiring and counts for other entities. The bundled `entitylimits.yml` uses `-1` for both frame types in every kind. No runtime API, permission or persistence schema changes are required.
+
+## 8. Out of scope (this doc)
 
 - Per-component code-level docs — owned by each component's own KDoc.
 - CI configuration — owned by `tech-stack.md` §CI and the workflow file itself.

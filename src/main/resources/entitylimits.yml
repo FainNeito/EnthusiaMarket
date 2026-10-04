@@ -3,6 +3,10 @@
 # Each region kind maps to an entity limit group declaring per-entity caps
 # inside a stall's WorldGuard region. The special key `_total` caps the total
 # number of capped entities regardless of type. A value of -1 means unlimited.
+# Normal and glow item frames default to unlimited. Set their individual caps
+# to 0 to forbid placement or a positive number to limit each type per stall.
+# Unlimited frames bypass `_total` for their own placement; other entities keep
+# the shared total check. Existing entitylimits.yml files are never overwritten.
 #
 # A stall's region kind is resolved from its WorldGuard region; stalls whose
 # kind has no entry here fall back to the `default` group.
@@ -13,16 +17,19 @@ default:
   _total: 50
   villager: 5
   armor_stand: 10
-  item_frame: 10
+  item_frame: -1
+  glow_item_frame: -1
 
 shop:
   _total: 80
   villager: 10
   armor_stand: 20
-  item_frame: 20
+  item_frame: -1
+  glow_item_frame: -1
 
 farm:
   _total: 120
   villager: 20
   armor_stand: 5
-  item_frame: 5
+  item_frame: -1
+  glow_item_frame: -1

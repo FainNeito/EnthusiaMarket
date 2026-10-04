@@ -1104,4 +1104,6 @@ Validation: Market 806 tests, 0 failures/errors, 7 skipped; architecture checks 
 
 ## SPEAR check refinement (2026-10-04)
 
+- [x] **FRAME-332** — REQ-332: proved failing defaults and shared-total behavior before implementation; 811 tests passed (7 skipped), architecture checks and Detekt passed. Configurable finite/zero limits and other entity checks are retained; defaults and evidence updated. Exact-head hosted checks and live acceptance remain separately pending; no production configuration was changed.
+
 - [ ] **REFINE-331** — REQ-323/326/329: resolve the three remaining exact-head Codacy findings while preserving permissions, escrow rollback and creature normalization. Validate with existing regression tests, architecture checks, Detekt and the actual merged companion runtime. Record hosted checks and production boundaries in docs/verification.md.
