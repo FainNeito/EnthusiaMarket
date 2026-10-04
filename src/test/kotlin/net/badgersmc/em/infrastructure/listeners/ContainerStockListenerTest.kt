@@ -2,9 +2,11 @@ package net.badgersmc.em.infrastructure.listeners
 
 import io.mockk.*
 import net.badgersmc.em.application.ItemStackSerializer
+import net.badgersmc.em.application.ShopManagementService
 import net.badgersmc.em.domain.shop.Shop
 import net.badgersmc.em.domain.shop.ShopRepository
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import net.badgersmc.em.events.PostShopTransactionEvent
 import net.badgersmc.em.events.ShopStockDepletedEvent
 import org.bukkit.Bukkit
@@ -25,8 +27,29 @@ import org.junit.jupiter.api.BeforeEach
 import org.mockbukkit.mockbukkit.MockBukkit
 import java.util.UUID
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class ContainerStockListenerTest {
+    @Test fun `saved price edit from 3 to 5 reaches sign through timer with unchanged stock`() {
+        var stored = shop().copy(costAmount = 3)
+        val repo = mockk<ShopRepository>(relaxed = true)
+        every { repo.all() } answers { listOf(stored) }
+        every { repo.findById(stored.id) } answers { stored }
+        every { repo.upsert(any()) } answers { firstArg<Shop>().also { stored = it } }
+        val sign = mockWorld(arrayOf(matchingStock(10)))
+        val prices = mutableListOf<Component>()
+        every { sign.line(2, capture(prices)) } returns Unit
+        val listener = ContainerStockListener(repo, mockk(relaxed = true))
+        listener.refreshBatch()
+        assertTrue(ShopManagementService(repo).saveEdits(stored.owner, stored.copy(costAmount = 5)))
+        listener.refreshBatch()
+        val plain = PlainTextComponentSerializer.plainText()
+        assertEquals(listOf("3", "5"), prices.map(plain::serialize))
+        assertEquals(5, stored.costAmount)
+        verify(exactly = 2) { sign.update(false) }
+    }
+
     @Test fun `price and quantity changes redraw with unchanged stock`() {
         val initial = shop()
         val repo = mockk<ShopRepository>(relaxed = true)

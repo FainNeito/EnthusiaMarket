@@ -40,6 +40,16 @@ The shaded unmerged local review artifact `build/libs/EnthusiaMarket-1.0.0-spear
 
 For an existing installation, edit each desired group in `plugins/EnthusiaMarket/entitylimits.yml` to set `item_frame: -1` and `glow_item_frame: -1`, then restart through an authorized operational action. Limits are loaded when the listener is constructed; the existing `/em reload` command only reloads the main configuration and translations. This PR neither overwrites that file nor changes production. Nonnegative values remain configurable per type; per-stall extra allowances retain their existing additive meaning.
 
+## SIGN-333 price-only edit report — SPEAR evidence
+
+Spec: REQ-327 includes a price-only `/shop edit` change from 3 to 5 with unchanged inventory. Persisted shop data and rendered sign text must agree after the loaded-container timer cycle.
+
+Prove: current canonical main `14351db` returns early solely on unchanged raw stock; its sign updater only writes stock/header lines. The pending PR already changes both conditions: it tracks the rendered shop fields and renders the full sign. This is brownfield verification of an existing pending fix, not a new historical red/green claim.
+
+Engine/architecture: no additional production source change was needed. A regression now saves the edited price through ShopManagementService and invokes the same `refreshBatch` timer entry point wired in EnthusiaMarket. It asserts actual price components serialize to `["3", "5"]`, rather than only counting redraw calls. All 24 focused management/listener tests passed without failures/errors/skips. The preceding implementation's full suite had 811 tests (seven skipped); no fresh full-suite claim is made for this test-only addition. Hosted checks remain distinct from local proof. No server version/configuration or player acceptance was verified, and nothing was uploaded or activated.
+
+Refine: Detekt passed on Java 21. No project-local EARS/state tooling is present; no tooling success is claimed.
+
 ## Future release gate
 
 Read-only inspection of `BadgersMC/enthusia-network` found Market pinned to `b31fc322b9dfa900bb12da67e67f4c2665822275` and LumaGuilds to `c427d5dbc4838c95bcde45d57be14a6b6980ff8e`. Before a future deployment, merge the Market fixes, update the owning monorepo pins through its normal PR, and validate the combined clean canonical build and artifact provenance. No monorepo update, merge, upload, restart or production change was performed here. Live Java/Bedrock, WorldGuard and real creature-item acceptance remains open as documented in reported-bug-fixes.md.
