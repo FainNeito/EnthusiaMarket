@@ -237,7 +237,11 @@ Semantic versioning. Start at `0.1.0`. Bump major on breaking public-API or DB s
 
 `EntityLimitGroup.appliesTotalTo` owns the domain decision that a normal/glow frame with an effective negative per-type cap is unlimited. `EntityLimitListener` applies that decision before its existing shared-total check, preserving per-type checks, per-stall allowance merging, event wiring and counts for other entities. The bundled `entitylimits.yml` uses `-1` for both frame types in every kind. No runtime API, permission or persistence schema changes are required.
 
-## 8. Out of scope (this doc)
+## 8. REQ-334 private chat input adapter
+
+ChatPriceListener claims pending create-price and bulk-quantity input at LOWEST on the legacy AsyncPlayerChatEvent before RoseChat's LOW-priority broadcaster. AsyncChatEvent remains the fallback; both handlers ignore cancelled events so propagated legacy cancellation cannot schedule duplicate processing. Cancellation occurs before scheduling the existing menu handler onto the server thread. No pending prompt means no cancellation or callback. Input parsing, permissions and persistence are unchanged.
+
+## 9. Out of scope (this doc)
 
 - Per-component code-level docs — owned by each component's own KDoc.
 - CI configuration — owned by `tech-stack.md` §CI and the workflow file itself.

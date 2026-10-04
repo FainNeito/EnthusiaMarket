@@ -1104,6 +1104,8 @@ Validation: Market 806 tests, 0 failures/errors, 7 skipped; architecture checks 
 
 ## SPEAR check refinement (2026-10-04)
 
+- [x] **CHAT-334** — REQ-334: reproduced the legacy broadcast leak before implementation (5 focused tests, 2 failures), then passed the full 817-test suite (7 skipped) and Detekt. Pending input is claimed before LOW broadcasters, server-thread callbacks and Paper fallback are preserved, and duplicate callbacks are prevented. Exact-head hosted results and live acceptance remain separate; no production changes.
+
 - [x] **SIGN-333** — REQ-327: verified the reported price-only edit from 3 to 5 through management persistence and the production timer refresh, asserting actual sign price text with unchanged stock; all 24 focused management/listener tests passed. The implementation is already pending in PR #197; production adoption/live acceptance remains unverified.
 
 - [x] **FRAME-332** — REQ-332: proved failing defaults and shared-total behavior before implementation; 811 tests passed (7 skipped), architecture checks and Detekt passed. Configurable finite/zero limits and other entity checks are retained; defaults and evidence updated. Exact-head hosted checks and live acceptance remain separately pending; no production configuration was changed.

@@ -53,3 +53,15 @@ Refine: Detekt passed on Java 21. No project-local EARS/state tooling is present
 ## Future release gate
 
 Read-only inspection of `BadgersMC/enthusia-network` found Market pinned to `b31fc322b9dfa900bb12da67e67f4c2665822275` and LumaGuilds to `c427d5dbc4838c95bcde45d57be14a6b6980ff8e`. Before a future deployment, merge the Market fixes, update the owning monorepo pins through its normal PR, and validate the combined clean canonical build and artifact provenance. No monorepo update, merge, upload, restart or production change was performed here. Live Java/Bedrock, WorldGuard and real creature-item acceptance remains open as documented in reported-bug-fixes.md.
+
+## CHAT-334 custom-price input privacy — SPEAR evidence
+
+Spec: REQ-334 claims private prompt input before chat broadcasters, schedules existing menu processing on the main thread, supports Paper fallback and avoids duplicate legacy/Paper callbacks. Other chat must remain public normally.
+
+Prove: the new event-dispatch suite ran before implementation with five tests, two failures and no errors/skips. Price and bulk messages were not cancelled ahead of a LOW-priority legacy broadcaster. The checked local RoseChat source uses AsyncPlayerChatEvent at LOW with ignoreCancelled=true, whereas Market previously cancelled only AsyncChatEvent. [Paper ChatProcessor](https://github.com/PaperMC/Paper/blob/main/paper-server/src/main/java/io/papermc/paper/adventure/ChatProcessor.java) dispatches legacy chat first and propagates its cancellation into the modern event. These are source/adapter findings; the active server's exact installed chat plugin was not inspected.
+
+Engine/architecture: add a LOWEST legacy handler and put both event adapters ahead of broadcasters. Preserve the existing prompt maps, parsing and callbacks in their existing classes; do not move Bukkit scheduling into domain code. Both handlers ignore cancelled messages and cancel before enqueueing. Modern fallback remains supported; no companion binary/API changes or migration are required.
+
+Refine: all five new tests passed inside the clean full suite: 817 tests, zero failures/errors, seven skips (including six MariaDB cases). Tests cover private legacy input, callback deferral, Paper-only input, propagated cancellation without duplicate callbacks, ordinary chat and bulk quantity input. Architecture tests are included; Detekt passed on Java 21, compile/tests on Java 25/Paper 26.2 with LumaGuilds 3.0.17. Project-local EARS/state helpers remain absent. Exact published-head hosted checks and live two-player/chat-bridge acceptance remain separate gates.
+
+The shaded unmerged local review artifact `build/libs/EnthusiaMarket-1.0.0-spear-review.4.jar` built after these checks; SHA-256 `aff265473b525bae7a0740e207068827ba268359ecd85b707bb6d56d986d12a7`. No upload, activation, merge or production change was performed.
