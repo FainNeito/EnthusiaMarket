@@ -20,14 +20,23 @@ internal object SpecialItemMatch {
 
     private fun normalize(value: Any, scope: Scope): Any = when (value) {
         is Map<*, *> -> normalizeMap(value, scope)
-        is List<*> -> value.map { normalize(requireNotNull(it), scope.copy(components = false, depth = scope.depth + 1)) }
+        is List<*> -> normalizeList(value, scope)
         else -> value
     }
 
-    private fun normalizeMap(value: Map<*, *>, scope: Scope): Map<Any?, Any> =
-        value.entries.filterNot { ignored(it.key, scope) }.associate { (key, item) ->
-            key to normalizeEntry(key, requireNotNull(item), scope)
+    private fun normalizeList(value: List<*>, scope: Scope): List<Any> {
+        val child = scope.copy(components = false, depth = scope.depth + 1)
+        return value.map { normalize(requireNotNull(it), child) }
+    }
+
+    private fun normalizeMap(value: Map<*, *>, scope: Scope): Map<Any?, Any> {
+        val result = linkedMapOf<Any?, Any>()
+        for ((key, item) in value) {
+            if (ignored(key, scope)) continue
+            result[key] = normalizeEntry(key, requireNotNull(item), scope)
         }
+        return result
+    }
 
     private fun ignored(key: Any?, scope: Scope): Boolean =
         scope.entity && key in incidental || scope.bees && key in residenceTimers

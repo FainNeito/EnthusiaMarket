@@ -43,10 +43,16 @@ class ShopManagementService(
 
     private fun maySaveEdits(actor: UUID, current: Shop, draft: Shop): Boolean {
         if (access?.isGuildShop(current) != true) return canEdit(current, actor)
-        if (priceChanged(current, draft) && !canEdit(current, actor)) return false
-        if (stockChanged(current, draft) && !canDelete(current, actor)) return false
+        if (!mayChangePrice(actor, current, draft)) return false
+        if (!mayChangeStock(actor, current, draft)) return false
         return canEdit(current, actor) || canDelete(current, actor)
     }
+
+    private fun mayChangePrice(actor: UUID, current: Shop, draft: Shop): Boolean =
+        !priceChanged(current, draft) || canEdit(current, actor)
+
+    private fun mayChangeStock(actor: UUID, current: Shop, draft: Shop): Boolean =
+        !stockChanged(current, draft) || canDelete(current, actor)
 
     private fun priceChanged(current: Shop, draft: Shop): Boolean =
         current.costAmount != draft.costAmount || current.costItem != draft.costItem

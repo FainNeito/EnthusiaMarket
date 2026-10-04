@@ -1101,3 +1101,7 @@ Baseline: current `main` at `8d04bd9` (PR #194 Staff Market integration). This m
 Evidence is a brownfield regression review; no historical test-first claim is made for implementation already written during this audit.
 
 Validation: Market 806 tests, 0 failures/errors, 7 skipped; architecture checks and Detekt passed; local shaded review build succeeded. Companion LumaGuilds API/bank suite: 41 tests, 0 failures/errors/skips, local build passed. See docs/reported-bug-fixes.md for remaining live acceptance.
+
+## SPEAR check refinement (2026-10-04)
+
+- [ ] **REFINE-331** — REQ-323/326/329: resolve the three remaining exact-head Codacy findings while preserving permissions, escrow rollback and creature normalization. Validate with existing regression tests, architecture checks, Detekt and the actual merged companion runtime. Record hosted checks and production boundaries in docs/verification.md.

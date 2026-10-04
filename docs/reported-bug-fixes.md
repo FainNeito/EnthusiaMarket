@@ -48,3 +48,4 @@ Local tests/builds do not establish deployed version or Java/Bedrock player acce
 - Both plugin updates are a coordinated pair: this Market build requires the new LumaGuilds bank API. V030 is an additive migration; legacy personal auction bids remain personal.
 - Earlier merged ownership reconciliation and real-item delivery fixes were preserved. No production database repair, WorldGuard resync, server restart or player experiment was performed.
 - No JAR was uploaded and no production changes were made.
+- The 2026-10-04 SPEAR check refinement revalidated all 806 tests and Detekt against the released LumaGuilds 3.0.17 runtime containing the merged bank API. See [verification.md](verification.md) for artifact provenance, hosted-check gates, MariaDB skips and owning monorepo pins.

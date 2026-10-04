@@ -162,9 +162,6 @@ dependencies {
     }
     compileOnly(lumaguildsClasspath)
     testImplementation(lumaguildsClasspath)
-    // API-only CI builds also exercise the released Bukkit event classes.
-    // Keep the companion API ahead of the runtime fixture on the test classpath.
-    System.getenv("LUMAGUILDS_RUNTIME_JAR")?.let { testRuntimeOnly(files(it)) }
 }
 
 kotlin {

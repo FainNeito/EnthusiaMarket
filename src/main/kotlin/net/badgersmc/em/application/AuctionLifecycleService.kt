@@ -307,6 +307,10 @@ class AuctionLifecycleService(
         if (auction.state != AuctionState.OPEN) return AuctionResult.Failure("Auction is not open")
         val reservation = ipLimiter.acquireAuction(request.ip, auction.id.value)
         if (!reservation.allowed) return AuctionResult.Failure("You already have an active bid on another auction.")
+        return applyReservedBid(auction, request, reservation)
+    }
+
+    private fun applyReservedBid(auction: Auction, request: BidRequest, reservation: IpLimiter.Attempt): AuctionResult {
         var completed = false
         try {
             val result = applyBid(auction, request)
