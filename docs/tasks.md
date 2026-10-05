@@ -1104,6 +1104,8 @@ Validation: Market 806 tests, 0 failures/errors, 7 skipped; architecture checks 
 
 ## SPEAR check refinement (2026-10-04)
 
+- [x] **STALE-335** — REQ-321: investigate ticket bug-0406 stale members after expired-stall repurchase. Existing canonical ownership changes already clear roster/access on forfeiture and award. Added a repurchase regression and passed 92 ownership/lifecycle tests; production build, stall48 data, WorldGuard and intended current members remain unverified. No automatic purge or production repair authorized/performed.
+
 - [x] **CHAT-334** — REQ-334: reproduced the legacy broadcast leak before implementation (5 focused tests, 2 failures), then passed the full 817-test suite (7 skipped) and Detekt. Pending input is claimed before LOW broadcasters, server-thread callbacks and Paper fallback are preserved, and duplicate callbacks are prevented. Exact-head hosted results and live acceptance remain separate; no production changes.
 
 - [x] **SIGN-333** — REQ-327: verified the reported price-only edit from 3 to 5 through management persistence and the production timer refresh, asserting actual sign price text with unchanged stock; all 24 focused management/listener tests passed. The implementation is already pending in PR #197; production adoption/live acceptance remains unverified.
