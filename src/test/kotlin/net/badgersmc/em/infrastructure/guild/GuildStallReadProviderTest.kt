@@ -2,6 +2,7 @@ package net.badgersmc.em.infrastructure.guild
 
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import net.badgersmc.em.application.GuildStallQueryService
 import net.badgersmc.em.domain.ports.RegionProvider
 import net.badgersmc.em.domain.stall.GuildStallView
@@ -14,6 +15,7 @@ import kotlin.test.assertNull
 
 /** Actual public API records and separate IO/server executors are tested here. */
 internal class GuildStallReadProviderTest {
+    private val query = mockk<GuildStallQueryService>()
     /** Persistence executes first off-thread; coordinates resolve only on the server executor. */
     @Test
     fun separatesThreadBoundaries() {
@@ -26,7 +28,9 @@ internal class GuildStallReadProviderTest {
         assertFalse(result.isDone)
         io.removeFirst().run()
         assertFalse(result.isDone)
+        verify(exactly = 0) { query.readLoaded(any(), any(), any()) }
         main.removeFirst().run()
+        verify(exactly = 1) { query.readLoaded(guild, viewer, emptyList()) }
         assertEquals("stall1", result.join().single().id())
         assertNull(result.join().single().coordinates())
         assertEquals(1, provider.apiVersion())
@@ -35,9 +39,9 @@ internal class GuildStallReadProviderTest {
     private fun provider(
         guild: UUID, viewer: UUID, io: ArrayDeque<Runnable>, main: ArrayDeque<Runnable>,
     ): GuildStallReadProvider {
-        val query = mockk<GuildStallQueryService>()
         val regions = mockk<RegionProvider>()
-        every { query.read(guild, viewer) } returns listOf(
+        every { query.load(guild) } returns emptyList()
+        every { query.readLoaded(guild, viewer, emptyList()) } returns listOf(
             GuildStallView("stall1", "stall1", "world", "OWNED", 100L, 86400L, null, null, emptyList()),
         )
         every { regions.bounds("world", "stall1") } returns null

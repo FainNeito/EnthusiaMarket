@@ -17,13 +17,28 @@ class GuildStallQueryService(
     private val config: EnthusiaMarketConfig,
 ) {
     fun read(guildId: UUID, viewer: UUID): List<GuildStallView> {
+        val roster = roster(guildId, viewer)
+        return load(guildId).map { view(it, roster) }
+    }
+
+    /** Persistence-only phase; safe for the provider's IO executor. */
+    fun load(guildId: UUID): List<Stall> = stalls.all()
+        .filter { it.owner.type == OwnerType.GUILD && it.owner.id == guildId.toString() }
+        .sortedBy { it.id.value }
+
+    /** Companion guild caches must be accessed through the server executor. */
+    fun readLoaded(guildId: UUID, viewer: UUID, ownedStalls: List<Stall>): List<GuildStallView> {
+        val roster = roster(guildId, viewer)
+        return ownedStalls.map { view(it, roster) }
+    }
+
+    private fun roster(guildId: UUID, viewer: UUID): Set<UUID> {
         val id = guildId.toString()
         check(guilds.guildById(id) != null) { "Guild provider unavailable" }
         if (!guilds.isMember(viewer, id)) throw SecurityException("Not a current guild member")
         val roster = guilds.memberIds(id)
         check(viewer in roster) { "Guild membership read unavailable" }
-        return stalls.all().filter { it.owner.type == OwnerType.GUILD && it.owner.id == id }
-            .sortedBy { it.id.value }.map { view(it, roster) }
+        return roster
     }
 
     private fun view(stall: Stall, roster: Set<UUID>): GuildStallView = GuildStallView(

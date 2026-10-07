@@ -10,7 +10,7 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionStage
 import java.util.concurrent.Executor
 
-/** Database reads run off-thread; WorldGuard coordinates are resolved on-thread. */
+/** Database reads run off-thread; companion caches and WorldGuard stay on-thread. */
 class GuildStallReadProvider(
     private val query: GuildStallQueryService,
     private val regions: RegionProvider,
@@ -20,8 +20,8 @@ class GuildStallReadProvider(
     override fun apiVersion(): Int = GuildStallReadApi.API_VERSION
 
     override fun guildStalls(guildId: UUID, viewerId: UUID): CompletionStage<List<GuildStallSnapshot>> =
-        CompletableFuture.supplyAsync({ query.read(guildId, viewerId) }, io).thenApplyAsync({ rows ->
-            rows.map { row ->
+        CompletableFuture.supplyAsync({ query.load(guildId) }, io).thenApplyAsync({ stalls ->
+            query.readLoaded(guildId, viewerId, stalls).map { row ->
                 val bounds = regions.bounds(row.world, row.region)
                 val coordinates = bounds?.let {
                     "${it.minX + (it.maxX - it.minX) / 2}, ${it.minY}, ${it.minZ + (it.maxZ - it.minZ) / 2}"
