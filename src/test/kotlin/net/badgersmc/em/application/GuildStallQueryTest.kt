@@ -92,4 +92,3 @@ internal class GuildStallQueryTest {
         assertEquals(RentTimingPolicy.effectiveNextRentAt(stall, config), result.nextRentAt)
     }
 }
-
