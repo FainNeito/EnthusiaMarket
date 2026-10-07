@@ -19,15 +19,9 @@ internal class GuildStallReadProviderTest {
     fun separatesThreadBoundaries() {
         val io = ArrayDeque<Runnable>()
         val main = ArrayDeque<Runnable>()
-        val query = mockk<GuildStallQueryService>()
-        val regions = mockk<RegionProvider>()
         val guild = UUID.randomUUID()
         val viewer = UUID.randomUUID()
-        every { query.read(guild, viewer) } returns listOf(
-            GuildStallView("stall1", "stall1", "world", "OWNED", 100L, 86400L, null, null, emptyList()),
-        )
-        every { regions.bounds("world", "stall1") } returns null
-        val provider = GuildStallReadProvider(query, regions, Executor { io.add(it) }, Executor { main.add(it) })
+        val provider = provider(guild, viewer, io, main)
         val result = provider.guildStalls(guild, viewer).toCompletableFuture()
         assertFalse(result.isDone)
         io.removeFirst().run()
@@ -36,5 +30,17 @@ internal class GuildStallReadProviderTest {
         assertEquals("stall1", result.join().single().id())
         assertNull(result.join().single().coordinates())
         assertEquals(1, provider.apiVersion())
+    }
+
+    private fun provider(
+        guild: UUID, viewer: UUID, io: ArrayDeque<Runnable>, main: ArrayDeque<Runnable>,
+    ): GuildStallReadProvider {
+        val query = mockk<GuildStallQueryService>()
+        val regions = mockk<RegionProvider>()
+        every { query.read(guild, viewer) } returns listOf(
+            GuildStallView("stall1", "stall1", "world", "OWNED", 100L, 86400L, null, null, emptyList()),
+        )
+        every { regions.bounds("world", "stall1") } returns null
+        return GuildStallReadProvider(query, regions, Executor { io.add(it) }, Executor { main.add(it) })
     }
 }
