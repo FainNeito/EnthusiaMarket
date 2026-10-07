@@ -1,5 +1,19 @@
 # Market check refinement — 2026-10-04
 
+## Production correctness continuation — 2026-10-07
+
+Fresh canonical main remains `14351db`; the existing #197 head was `b9ec897`. Continued its work in an isolated branch/worktree. See production-delivery-correctness.md for the fourteen-item release/acceptance matrix and current network pins.
+
+REQ-335 / LOCK-336: five GuildSellbackTest cases ran with two genuine pre-guard failures. The new personal/guild cases acquire a moderation reservation between quote and confirmation. The implementation injects the registered MarketMutationGate port and rejects before sellback mutations. StallRepositorySql's existing durable lock and optimistic revision fences are preserved; these mocked application regressions do not demonstrate a production SQL-fence bypass. Default constructor compatibility and the existing rejection command path remain intact.
+
+Clean Java-25 / Paper-26.2 `test shadowJar` against the checksum-verified released LumaGuilds 3.0.23 runtime passed 820 tests, zero failures/errors, seven skips. Six skips are JdbcMarketModerationMariaDbTest, and one is MarketRemoteAuthenticationTest. GuildSellbackTest's five cases and LayerRulesTest passed. Java-21 Detekt and `git diff --check` passed. A first invocation split an unquoted Gradle property in PowerShell and failed before running tasks; the quoted clean invocation above is the successful validation.
+
+The companion SHA-256 is `c2958842e976581743af510d57547d1d38542633eeff7dd27325a5b0d307eb19`; javap confirmed systemBankWithdraw/systemBankDeposit on both API and implementation. This release reference does not prove the exact installed production binary. CI's existing 3.0.17 companion remains the declared minimum profile; its hosted execution still needs fork workflow approval.
+
+Unmerged local review artifact: `build/libs/EnthusiaMarket-1.0.0-production-review.1.jar`, SHA-256 `8b2fb334a58c3a36dfda996da0d17a4fa7b8474f20b9ff990db328fc4136964e`. This is a local test artifact, not a production release, and was not uploaded.
+
+Existing-head inspection: open/mergeable #197; build and quality workflows are action_required. Codacy's summary reported zero issues. CodeRabbit's success status accompanies an explicitly skipped review, so no completed automated review is claimed. Final published-head checks must be inspected separately. Project-local EARS/state helpers remain absent; manual requirements/tasks/evidence were maintained without a validator success claim. No canonical merge, network pin mutation, JAR upload, WorldGuard resync, production data repair or restart occurred.
+
 ## Spec
 
 Preserve REQ-323, REQ-326 and REQ-329 while reducing the remaining Codacy complexity findings to the configured limit of five. Bid rejection must retain IP reservation rollback, guild edit checks must retain field-specific authorization, and creature normalization must preserve component boundaries and custom data.

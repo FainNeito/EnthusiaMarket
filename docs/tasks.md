@@ -1113,3 +1113,7 @@ Validation: Market 806 tests, 0 failures/errors, 7 skipped; architecture checks 
 - [x] **FRAME-332** — REQ-332: proved failing defaults and shared-total behavior before implementation; 811 tests passed (7 skipped), architecture checks and Detekt passed. Configurable finite/zero limits and other entity checks are retained; defaults and evidence updated. Exact-head hosted checks and live acceptance remain separately pending; no production configuration was changed.
 
 - [ ] **REFINE-331** — REQ-323/326/329: resolve the three remaining exact-head Codacy findings while preserving permissions, escrow rollback and creature normalization. Validate with existing regression tests, architecture checks, Detekt and the actual merged companion runtime. Record hosted checks and production boundaries in docs/verification.md.
+
+## Production correctness review (2026-10-07)
+
+- [x] **LOCK-336** — REQ-335: reproduced personal/guild confirmation after a moderation reservation (five focused cases, two failing before the guard); all five pass in the final full suite. Clean full build against checksum-verified released Guilds 3.0.23: 820 tests, zero failures/errors, seven skips; shadowJar and Java-21 Detekt passed. Existing durable repository lock/revision fences remain unchanged. Hosted checks, installed companion provenance, network integration and client acceptance remain separate gates; no merge or production operation performed.
