@@ -527,6 +527,14 @@ return the stall to UNOWNED.
 
 ## Acceptance
 
+### REQ-340 — Guild stall read API
+
+**Event-driven.** WHEN a current guild member requests their guild stalls through the versioned read API THE SYSTEM SHALL return current guild-owned stall state, stored rent terms, rent/grace deadlines and current member shop capabilities using the same authority as shop protection, SHALL reject non-member or unavailable membership reads, and SHALL perform no ownership, balance, region or permission mutations.
+
+### REQ-341 — Safe asynchronous stall presentation
+
+**Ubiquitous.** THE SYSTEM SHALL perform stall persistence reads outside the server thread, SHALL resolve region coordinates on the server thread, and SHALL return failed reads as unavailable rather than report that a guild has no stalls.
+
 ### REQ-100 — Smoke test on MockBukkit
 
 **Event-driven.** WHEN the plugin is loaded into MockBukkit with default config THE SYSTEM SHALL enable without throwing and register the `enthusiamarket` command.

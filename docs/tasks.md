@@ -1,6 +1,8 @@
 
 # Tasks — EnthusiaMarket
 
+- [~] **TDD-340** Guild stall read API (REQ-340/341): API, current-member authority shared with PR #197, ownership filtering, offline roster freshness, denied/failed reads, held stalls and asynchronous boundaries implemented. Evidence: docs/guild-stall-api.md, GuildStallQueryTest and GuildStallReadProviderTest; clean full and focused local checks passed. Deliver as dependent canonical PR; hosted final-head/live acceptance remain separate. No merge or production change. Project-local EARS/state helpers are absent.
+
 **Date:** 2026-05-24
 **Status:** Bootstrap (emitted by `/spear:init`; extend via `/spear:spec`)
 

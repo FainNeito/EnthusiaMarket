@@ -26,6 +26,5 @@ class ShopAccessPolicy(
     }
 
     private fun allowsGuild(stall: net.badgersmc.em.domain.stall.Stall, actor: UUID, permission: GuildProvider.GuildPermission): Boolean =
-        stall.isActiveGuildStall() && guilds.isMember(actor, stall.owner.id) &&
-            guilds.hasShopPermission(actor, stall.owner.id, permission)
+        net.badgersmc.em.domain.stall.GuildStallAccessRules.allows(stall, actor, guilds, permission)
 }

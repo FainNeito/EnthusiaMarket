@@ -44,8 +44,7 @@ open class GuildStallProtectionListener(private val stalls: StallRepository, pri
     private fun allowed(player: Player, locations: List<Location>, permission: GuildProvider.GuildPermission): Boolean {
         if (player.hasPermission("enthusiamarket.admin")) return true
         return locations.flatMap(::at).all {
-            it.isActiveGuildStall() && guilds.isMember(player.uniqueId, it.owner.id) &&
-                guilds.hasShopPermission(player.uniqueId, it.owner.id, permission)
+            net.badgersmc.em.domain.stall.GuildStallAccessRules.allows(it, player.uniqueId, guilds, permission)
         }
     }
 

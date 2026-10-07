@@ -1,0 +1,15 @@
+# Guild stall read API (SPEAR)
+
+REQ-340/341, TDD-340. This change depends on PR #197's live guild membership and rank authority. Its review base mirrors that PR's exact head `b9ec897a55c7ab105fc7a57e51c53463af52c1be`; it must be rebased onto canonical main after #197 merges. The API PR does not deliver #197 or authorize merging either PR.
+
+The optional Bukkit service `net.enthusia.market.api.guild.GuildStallReadApi`, version 1, returns fresh guild-owned stalls, stored rent terms, collection interval and existing rent deadlines. The requested viewer must belong to the guild and appear in its full roster. Missing guild/roster/storage reads fail exceptionally rather than pretending the guild has no stall. No write, transfer, teleport, payment or moderation method is exposed.
+
+Member rows use the same GuildStallAccessRules as shop management and guild-stall protection. Offline current members are included when they have a permitted shop action. Held/inactive stalls do not advertise usable actions. These are guild-granted shop capabilities; global staff bypasses and unrelated protection rules are separate. No access is granted by viewing a row. Every refresh reads ownership and permissions again.
+
+Persistence and guild reads execute through the IO executor. Region bounds execute through the server executor. Java API records contain only JDK types and defensive collection copies. Registration is removed by the existing plugin service cleanup on disable. Old Guilds versions ignore this additive service; new Guilds versions treat missing/incompatible versions as unavailable.
+
+Proof: the new contract initially failed compilation because its implementation did not exist; this is contract-introduction evidence, not a historical behavioral regression. Tests verify ownership filtering, offline roster, permission edits/departure, holds, failed reads, incomplete roster, stored rent and the executor boundary. Existing shop/protection tests exercise the shared authority rule.
+
+Local validation: clean test/shadowJar on Java 25/Paper 26.2 passed 824 tests, zero failures/errors, seven skips (including unavailable local MariaDB cases). After query extraction and an additional incomplete-roster case, focused guild suites passed. Detekt passed on Java 21. The final companion profile uses released LumaGuilds 3.0.17, SHA-256 `de18a4672ac37f456ed72742706ae0ea7ff96dfd0f6878bc6a1d5511b9efb34a`; Nexus is the exact clean locally published CI pin `057836befb9e35aa252cf90104030ec86f28b33f`. Hosted results for the final head are a separate gate.
+
+No project-local EARS/state helpers were found; manual requirement/task/evidence records are maintained. No production upload, activation, configuration change or live client acceptance is claimed. Before deployment, both canonical changes and the owning network pins must be merged and the combined clean build verified. Guild shop XP is separate work; this service does not award XP or change trade accounting.
