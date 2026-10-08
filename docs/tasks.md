@@ -1,13 +1,6 @@
 
 # Tasks — EnthusiaMarket
 
-## Search filtering follow-up (2026-10-07)
-
-- [x] **SEARCH-343** — REQ-343: direction/stock regressions reproduced before the fix; actual shared-menu clicks prove mode retention through sort/stock/page changes, reset to page one, and the ANY -> SELL -> BUY -> ANY cycle. Existing command syntax/completion/permissions are unchanged.
-- [x] **SEARCH-344** — REQ-344: generic colored-shulker and nested-bundle regressions reproduced before the fix; all 17 modern shulker materials, exact-color exclusions, nested contents and disabled search passed. Traversal bounds are unchanged. A host-locale regression also passes.
-- [x] **SEARCH-345** — Clean full and final-source tests/build/coverage passed: 783 cases, zero failures/errors, seven existing skips. All 19 service/filter/navigation cases ran without skips; architecture and SQL search tests are included. Java-21 Detekt and diff whitespace checks passed. Local unmerged artifact/version/hash and live/client boundaries are in docs/search-filters-verification.md. Project-local EARS/state helpers remain absent; no validator success is claimed.
-- [ ] **SEARCH-RELEASE** — Inspect exact published-head hosted findings; maintainer workflow approval/review/merge, combined canonical network build and real Java/Bedrock acceptance remain distinct delivery gates. No production change.
-
 **Date:** 2026-05-24
 **Status:** Bootstrap (emitted by `/spear:init`; extend via `/spear:spec`)
 
@@ -128,6 +121,13 @@ Reported: Netherite_Ingot (15 chars) doesn't show on sign. Custom anvil names lo
   Evidence: ``
 
 ---
+
+## Search filtering follow-up (2026-10-07)
+
+- [x] **SEARCH-343** — REQ-343: direction/stock regressions reproduced before the fix; actual shared-menu clicks prove mode retention through sort/stock/page changes, reset to page one, and the ANY -> SELL -> BUY -> ANY cycle. Existing command syntax/completion/permissions are unchanged.
+- [x] **SEARCH-344** — REQ-344: generic colored-shulker and nested-bundle regressions reproduced before the fix; all 17 modern shulker materials, exact-color exclusions, nested contents and disabled search passed. Traversal bounds are unchanged. A host-locale regression also passes.
+- [x] **SEARCH-345** — Clean full and final-source tests/build/coverage passed: 783 cases, zero failures/errors, seven existing skips. All 19 service/filter/navigation cases ran without skips; architecture and SQL search tests are included. Java-21 Detekt and diff whitespace checks passed. Local unmerged artifact/version/hash and live/client boundaries are in docs/search-filters-verification.md. Project-local EARS/state helpers remain absent; no validator success is claimed.
+- [ ] **SEARCH-RELEASE** — Inspect exact published-head hosted findings; maintainer workflow approval/review/merge, combined canonical network build and real Java/Bedrock acceptance remain distinct delivery gates. No production change.
 
 ## Milestone M2 — Rent collection (REQ-003, REQ-004, REQ-041)
 

@@ -216,6 +216,12 @@ The V029 reconciliation is the release-time companion to the runtime invariants 
 4. If a shop is found, the listener cancels the move when `hopperAllowOut` (source) / `hopperAllowIn` (destination) is false; otherwise the event passes through.
 5. The index stays correct because every shop mutation flows through `IndexedShopRepository` (4.3 and the management/guild services), and `onEnable` rebuilds it from persistence.
 
+### Search direction and material-family matching (REQ-343/344)
+
+`ShopSearchService.SearchMode` selects the owner's `SignDirection`; `SearchResultsMenu` combines that selection with the existing stock filter before sorting and pagination. Its copy path retains mode on sort, stock and page changes; the direction control resets page one. Both `/finditem` and `/shop search` reuse that menu and preserve their query syntax, completion and permission checks.
+
+Generic shulker matching stays in `ShopSearchService` alongside existing categories. `shulker` and `shulker_box` include all modern shulker colors; exact-color queries, nested shulker/bundle search, opt-in gating and traversal bounds retain their existing semantics. Query casing uses Locale.ROOT. No persistence, payment, companion or trade-service contract changes.
+
 ## 5. Briefing contract for subagent dispatch
 
 Every worker dispatch (`Agent` tool call) for implementation work carries:
@@ -233,13 +239,7 @@ Tasks whose full briefing exceeds ~1500 tokens are decomposed further by `/spear
 
 Semantic versioning. Start at `0.1.0`. Bump major on breaking public-API or DB schema change (migrations always additive within a major).
 
-## 7. Search direction and material-family matching (REQ-343/344)
-
-`ShopSearchService.SearchMode` selects the owner's `SignDirection`; `SearchResultsMenu` combines that selection with the existing stock filter before sorting and pagination. Its copy path retains mode on sort, stock and page changes; the direction control resets page one. Both `/finditem` and `/shop search` reuse that menu and preserve their query syntax, completion and permission checks.
-
-Generic shulker matching stays in `ShopSearchService` alongside existing categories. `shulker` and `shulker_box` include all modern shulker colors; exact-color queries, nested shulker/bundle search, opt-in gating and traversal bounds retain their existing semantics. Query casing uses Locale.ROOT. No persistence, payment, companion or trade-service contract changes.
-
-## 8. Out of scope (this doc)
+## 7. Out of scope (this doc)
 
 - Per-component code-level docs — owned by each component's own KDoc.
 - CI configuration — owned by `tech-stack.md` §CI and the workflow file itself.
