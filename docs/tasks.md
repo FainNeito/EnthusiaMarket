@@ -5,7 +5,7 @@
 
 - [x] HELP-351 — Existing help contract executed and failed on twelve entries with missing arguments or unregistered paths; corrected registered paths/prefills and clarification of existing behavior. Contract now passes.
 - [x] HELP-352 — Refresh quick tutorial and wiki; verify added locale keys resolve under a partial existing user locale while preserving overrides. Clean full suite: 776 cases, zero failures/errors, seven external-resource skips. Detekt, architecture, frontmatter/topic parity, 31-page markdown lint and strict MkDocs passed.
-- [ ] HELP-REVIEW — Publish independent source PR and inspect exact-head comments/checks. Production permissions, rendering, locale rollout and client acceptance remain separate.
+- [x] HELP-REVIEW — #203 published independently; exact-head Codacy passed with zero annotations and no human/inline findings returned. CodeRabbit skipped review; hosted build/quality/wiki workflows need maintainer approval. Production permissions, rendering, locale rollout and client acceptance remain separate.
 
 **Date:** 2026-05-24
 **Status:** Bootstrap (emitted by `/spear:init`; extend via `/spear:spec`)
