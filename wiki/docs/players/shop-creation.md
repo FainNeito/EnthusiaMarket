@@ -5,7 +5,7 @@ topic: shop-creation
 summary: "How to create BUY, SELL, and TRADE shops — shift-click for the GUI or place a sign with text."
 keywords: [shop, create, sign, buy, sell, trade, barter, gui, shift-click]
 related: [buy-sell-trade, barter-vault, shop-management, guild-stalls]
-updated: 2026-06-29
+updated: 2026-10-07
 ---
 
 # Creating shops
@@ -27,6 +27,8 @@ This method opens a menu where you pick the trade direction, amounts, and paymen
 5. **Set per-trade amount** — how many items change hands per click.
 6. **Set your price** — currency amount for BUY/SELL, or hold the payment item for TRADE.
 7. **Confirm** — the plugin creates the shop, writes the sign text, and links everything.
+
+For a typed BUY/SELL price on Java, choose **Custom Price** in the creation menu. Enter a positive whole number when prompted, or type `cancel`. Do not confuse the item count per trade with the price. The quick tutorial is `/shophelp show`, also available as `/shoptutorial show` or `/sht show`.
 
 > **Bedrock players:** A form opens instead of the Java GUI. The process is the same — pick trade direction, amounts, and confirm.
 

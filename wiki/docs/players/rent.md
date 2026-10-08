@@ -5,7 +5,7 @@ topic: rent
 summary: How stall rent works — formula vs flat, collection, grace period, emergency auction, and extension.
 keywords: [rent, emergency-auction, grace, extension, formula, flat]
 related: [stalls, shop-creation]
-updated: 2026-06-25
+updated: 2026-10-07
 ---
 
 # Rent
@@ -50,6 +50,8 @@ If your balance is too low when rent is collected:
 ## How to pay or extend rent
 
 **Right-click the purchase sign twice** within 10 seconds (the confirmation window). Each double-click extends rent by one period.
+
+An authorized personal stall member can also renew rent. The person confirming pays from their own balance; insufficient funds or a failed persistence update must not grant an unpaid extension. Check the amount shown before confirming. Guild rent follows the guild's bank and access rules.
 
 You can pre-pay multiple periods ahead — the config option `rent.maxPrepaidPeriods` controls the cap (0 = unlimited).
 

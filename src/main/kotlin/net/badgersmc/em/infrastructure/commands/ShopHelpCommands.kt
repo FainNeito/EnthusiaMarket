@@ -19,5 +19,10 @@ class ShopHelpCommands(
         sender.sendMessage(lang.msg("shop.help.line3"))
         sender.sendMessage(lang.msg("shop.help.line4"))
         sender.sendMessage(lang.msg("shop.help.line5"))
+        sender.sendMessage(lang.msg("shop.help.line6"))
+        sender.sendMessage(lang.msg("shop.help.line7"))
+        sender.sendMessage(lang.msg("shop.help.line8"))
+        sender.sendMessage(lang.msg("shop.help.line9"))
+        sender.sendMessage(lang.msg("shop.help.line10"))
     }
 }

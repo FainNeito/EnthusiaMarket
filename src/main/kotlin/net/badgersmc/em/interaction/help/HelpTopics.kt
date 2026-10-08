@@ -18,13 +18,14 @@ object HelpTopics {
             summary = "Buy, claim, sell back, and manage member access to market stalls.",
             commands = listOf(
                 HelpCommandEntry("/em limit", "See your owned stalls and limits.", "/em limit"),
-                HelpCommandEntry("/em stall info", "View details of the stall you're standing in.", "/em stall info"),
-                HelpCommandEntry("/em stall members add <player>", "Add a member to your stall.", "/em stall members add "),
-                HelpCommandEntry("/em stall members remove <player>", "Remove a member from your stall.", "/em stall members remove "),
-                HelpCommandEntry("/em stall members list", "List members of your stall.", "/em stall members list"),
-                HelpCommandEntry("/em stall offer <price>", "Put your stall up for sale/auction.", "/em stall offer "),
-                HelpCommandEntry("/em stall buy", "Buy the stall you're standing in.", "/em stall buy"),
-                HelpCommandEntry("/em sellback", "Sell your stall back to the market.", "/em sellback"),
+                HelpCommandEntry("/em stall info <stallId>", "View the selected stall's details.", "/em stall info "),
+                HelpCommandEntry("/em stall members add <stallId> <player>", "Add a member to your stall.", "/em stall members add "),
+                HelpCommandEntry("/em stall members remove <stallId> <player>", "Remove a player's stall membership.", "/em stall members remove "),
+                HelpCommandEntry("/em stall members list <stallId>", "List members of your stall.", "/em stall members list "),
+                HelpCommandEntry("/em stall offer <stallId> <price>", "List your stall for a fixed-price sale.", "/em stall offer "),
+                HelpCommandEntry("/em stall buy <stallId>", "Buy the selected stall's sell offer.", "/em stall buy "),
+                HelpCommandEntry("/em sellback <stallId>", "Preview a sellback refund before confirming.", "/em sellback "),
+                HelpCommandEntry("/em sellback confirm <stallId>", "Confirm the quoted sellback within its confirmation window.", "/em sellback confirm "),
             ),
         ),
         HelpTopic(
@@ -32,6 +33,7 @@ object HelpTopics {
             displayName = "Creating Shops",
             summary = "Place a sign on a container and start trading — shift-click for the GUI, or write [BUY]/[SELL]/[TRADE] on the sign.",
             commands = listOf(
+                HelpCommandEntry("/shophelp show", "Read the shop tutorial; aliases shoptutorial and sht also use show.", "/shophelp show"),
                 HelpCommandEntry(
                     syntax = "(no command — shift+click a blank sign)",
                     blurb = "Shift + left-click a blank wall sign on a container to open the creation menu.",
@@ -66,8 +68,8 @@ object HelpTopics {
                 HelpCommandEntry("/shop delete [all]", "Delete a shop or all your shops.", "/shop delete "),
                 HelpCommandEntry("/shop trust <player>", "Trust a player on your shops.", "/shop trust "),
                 HelpCommandEntry("/shop untrust <player>", "Remove a player's trust.", "/shop untrust "),
-                HelpCommandEntry("/shop search <item>", "Find shops selling an item.", "/shop search "),
-                HelpCommandEntry("/shop history", "View your transaction history.", "/shop history"),
+                HelpCommandEntry("/shop search <item>", "Find matching shops; check BUY/SELL direction before trading.", "/shop search "),
+                HelpCommandEntry("/shop history [page]", "View retained transaction history; older rows may be pruned by server policy.", "/shop history"),
             ),
         ),
         HelpTopic(
@@ -80,7 +82,8 @@ object HelpTopics {
                     blurb = "Rent is deducted automatically. Keep your economy balance topped up to avoid eviction.",
                     prefill = "",
                 ),
-                HelpCommandEntry("/em stall info", "Check your stall's rent status and next due date.", "/em stall info"),
+                HelpCommandEntry("/em stall info <stallId>", "Check the selected stall's rent status and next due date.", "/em stall info "),
+                HelpCommandEntry("(right-click the purchase sign twice)", "Owners and personal stall members can pay to extend rent; check the confirmation amount.", ""),
             ),
         ),
         HelpTopic(
@@ -88,7 +91,7 @@ object HelpTopics {
             displayName = "Barter Vault",
             summary = "Collect items earned from TRADE (item-for-item) shops.",
             commands = listOf(
-                HelpCommandEntry("/em vault", "Open your barter vault to collect earned items.", "/em vault"),
+                HelpCommandEntry("/shopvault open", "Collect TRADE payment items from your barter vault.", "/shopvault open"),
             ),
         ),
         HelpTopic(
@@ -96,10 +99,10 @@ object HelpTopics {
             displayName = "Auctions",
             summary = "Bid on stalls up for auction, or put your own stall on the auction block.",
             commands = listOf(
-                HelpCommandEntry("/em bid <amount>", "Bid on the stall you're standing in.", "/em bid "),
+                HelpCommandEntry("/em bid <auctionId> <amount>", "Bid on the selected auction; use its auction ID, not the stall ID.", "/em bid "),
                 HelpCommandEntry("/em auctions", "Browse all active auctions.", "/em auctions"),
-                HelpCommandEntry("/em auction start <bid>", "Start a single-stall auction (admin).", "/em auction start "),
-                HelpCommandEntry("/em auction startall <bid>", "Mass-auction all unowned stalls (admin).", "/em auction startall "),
+                HelpCommandEntry("/em auction start <stallId> <bid> [duration]", "Start a single-stall auction (admin).", "/em auction start "),
+                HelpCommandEntry("/em auction startall <bid> [duration]", "Mass-auction all unowned stalls (admin).", "/em auction startall "),
                 HelpCommandEntry("/em auction cancel <id>", "Cancel an auction (admin).", "/em auction cancel "),
             ),
         ),
@@ -108,7 +111,7 @@ object HelpTopics {
             displayName = "Guild Stalls",
             summary = "Guild-owned stalls with member access and trade policies.",
             commands = listOf(
-                HelpCommandEntry("/em guildpolicy", "Manage guild trade policies (tariffs, embargoes).", "/em guildpolicy"),
+                HelpCommandEntry("/em guild policy", "Manage guild trade policies (tariffs, embargoes).", "/em guild policy"),
             ),
         ),
         HelpTopic(

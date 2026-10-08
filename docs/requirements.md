@@ -519,6 +519,14 @@ return the stall to UNOWNED.
 
 ---
 
+### REQ-351 — Registered help commands
+
+WHEN help advertises a command THE SYSTEM SHALL use a registered command path, include required arguments, and provide a useful prefill.
+
+### REQ-352 — Existing capability tutorial
+
+WHEN a player requests the existing shop tutorial THE SYSTEM SHALL describe supported creation, editing, bulk selection, search, rent renewal, expiry and barter-vault entry points without changing game or server policy.
+
 ## Acceptance
 
 ### REQ-100 — Smoke test on MockBukkit

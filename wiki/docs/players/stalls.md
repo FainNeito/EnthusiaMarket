@@ -77,13 +77,15 @@ Anyone can then buy it with `/em stall buy`. Cancel with `/em stall offer cancel
 
 ### Auction
 
-Start an auction on your stall:
+Administrators can start an auction on a selected stall:
 
 ```text
 /em auction start <stallId> <startingPrice> [duration]
 ```
 
 Duration is optional (default 24h, format: `PT24H` for 24 hours).
+
+This command requires `enthusiamarket.admin`. For an ordinary owner's fixed-price sale, use the sell-offer command above.
 
 ### Sellback (voluntary relinquish)
 
