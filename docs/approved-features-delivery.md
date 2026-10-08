@@ -10,9 +10,9 @@ Warnings default to 24 hours before expiry and check the responsible personal pa
 
 ## Merge path
 
-Stock-feedback reconciliation update: #213 now includes #215 and preserves shop-direction/navigation controls. Review and merge #215, then #213, then #214. The reconciled #213 clean build passed 899 cases with zero failures/errors and eight unchanged skips; architecture and Java 21 Detekt passed. Detailed tested commits, regression proof, hashes and preview are in search-stock-integration.md. Earlier narrow-build evidence below is historical for the original bundle.
+Stock-feedback reconciliation update: #213 now includes #215 and preserves shop-direction/navigation controls. Preferred combined delivery is #214 alone, which includes this bundle and #215. The alternative ancestry-preserving merge-commit order is #215, then #213, then #214; sequential squash merges require refreshing dependents. The final #213 clean build passed 899 cases with zero failures/errors and eight unchanged skips; architecture and Java 21 Detekt passed. Detailed tested commits, regression proof, hashes and preview are in search-stock-integration.md. Earlier narrow-build evidence below is historical for the original bundle.
 
-Exact-head Codacy annotations were refined and the clean 899-case build was repeated successfully at `4e7f23a`. Final local test version is `1.0.0-approved-stock-review.2`; its hash and remaining hosted/client gates are recorded in search-stock-integration.md.
+Exact-head Codacy annotations were refined and the clean 899-case build was repeated successfully at `d9b2205`. Final local test version is `1.0.0-approved-stock-review.3`; its hash and remaining hosted/client gates are recorded in search-stock-integration.md.
 
 This bundle starts from authoritative main `14351db4dc416138341a11d0e4e27602f207221b` and reconciles the reviewed sources of #197 (correctness), #198 (guild read API), #199 (search), #201 (storage), and the four feature PRs #209-212. It preserves the warning listener's repository registration order, both direction filters and navigation callbacks, the shared guild-authority rule, and all shutdown callbacks. Guilds #216 supplies the optional public alliance service and Java/Bedrock guild-detail shortcut; its prerequisite is Guilds #215. Older Guilds runtimes deny allied access safely.
 
