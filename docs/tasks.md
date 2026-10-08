@@ -2,6 +2,11 @@
 # Tasks — EnthusiaMarket
 
 - [~] **TDD-340** Guild stall read API (REQ-340/341): API, current-member authority shared with PR #197, ownership filtering, offline roster freshness, denied/failed reads, held stalls and asynchronous boundaries implemented. Evidence: docs/guild-stall-api.md, GuildStallQueryTest and GuildStallReadProviderTest; clean full and focused local checks passed. Deliver as dependent canonical PR; hosted final-head/live acceptance remain separate. No merge or production change. Project-local EARS/state helpers are absent.
+## Storage maintenance (2026-10-07)
+
+- [x] NOTIFY-345 — REQ-345/346/347: reproduce unavailable join storage; isolate SQL on bounded worker, deliver on server thread, acknowledge snapshot watermark, retain unread rows across failure/rejection/disconnect/disable.
+- [ ] NOTIFY-REVIEW — Publish source PR and inspect exact-head comments/checks. Production and Java/Bedrock acceptance remain separate.
+- [ ] HISTORY-DURABILITY — Separate completed-trade journal implementation; compose with pending guild-XP journal and retain crash/ambiguous settlement boundaries.
 
 **Date:** 2026-05-24
 **Status:** Bootstrap (emitted by `/spear:init`; extend via `/spear:spec`)

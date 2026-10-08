@@ -61,4 +61,22 @@ class ShopTransactionRepositorySqlTest {
         assertEquals(1, repo.prune(beforeMs = 2_000))
         assertEquals(1, repo.findByOwner(owner, 10, 0).size)
     }
+
+    @Test fun `summary acknowledgement excludes later sales and other owners`() {
+        val repo = ShopTransactionRepositorySql(ds)
+        val owner = UUID.randomUUID()
+        val other = UUID.randomUUID()
+        repo.record(tx(owner, createdAt = 1_000))
+        val last = repo.record(tx(owner, createdAt = 1_000))
+        val summary = repo.pendingSales(owner)
+        assertEquals(2, summary.count)
+        assertEquals(last.id, summary.lastId)
+        repo.record(tx(owner, createdAt = 1_000))
+        repo.record(tx(other, createdAt = 1_000))
+        repo.markNotifiedThrough(owner, summary.lastId)
+        assertEquals(1, repo.countUnnotified(owner))
+        assertEquals(1, repo.countUnnotified(other))
+        repo.markNotifiedThrough(owner, summary.lastId)
+        assertEquals(1, repo.countUnnotified(owner))
+    }
 }

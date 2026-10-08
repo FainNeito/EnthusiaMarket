@@ -29,6 +29,7 @@ import javax.sql.DataSource
 open class EnthusiaMarket : JavaPlugin() {
 
     private var nexus: NexusContext? = null
+    private var shopNotifications: net.badgersmc.em.infrastructure.listeners.ShopNotificationStorage? = null
     private var scheduler: NexusScheduler? = null
     private var websiteSync: net.badgersmc.em.websync.WebsiteSyncService? = null
     private var bedrockHeadStore: net.badgersmc.em.websync.heads.BedrockHeadStore? = null
@@ -112,6 +113,7 @@ open class EnthusiaMarket : JavaPlugin() {
         val ds = DatabaseFactory.open(dbSpec)
         MigrationRunner(ds, resourcePrefix = "migrations", classLoader = this::class.java.classLoader).runAll()
         ctx.registerBean("dataSource", DataSource::class, ds as DataSource)
+        shopNotifications = ctx.getBean<net.badgersmc.em.infrastructure.listeners.ShopNotificationStorage>()
 
         // Stable Staff integration. Register the policy before Nexus constructs any
         // purchase or auction services so every acquisition shares the durable fence.
@@ -519,6 +521,7 @@ open class EnthusiaMarket : JavaPlugin() {
     }
 
     override fun onDisable() {
+        shopNotifications?.close()
         server.servicesManager.unregisterAll(this)
         runCatching { moderationProvider?.close() }
         runCatching { geyserHeadIntegration?.close() }

@@ -1,6 +1,7 @@
 package net.badgersmc.em.infrastructure.persistence
 
 import net.badgersmc.em.domain.shop.PriceStats
+import net.badgersmc.em.domain.shop.PendingShopSales
 import net.badgersmc.em.domain.shop.ShopTransaction
 import net.badgersmc.em.domain.shop.ShopTransactionRepository
 import net.badgersmc.em.domain.shop.SignDirection
@@ -90,6 +91,30 @@ class ShopTransactionRepositorySql(private val ds: DataSource) : ShopTransaction
             c.prepareStatement("UPDATE shop_transactions SET notified = 1 WHERE owner = ? AND notified = 0").use { ps ->
                 ps.setString(1, owner.toString())
                 ps.executeUpdate()
+            }
+        }
+    }
+
+    override fun pendingSales(owner: UUID): PendingShopSales = ds.connection.use { connection ->
+        connection.prepareStatement(
+            "SELECT COUNT(*), COALESCE(MAX(id), 0) FROM shop_transactions WHERE owner = ? AND notified = 0"
+        ).use { statement ->
+            statement.setString(1, owner.toString())
+            statement.executeQuery().use { rows ->
+                rows.next()
+                PendingShopSales(rows.getInt(1), rows.getLong(2))
+            }
+        }
+    }
+
+    override fun markNotifiedThrough(owner: UUID, lastId: Long) {
+        ds.connection.use { connection ->
+            connection.prepareStatement(
+                "UPDATE shop_transactions SET notified = 1 WHERE owner = ? AND notified = 0 AND id <= ?"
+            ).use { statement ->
+                statement.setString(1, owner.toString())
+                statement.setLong(2, lastId)
+                statement.executeUpdate()
             }
         }
     }

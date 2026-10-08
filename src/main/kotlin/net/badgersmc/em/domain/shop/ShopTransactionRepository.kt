@@ -5,6 +5,9 @@ import java.util.UUID
 /** Average price stats for a sell item over a time window. */
 data class PriceStats(val avgPrice: Double, val sampleCount: Int)
 
+/** One consistent unread-sale snapshot; ids above [lastId] must stay unread. */
+data class PendingShopSales(val count: Int, val lastId: Long)
+
 /** Aggregated price-change data for the search results ticker icon. */
 data class PriceTicker(
     val avgPrice: Double,
@@ -22,6 +25,11 @@ interface ShopTransactionRepository {
     fun findByOwnerOrBuyer(player: UUID, limit: Int, offset: Int): List<ShopTransaction>
     fun countUnnotified(owner: UUID): Int
     fun markNotified(owner: UUID)
+    fun pendingSales(owner: UUID): PendingShopSales =
+        throw UnsupportedOperationException("Unread sale snapshots are not supported by this repository")
+    fun markNotifiedThrough(owner: UUID, lastId: Long) {
+        throw UnsupportedOperationException("Bounded sale acknowledgement is not supported by this repository")
+    }
     /** Delete rows older than [beforeMs]; returns rows removed. */
     fun prune(beforeMs: Long): Int
     /** Average sell price for [item] between [fromMs] (inclusive) and [toMs] (exclusive). */
