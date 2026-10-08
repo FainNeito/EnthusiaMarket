@@ -181,7 +181,7 @@ Reported: Netherite_Ingot (15 chars) doesn't show on sign. Custom anvil names lo
 - [x] SIGN-353 — Original sign lookup regression executed and failed with unavailable SQL; indexed hit and miss now bypass the SQL delegate.
 - [x] SIGN-354 — Reconcile stock/batches, bulk freeze, metadata, moved coordinates and deletion after successful persistence. Failed stock persistence preserves cached inputs. Live moderation fences remain immediate.
 - [x] SIGN-VERIFY — Clean Java 25/Paper 26.2 full test/shadowJar: 779 cases, zero failures/errors, seven external-resource skips. Architecture checks and Java-21 Detekt passed.
-- [ ] SIGN-REVIEW — Publish source and inspect exact-head comments/checks. Purchase-stall signs, currency settlement, hosted approval and live acceptance remain separate.
+- [x] SIGN-REVIEW: Published #204; reviewed head 1522bbe passed Codacy with zero annotations and no human/inline findings. Hosted workflows require maintainer approval. Purchase-stall signs, settlement and live acceptance remain separate.
 
 ## Milestone M3 — Auctions (REQ-007, REQ-008, REQ-009)
 
