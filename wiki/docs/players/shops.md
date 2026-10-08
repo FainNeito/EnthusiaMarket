@@ -160,7 +160,6 @@ Next-page links retain the selected filter. `all` and the original history comma
 show all **retained** records; pruned transactions are unavailable. Retention settings
 are unchanged. These commands do not mark sales as notified or expose other players' history.
 
-
 ## Guild stall contribution reports
 
 Guild shop managers can view observed contributions and sales:
