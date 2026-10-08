@@ -22,6 +22,8 @@ Clean Java-25/Paper-26.2 test/shadowJar/jacoco build passes 778 cases, zero fail
 
 ## Tasks and remaining work
 
+Review refinement: Codacy flagged the scoped test-fixture initializer; use explicit per-test setup/teardown instead. The refined clean build still passes 778 cases with zero failures/errors and seven external-resource skips; Detekt passes. Refined local review JAR SHA-256: 7c618a83f7104e486ffd88af06334efae40c4cdca1a19765f27747d73bf5f2b9. Initial integration rehearsal with pending #197-#206 passes all six focused workload, architecture and Guilds-runtime cases at adfd4719261829245522af1cdee078d73abae41d. Market delivery is [#208](https://github.com/BadgersMC/EnthusiaMarket/pull/208); hosted fork workflows require maintainer approval and do not constitute passing CI.
+
 - [x] Specify and characterize sale/batch adapter counts and conservation.
 - [x] Characterize auction discovery/reminder/per-auction calling-thread work and correct the misleading scheduler comment.
 - [x] Prove and submit the independently supported Currency stale-read coalescing fix.

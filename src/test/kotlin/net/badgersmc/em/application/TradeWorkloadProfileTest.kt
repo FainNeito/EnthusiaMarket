@@ -19,35 +19,39 @@ import org.bukkit.inventory.ItemStack
 import org.mockbukkit.mockbukkit.MockBukkit
 import java.util.UUID
 import kotlin.test.Test
+import kotlin.test.BeforeTest
+import kotlin.test.AfterTest
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
 /** Measures adapter calls, not production throughput. Real service/inventory transfers execute. */
 class TradeWorkloadProfileTest {
+    private lateinit var fixture: SaleFixture
+    @BeforeTest fun setUp() { fixture = SaleFixture() }
+    @AfterTest fun tearDown() { fixture.close() }
+
     @Test fun `individual sales conserve value and repeat provider calls`() {
-        SaleFixture().use { f ->
-            val start = System.nanoTime()
-            repeat(100) { assertIs<ContainerTradeResult.Success>(f.service.executeSell(f.shop, f.buyer)) }
-            f.assertConserved()
-            assertEquals(100, f.balanceReads)
-            assertEquals(100, f.withdrawals)
-            assertEquals(100, f.deposits)
-            println("sale-profile mode=individual trades=100 balance-reads=${f.balanceReads} " +
-                "elapsed-ms=${(System.nanoTime() - start) / 1_000_000.0}")
-        }
+        val f = fixture
+        val start = System.nanoTime()
+        repeat(100) { assertIs<ContainerTradeResult.Success>(f.service.executeSell(f.shop, f.buyer)) }
+        f.assertConserved()
+        assertEquals(100, f.balanceReads)
+        assertEquals(100, f.withdrawals)
+        assertEquals(100, f.deposits)
+        println("sale-profile mode=individual trades=100 balance-reads=${f.balanceReads} " +
+            "elapsed-ms=${(System.nanoTime() - start) / 1_000_000.0}")
     }
 
     @Test fun `bulk sales conserve the same value with one provider operation per phase`() {
-        SaleFixture().use { f ->
-            val start = System.nanoTime()
-            assertIs<ContainerTradeResult.Success>(f.service.executeSellBatch(f.shop, f.buyer, 100))
-            f.assertConserved()
-            assertEquals(1, f.balanceReads)
-            assertEquals(1, f.withdrawals)
-            assertEquals(1, f.deposits)
-            println("sale-profile mode=batch trades=100 balance-reads=${f.balanceReads} " +
-                "elapsed-ms=${(System.nanoTime() - start) / 1_000_000.0}")
-        }
+        val f = fixture
+        val start = System.nanoTime()
+        assertIs<ContainerTradeResult.Success>(f.service.executeSellBatch(f.shop, f.buyer, 100))
+        f.assertConserved()
+        assertEquals(1, f.balanceReads)
+        assertEquals(1, f.withdrawals)
+        assertEquals(1, f.deposits)
+        println("sale-profile mode=batch trades=100 balance-reads=${f.balanceReads} " +
+            "elapsed-ms=${(System.nanoTime() - start) / 1_000_000.0}")
     }
 }
 
