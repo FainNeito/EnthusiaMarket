@@ -19,14 +19,14 @@ class FinderOutlineTest {
     @Test fun `near destination gains outline and arrival retains it for ten seconds`() {
         val tracker = FinderTrailTracker()
         tracker.start(player, FinderTrailTracker.Trail("world", target, now.plusSeconds(60), footprint), 1)
-        val near = tracker.renderFrames(now, 200, 256.0, options) { "world" to target.copy(x = 15.0) }
+        val near = tracker.renderFrames(now, FinderTrailTracker.RenderSettings(200, 256.0, options)) { "world" to target.copy(x = 15.0) }
         assertTrue(near.getValue(player).outline.isNotEmpty())
-        val arrived = tracker.renderFrames(now.plusSeconds(59), 200, 256.0, options) { "world" to target }
+        val arrived = tracker.renderFrames(now.plusSeconds(59), FinderTrailTracker.RenderSettings(200, 256.0, options)) { "world" to target }
         assertTrue(arrived.getValue(player).direction.isEmpty())
         assertTrue(arrived.getValue(player).outline.isNotEmpty())
         assertEquals(1, tracker.count())
-        assertTrue(tracker.renderFrames(now.plusSeconds(68), 200, 256.0, options) { "world" to target }.isNotEmpty())
-        assertTrue(tracker.renderFrames(now.plusSeconds(69), 200, 256.0, options) { "world" to target }.isEmpty())
+        assertTrue(tracker.renderFrames(now.plusSeconds(68), FinderTrailTracker.RenderSettings(200, 256.0, options)) { "world" to target }.isNotEmpty())
+        assertTrue(tracker.renderFrames(now.plusSeconds(69), FinderTrailTracker.RenderSettings(200, 256.0, options)) { "world" to target }.isEmpty())
     }
 
     @Test fun `outline uses polygon edges and clips tall region around shop height`() {
@@ -50,9 +50,9 @@ class FinderOutlineTest {
                                         footprint to options.copy(arrivalSeconds = 0))) {
             val tracker = FinderTrailTracker()
             tracker.start(player, FinderTrailTracker.Trail("world", target, now.plusSeconds(60), shape), 1)
-            assertTrue(tracker.renderFrames(now, 200, 256.0, settings) { "world" to target.copy(x = 50.0) }
+            assertTrue(tracker.renderFrames(now, FinderTrailTracker.RenderSettings(200, 256.0, settings)) { "world" to target.copy(x = 50.0) }
                 .getValue(player).outline.isEmpty())
-            assertTrue(tracker.renderFrames(now, 200, 256.0, settings) { "world" to target }.isEmpty())
+            assertTrue(tracker.renderFrames(now, FinderTrailTracker.RenderSettings(200, 256.0, settings)) { "world" to target }.isEmpty())
         }
     }
 
@@ -62,13 +62,13 @@ class FinderOutlineTest {
         val trail = FinderTrailTracker.Trail("world", target, now.plusSeconds(60), footprint)
         tracker.start(player, trail, 2)
         tracker.start(other, trail, 2)
-        val first = tracker.renderFrames(now, 20, 256.0, options) { "world" to target.copy(x = 15.0) }
-        val second = tracker.renderFrames(now, 20, 256.0, options) { "world" to target.copy(x = 15.0) }
+        val first = tracker.renderFrames(now, FinderTrailTracker.RenderSettings(20, 256.0, options)) { "world" to target.copy(x = 15.0) }
+        val second = tracker.renderFrames(now, FinderTrailTracker.RenderSettings(20, 256.0, options)) { "world" to target.copy(x = 15.0) }
         assertEquals(20, first.values.sumOf { it.direction.size + it.outline.size })
         assertTrue(second.getValue(other).outline.isNotEmpty())
-        tracker.renderFrames(now, 200, 256.0, options) { "world" to target }
+        tracker.renderFrames(now, FinderTrailTracker.RenderSettings(200, 256.0, options)) { "world" to target }
         tracker.start(player, trail.copy(target = target.copy(x = 40.0)), 2)
-        assertTrue(tracker.renderFrames(now.plusSeconds(1), 200, 256.0, options) { "world" to target }
+        assertTrue(tracker.renderFrames(now.plusSeconds(1), FinderTrailTracker.RenderSettings(200, 256.0, options)) { "world" to target }
             .getValue(player).direction.isNotEmpty())
         tracker.clear()
         assertEquals(0, tracker.count())
@@ -78,14 +78,14 @@ class FinderOutlineTest {
         for (location in listOf(null, "nether" to target, "world" to target.copy(x = -500.0))) {
             val tracker = FinderTrailTracker()
             tracker.start(player, FinderTrailTracker.Trail("world", target, now.plusSeconds(60), footprint), 1)
-            tracker.renderFrames(now, 200, 256.0, options) { "world" to target }
-            assertTrue(tracker.renderFrames(now.plusSeconds(1), 200, 256.0, options) { location }.isEmpty())
+            tracker.renderFrames(now, FinderTrailTracker.RenderSettings(200, 256.0, options)) { "world" to target }
+            assertTrue(tracker.renderFrames(now.plusSeconds(1), FinderTrailTracker.RenderSettings(200, 256.0, options)) { location }.isEmpty())
         }
         val tracker = FinderTrailTracker()
         tracker.start(player, FinderTrailTracker.Trail("world", target, now.plusSeconds(60), footprint), 1)
-        tracker.renderFrames(now, 200, 256.0, options) { "world" to target }
-        tracker.renderFrames(now.plusSeconds(9), 200, 256.0, options) { "world" to target.copy(x = 15.0) }
-        assertTrue(tracker.renderFrames(now.plusSeconds(10), 200, 256.0, options) { "world" to target }.isEmpty())
+        tracker.renderFrames(now, FinderTrailTracker.RenderSettings(200, 256.0, options)) { "world" to target }
+        tracker.renderFrames(now.plusSeconds(9), FinderTrailTracker.RenderSettings(200, 256.0, options)) { "world" to target.copy(x = 15.0) }
+        assertTrue(tracker.renderFrames(now.plusSeconds(10), FinderTrailTracker.RenderSettings(200, 256.0, options)) { "world" to target }.isEmpty())
     }
 
     @Test fun `invalid config is bounded and marker is optional`() {

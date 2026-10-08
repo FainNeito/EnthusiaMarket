@@ -30,15 +30,18 @@ object FinderOutlinePlanner {
         val limit = minOf(settings.maxPoints, budget)
         val height = minOf(settings.height, footprint.maxY - footprint.minY)
         val bottom = (target.y - 0.5).coerceIn(footprint.minY, footprint.maxY - height)
-        return samples(footprint, target, settings, limit, bottom, bottom + height)
+        return samples(footprint, target, settings, Sampling(limit, bottom, bottom + height))
     }
 
     private data class Edge(val from: FinderTrailTracker.Point, val to: FinderTrailTracker.Point) {
         val length: Double get() = from.distance(to)
     }
 
+    private data class Sampling(val limit: Int, val bottom: Double, val top: Double)
+
     private fun samples(shape: RegionProvider.Footprint, target: FinderTrailTracker.Point,
-                        options: FinderOutlineOptions, limit: Int, bottom: Double, top: Double): List<FinderTrailTracker.Point> {
+                        options: FinderOutlineOptions, sampling: Sampling): List<FinderTrailTracker.Point> {
+        val (limit, bottom, top) = sampling
         val marker = if (options.marker) (0..3).map { target.copy(y = target.y + 0.5 + it * 0.4) } else emptyList()
         val corners = shape.vertices.flatMap { listOf(
             FinderTrailTracker.Point(it.x, bottom, it.z), FinderTrailTracker.Point(it.x, top, it.z)) }

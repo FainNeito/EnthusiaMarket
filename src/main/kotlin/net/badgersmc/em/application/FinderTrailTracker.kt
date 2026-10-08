@@ -13,6 +13,8 @@ class FinderTrailTracker {
     }
     data class Trail(val world: String, val target: Point, val expiresAt: Instant,
                      val footprint: RegionProvider.Footprint? = null)
+    data class RenderSettings(val budget: Int, val range: Double, val outline: FinderOutlineOptions)
+    private data class RenderContext(val now: Instant, val settings: RenderSettings)
     data class Frame(val direction: List<Point>, val outline: List<Point>)
     private data class Active(val trail: Trail, var arrivedAt: Instant? = null)
     private val active = linkedMapOf<UUID, Active>()
@@ -30,41 +32,48 @@ class FinderTrailTracker {
     /** Existing direction-only callers retain immediate arrival termination. */
     fun render(now: Instant, maxParticles: Int, maxRange: Double,
                position: (UUID) -> Pair<String, Point>?): Map<UUID, List<Point>> =
-        renderFrames(now, maxParticles, maxRange, FinderOutlineOptions(enabled = false), position)
+        renderFrames(now, RenderSettings(maxParticles, maxRange, FinderOutlineOptions(enabled = false)), position)
             .mapValues { it.value.direction }
 
-    fun renderFrames(now: Instant, budget: Int, range: Double, options: FinderOutlineOptions,
+    fun renderFrames(now: Instant, settings: RenderSettings,
                      position: (UUID) -> Pair<String, Point>?): Map<UUID, Frame> {
         val plans = linkedMapOf<UUID, Frame>()
         val players = active.keys.toList()
         if (players.isEmpty()) return plans
         val ordered = players.drop(offset % players.size) + players.take(offset % players.size)
         offset = (offset + 1) % players.size
-        var remaining = budget.coerceAtLeast(0)
+        val context = RenderContext(now, settings.copy(outline = settings.outline.normalized()))
+        var remaining = settings.budget.coerceAtLeast(0)
         for (player in ordered) {
             val entry = active.getValue(player)
-            val origin = origin(entry, now, range, options.normalized(), position(player))
+            val origin = origin(entry, context, position(player))
             if (origin == null) { stop(player); continue }
-            val frame = frame(entry, origin, options.normalized(), remaining)
+            val frame = frame(entry, origin, context.settings.outline, remaining)
             plans[player] = frame
             remaining -= frame.direction.size + frame.outline.size
         }
         return plans
     }
 
-    private fun origin(entry: Active, now: Instant, range: Double, options: FinderOutlineOptions,
+    private fun origin(entry: Active, context: RenderContext,
                        location: Pair<String, Point>?): Point? {
+        val now = context.now
+        val options = context.settings.outline
         if (location == null || location.first != entry.trail.world) return null
         val distance = location.second.distance(entry.trail.target)
-        if (!distance.isFinite() || distance > range) return null
+        if (!distance.isFinite() || distance > context.settings.range) return null
         if (entry.arrivedAt == null && !now.isBefore(entry.trail.expiresAt)) return null
         if (distance <= ARRIVAL_RADIUS && entry.arrivedAt == null) {
             if (!canLinger(entry, options)) return null
             entry.arrivedAt = now
         }
-        val arrival = entry.arrivedAt
-        if (arrival != null && (!canLinger(entry, options) || !now.isBefore(arrival.plusSeconds(options.arrivalSeconds)))) return null
+        if (arrivalEnded(entry, now, options)) return null
         return location.second
+    }
+
+    private fun arrivalEnded(entry: Active, now: Instant, options: FinderOutlineOptions): Boolean {
+        val arrival = entry.arrivedAt ?: return false
+        return !canLinger(entry, options) || !now.isBefore(arrival.plusSeconds(options.arrivalSeconds))
     }
 
     private fun canLinger(entry: Active, options: FinderOutlineOptions): Boolean =

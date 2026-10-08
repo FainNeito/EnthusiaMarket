@@ -40,13 +40,16 @@ class FinderTrailService(
         }
         val trail = FinderTrailTracker.Trail(shop.signWorld, target,
             Instant.now().plusSeconds(config.finderTrail.durationSeconds.coerceIn(1, MAX_DURATION)),
-            if (config.finderTrail.outline.enabled) regions.footprint(shop.signWorld, shop.stallId) else null)
+            footprint(shop))
         if (!tracker.start(player.uniqueId, trail, config.finderTrail.maxActive.coerceIn(1, MAX_ACTIVE))) {
             player.sendMessage(lang.msg("finder_trail.busy")); return
         }
         ensureRenderTask()
         player.sendMessage(lang.msg("finder_trail.started", "seconds" to config.finderTrail.durationSeconds.coerceIn(1, MAX_DURATION)))
     }
+
+    private fun footprint(shop: Shop): RegionProvider.Footprint? =
+        if (config.finderTrail.outline.enabled) regions.footprint(shop.signWorld, shop.stallId) else null
 
     private fun ensureRenderTask() {
         if (task == null) task = plugin.server.scheduler.runTaskTimer(plugin, Runnable { render() }, 1, RENDER_TICKS)
@@ -59,8 +62,9 @@ class FinderTrailService(
 
     internal fun render() {
         if (!config.finderTrail.enabled) tracker.clear()
-        val plans = tracker.renderFrames(Instant.now(), config.finderTrail.maxParticlesPerRender.coerceIn(0, MAX_BUDGET),
-            range(), FinderOutlineStyle.options(config.finderTrail.outline)) { id ->
+        val plans = tracker.renderFrames(Instant.now(), FinderTrailTracker.RenderSettings(
+            config.finderTrail.maxParticlesPerRender.coerceIn(0, MAX_BUDGET),
+            range(), FinderOutlineStyle.options(config.finderTrail.outline))) { id ->
             val player = Bukkit.getPlayer(id)?.takeIf { it.isOnline && !it.isDead } ?: return@renderFrames null
             val point = player.location
             player.world.name to FinderTrailTracker.Point(point.x, point.y + 0.5, point.z)
