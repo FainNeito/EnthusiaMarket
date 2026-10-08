@@ -13,6 +13,20 @@ interface ShopLocationIndex {
     /** Shops whose container block is at ([world], [x], [y], [z]); empty when none. */
     fun shopsAt(world: String, x: Int, y: Int, z: Int): List<Shop>
 
+    /** Current shop at a sign coordinate; no database fallback. */
+    fun shopAtSign(world: String, x: Int, y: Int, z: Int): Shop? =
+        throw UnsupportedOperationException("Sign indexing is not supported by this implementation")
+
+    /** Reconcile a successful persisted stock update without another SQL read. */
+    fun updateStock(id: Long, stockCount: Int) {
+        throw UnsupportedOperationException("Stock reconciliation is not supported by this implementation")
+    }
+
+    /** Reconcile a successful bulk freeze without a follow-up database query. */
+    fun freezeByStall(stallId: String, frozen: Boolean) {
+        throw UnsupportedOperationException("Freeze reconciliation is not supported by this implementation")
+    }
+
     /** Index (or re-index) [shop] under its container coordinate. */
     fun put(shop: Shop)
 

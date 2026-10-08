@@ -8,13 +8,11 @@ import java.util.UUID
 
 /**
  * [ShopRepository] decorator (REQ-281/282) that keeps a [ShopLocationIndex] in lockstep with the
- * persisted state and serves the hopper hot path's [findByContainer] from memory. Application layer:
+ * persisted state and serves [findByContainer] and [findBySign] from memory. Application layer:
  * the single choke point through which every shop mutation flows (decision: docs/tasks.md PERF-2).
  *
- * Reads other than [findByContainer] pass straight through; mutations delegate and then reconcile the
- * index. [updateStock] does not touch the index — no [findByContainer] consumer relies on the cached
- * `stockCount` (ContainerStockListener recomputes stock from the live container), so the cached copy
- * staying at its last-indexed stock is harmless and avoids a read on the trade path.
+ * Other reads pass through. Mutations persist first, then reconcile the index; stock and bulk freeze
+ * updates reconcile without a second SQL read. Live moderation locks overlay either coordinate result.
  */
 @Suppress("TooManyFunctions")
 class IndexedShopRepository(
@@ -23,17 +21,9 @@ class IndexedShopRepository(
     private val moderationGate: MarketMutationGate = MarketMutationGate.Open,
 ) : ShopRepository {
 
-    /** Replace any prior index entry for [shop]'s id at its container coordinate, then index it. */
-    private fun reindex(shop: Shop) {
-        index.shopsAt(shop.containerWorld, shop.containerX, shop.containerY, shop.containerZ)
-            .firstOrNull { it.id == shop.id }
-            ?.let { index.remove(it) }
-        index.put(shop)
-    }
-
     override fun upsert(shop: Shop): Shop {
         val persisted = delegate.upsert(shop)
-        reindex(persisted)
+        index.put(persisted)
         return persisted
     }
 
@@ -55,14 +45,19 @@ class IndexedShopRepository(
         return removed
     }
 
-    override fun updateStock(id: Long, stockCount: Int) = delegate.updateStock(id, stockCount)
+    override fun updateStock(id: Long, stockCount: Int) {
+        delegate.updateStock(id, stockCount)
+        index.updateStock(id, stockCount)
+    }
 
-    override fun updateStockBatch(batch: Map<Long, Int>) = delegate.updateStockBatch(batch)
+    override fun updateStockBatch(batch: Map<Long, Int>) {
+        delegate.updateStockBatch(batch)
+        batch.forEach { (id, stock) -> index.updateStock(id, stock) }
+    }
 
     override fun freezeByStall(stallId: String, frozen: Boolean) {
         delegate.freezeByStall(stallId, frozen)
-        // Reindex every shop under this stall so findByContainer sees the current frozen state.
-        delegate.findByStall(stallId).forEach(::reindex)
+        index.freezeByStall(stallId, frozen)
     }
 
     override fun findByContainer(world: String, x: Int, y: Int, z: Int): List<Shop> =
@@ -72,7 +67,10 @@ class IndexedShopRepository(
 
     // --- pass-through reads ---
     override fun findById(id: Long): Shop? = delegate.findById(id)
-    override fun findBySign(world: String, x: Int, y: Int, z: Int): Shop? = delegate.findBySign(world, x, y, z)
+    override fun findBySign(world: String, x: Int, y: Int, z: Int): Shop? =
+        index.shopAtSign(world, x, y, z)?.let { shop ->
+            if (moderationGate.isStallLocked(shop.stallId)) shop.copy(frozen = true) else shop
+        }
     override fun findByStall(stallId: String): List<Shop> = delegate.findByStall(stallId)
     override fun findByOwner(owner: UUID): List<Shop> = delegate.findByOwner(owner)
     override fun all(): List<Shop> = delegate.all()

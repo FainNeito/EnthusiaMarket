@@ -44,6 +44,76 @@ class IndexedShopRepositoryTest {
     }
 
     @Test
+    fun `findBySign resolves current shop without SQL during outage`() {
+        val sale = shop(1)
+        val index = InMemoryShopLocationIndex().apply { put(sale) }
+        val delegate = mockk<ShopRepository>()
+        every { delegate.findBySign(any(), any(), any(), any()) } throws IllegalStateException("SQL unavailable")
+        val repo = IndexedShopRepository(delegate, index)
+        assertEquals(sale, repo.findBySign("world", 0, 64, 0))
+        verify(exactly = 0) { delegate.findBySign(any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `sign miss never falls back to SQL`() {
+        val delegate = mockk<ShopRepository>()
+        val repo = IndexedShopRepository(delegate, InMemoryShopLocationIndex())
+        assertEquals(null, repo.findBySign("world", 0, 64, 0))
+        verify(exactly = 0) { delegate.findBySign(any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `sign cache reconciles stock batches and failed persistence leaves old values`() {
+        val delegate = mockk<ShopRepository>(relaxed = true)
+        val index = InMemoryShopLocationIndex().apply { put(shop(1).copy(stockCount = 4)) }
+        val repo = IndexedShopRepository(delegate, index)
+        repo.updateStock(1, 10)
+        assertEquals(10, repo.findBySign("world", 0, 64, 0)?.stockCount)
+        repo.updateStockBatch(mapOf(1L to 12))
+        assertEquals(12, repo.findBySign("world", 0, 64, 0)?.stockCount)
+        every { delegate.updateStockBatch(any()) } throws IllegalStateException("storage offline")
+        kotlin.test.assertFailsWith<IllegalStateException> { repo.updateStockBatch(mapOf(1L to 99)) }
+        assertEquals(12, repo.findBySign("world", 0, 64, 0)?.stockCount)
+    }
+
+    @Test
+    fun `persisted freeze reconciles caches without follow-up SQL and moderation lock is immediate`() {
+        val delegate = mockk<ShopRepository>(relaxed = true)
+        val index = InMemoryShopLocationIndex().apply { put(shop(1)) }
+        var locked = false
+        val gate = mockk<net.badgersmc.em.domain.ports.MarketMutationGate>()
+        every { gate.isStallLocked(any()) } answers { locked }
+        val repo = IndexedShopRepository(delegate, index, gate)
+        repo.freezeByStall("stall_01", true)
+        assertTrue(repo.findBySign("world", 0, 64, 0)!!.frozen)
+        verify(exactly = 0) { delegate.findByStall(any()) }
+        repo.freezeByStall("stall_01", false)
+        assertFalse(repo.findBySign("world", 0, 64, 0)!!.frozen)
+        locked = true
+        assertTrue(repo.findBySign("world", 0, 64, 0)!!.frozen)
+        locked = false
+        assertFalse(repo.findBySign("world", 0, 64, 0)!!.frozen)
+    }
+
+    @Test
+    fun `moving and deleting shop removes old sign and container entries`() {
+        val original = shop(1)
+        val index = InMemoryShopLocationIndex().apply { put(original) }
+        val delegate = mockk<ShopRepository>(relaxed = true)
+        val moved = original.copy(signX = 2, containerX = 12, costAmount = 30)
+        every { delegate.upsert(any()) } returns moved
+        every { delegate.findById(1) } returns moved
+        val repo = IndexedShopRepository(delegate, index)
+        repo.upsert(moved)
+        assertEquals(null, repo.findBySign("world", 0, 64, 0))
+        assertTrue(repo.findByContainer("world", 10, 64, 20).isEmpty())
+        assertEquals(30, repo.findBySign("world", 2, 64, 0)?.costAmount)
+        repo.delete(1)
+        assertEquals(null, repo.findBySign("world", 2, 64, 0))
+        assertTrue(repo.findByContainer("world", 12, 64, 20).isEmpty())
+    }
+
+    @Test
     fun `upsert persists via the delegate and indexes the returned shop`() {
         val index = InMemoryShopLocationIndex()
         val delegate = mockk<ShopRepository>(relaxed = true)
