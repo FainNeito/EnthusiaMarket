@@ -555,6 +555,14 @@ IF delivery or acknowledgement fails THE SYSTEM SHALL retain the recovery record
 
 ## Acceptance
 
+### REQ-340 — Guild stall read API
+
+**Event-driven.** WHEN a current guild member requests their guild stalls through the versioned read API THE SYSTEM SHALL return current guild-owned stall state, stored rent terms, rent/grace deadlines and current member shop capabilities using the same authority as shop protection, SHALL reject non-member or unavailable membership reads, and SHALL perform no ownership, balance, region or permission mutations.
+
+### REQ-341 — Safe asynchronous stall presentation
+
+**Ubiquitous.** THE SYSTEM SHALL perform stall persistence reads outside the server thread, SHALL resolve region coordinates on the server thread, and SHALL return failed reads as unavailable rather than report that a guild has no stalls.
+
 ### REQ-100 — Smoke test on MockBukkit
 
 **Event-driven.** WHEN the plugin is loaded into MockBukkit with default config THE SYSTEM SHALL enable without throwing and register the `enthusiamarket` command.
@@ -608,6 +616,10 @@ IF delivery or acknowledgement fails THE SYSTEM SHALL retain the recovery record
 ### REQ-334 — Private custom-price chat input
 
 **Event-driven.** WHEN a player with a pending Market price or bulk-quantity prompt sends chat THE SYSTEM SHALL cancel that message before legacy chat broadcasters process it and schedule the existing input handler on the server thread. The Paper-only chat path SHALL remain supported; a legacy-cancelled message SHALL NOT schedule a duplicate callback through the Paper event. Chat without a pending prompt SHALL retain normal broadcasting behavior.
+
+## Guild-shop XP (REQ-342)
+
+See [guild-shop-xp.md](guild-shop-xp.md) for policy, payment boundary, journal states and SPEAR evidence.
 
 ### REQ-335 — Sellback moderation reservation
 

@@ -74,6 +74,17 @@ jobs:
               raise SystemExit("MariaDB moderation tests did not execute cleanly")
           PY
 
+      - name: Report companion XP integration gate
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from xml.etree import ElementTree
+          report = Path("build/test-results/test/TEST-net.badgersmc.em.infrastructure.guild.GuildShopXpRuntimeContractTest.xml")
+          suite = ElementTree.parse(report).getroot()
+          if int(suite.attrib.get("skipped", "0")):
+              print("::warning::Guild-shop XP runtime contract did not run: the pinned Guilds release lacks the new API. Merge/release the companion PR and update the runtime version/hash before approving production integration.")
+          PY
+
       - name: Upload coverage to Codacy
         uses: codacy/codacy-coverage-reporter-action@v1
         with:

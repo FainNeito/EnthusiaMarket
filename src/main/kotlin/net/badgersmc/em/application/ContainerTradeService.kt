@@ -23,7 +23,7 @@ sealed class ContainerTradeResult {
     data class CompensationFailed(val error: String, val compensation: String) : ContainerTradeResult()
 }
 
-private data class TransactionEventData(
+internal data class TransactionEventData(
     val player: Player,
     val ownerUuid: UUID,
     val item: ItemStack,
@@ -54,6 +54,7 @@ open class ContainerTradeService(
     private val guildProvider: GuildProvider?,
     private val tradePolicy: GuildTradePolicyService? = null,
     private val shopVault: ShopVaultService? = null,
+    private val saleRewards: net.badgersmc.em.domain.ports.GuildSaleRewards? = null,
 ) {
     private val log = Logger.getLogger(ContainerTradeService::class.java.name)
     private val compensationAlerts = CompensationAlertService()
@@ -139,7 +140,7 @@ open class ContainerTradeService(
                 return buyPaymentDepositFailed(ctx, sellStack, guildId, cost)
             }
         }
-        fireTransactionEvent(TransactionEventData(ctx.player, ctx.ownerUuid, sellStack, sellStack.amount, cost, shop.id, shop.direction))
+        publishShopTransaction(TransactionEventData(ctx.player, ctx.ownerUuid, sellStack, sellStack.amount, cost, shop.id, shop.direction))
         return ContainerTradeResult.Success("Sold ${sellStack.amount}x for $cost")
     }
 
@@ -197,11 +198,6 @@ open class ContainerTradeService(
         val result: ContainerTradeResult.Failure? = null
     )
 
-    private data class DeliveryResult(
-        val leftoverAmount: Int,
-        val addedPerItem: List<Pair<ItemStack, Int>>,
-    )
-
     private fun sellPreconditions(shop: Shop, playerUuid: UUID): SellPreconditions {
         val stall = resolveStall(shop)
             ?: return SellPreconditions(result = ContainerTradeResult.Failure("Stall not found"))
@@ -238,20 +234,49 @@ open class ContainerTradeService(
         }
         if (economy.balance(playerUuid) < cost) return ContainerTradeResult.Failure("Insufficient funds")
 
-        val (collectedItems, removalResult) = removeAndCollectSimilar(ctx.containerInv, sellStack, scaledSell)
+        val intent = try {
+            if (ctx.guildId != null && cost > 0 && shop.direction == net.badgersmc.em.domain.shop.SignDirection.SELL) {
+                saleRewards?.prepare(ctx.guildId, playerUuid, shop.id)
+            } else null
+        } catch (e: Exception) {
+            log.warning("Guild-shop XP preparation failed for shop ${shop.id}: ${e.javaClass.simpleName}")
+            return ContainerTradeResult.Failure("Guild shop rewards are temporarily unavailable — try again later")
+        }
+        val result = executePaidSell(playerUuid, ctx, SaleOrder(sellStack, scaledSell, cost))
+        if (intent != null) {
+            if (result is ContainerTradeResult.Success) saleRewards?.completed(intent)
+            else saleRewards?.aborted(intent)
+        }
+        if (result is ContainerTradeResult.Success) {
+            publishShopTransaction(TransactionEventData(ctx.player, ctx.ownerUuid, sellStack, scaledSell, cost, shop.id, shop.direction))
+        }
+        return result
+    }
+
+    @Suppress("ReturnCount")
+    private fun executePaidSell(playerUuid: UUID, ctx: TradeContext, order: SaleOrder): ContainerTradeResult {
+        val (collectedItems, removalResult) = removeAndCollectSimilar(ctx.containerInv, order.stack, order.amount)
         if (removalResult.isNotEmpty()) {
             for (item in collectedItems) ctx.containerInv.addItem(item)
             return ContainerTradeResult.Failure("Stock mismatch — container changed")
         }
+        val paymentFailure = collectSalePayment(playerUuid, ctx, order.cost, collectedItems)
+        if (paymentFailure != null) return paymentFailure
+        return deliverSale(playerUuid, ctx, order, collectedItems)
+    }
 
-        if (cost > 0L && !economy.withdraw(playerUuid, cost)) {
-            for (item in collectedItems) ctx.containerInv.addItem(item)
+    private fun collectSalePayment(
+        playerUuid: UUID, ctx: TradeContext, cost: Long, collectedItems: List<ItemStack>,
+    ): ContainerTradeResult? {
+        if (cost <= 0L) return null
+        if (!economy.withdraw(playerUuid, cost)) {
+            collectedItems.forEach { ctx.containerInv.addItem(it) }
             return ContainerTradeResult.Failure("Withdraw failed")
         }
 
         val guildId = ctx.guildId
-        if (cost > 0L && !depositToShop(guildId, ctx.ownerUuid, cost)) {
-            for (item in collectedItems) ctx.containerInv.addItem(item)
+        if (!depositToShop(guildId, ctx.ownerUuid, cost)) {
+            collectedItems.forEach { ctx.containerInv.addItem(it) }
             val playerRefunded = economy.deposit(playerUuid, cost)
             return ContainerTradeResult.CompensationFailed(
                 error = guildPaymentFailure(guildId, "Owner deposit failed").reason,
@@ -259,38 +284,28 @@ open class ContainerTradeService(
             )
         }
 
-        val delivery = deliverCollectedItems(ctx.player.inventory, collectedItems)
+        return null
+    }
+
+    private fun deliverSale(
+        playerUuid: UUID, ctx: TradeContext, order: SaleOrder, collectedItems: List<ItemStack>,
+    ): ContainerTradeResult {
+        val delivery = InventoryTradeDelivery.deliver(ctx.player.inventory, collectedItems)
         if (delivery.leftoverAmount > 0) {
-            removeDeliveredItems(ctx.player.inventory, delivery.addedPerItem)
-            val rolledBack = rollbackFullTransaction(guildId, ctx.ownerUuid, playerUuid, cost, ctx.containerInv, collectedItems)
+            InventoryTradeDelivery.removeDelivered(ctx.player.inventory, delivery.addedPerItem)
+            val rolledBack = rollbackFullTransaction(
+                ctx.guildId, ctx.ownerUuid, playerUuid, order.cost, ctx.containerInv, collectedItems,
+            )
             return ContainerTradeResult.CompensationFailed(
                 error = "Inventory full",
                 compensation = if (rolledBack) "Trade reversed — check your inventory" else "Trade rollback incomplete — contact staff"
             )
         }
 
-        fireTransactionEvent(TransactionEventData(ctx.player, ctx.ownerUuid, sellStack, scaledSell, cost, shop.id, shop.direction))
-        return ContainerTradeResult.Success("Bought ${scaledSell}x for $cost")
+        return ContainerTradeResult.Success("Bought ${order.amount}x for ${order.cost}")
     }
 
-    private fun deliverCollectedItems(inventory: Inventory, collectedItems: List<ItemStack>): DeliveryResult {
-        var leftoverAmount = 0
-        val addedPerItem = mutableListOf<Pair<ItemStack, Int>>()
-        for (item in collectedItems) {
-            val leftover = inventory.addItem(item).values.sumOf { it.amount }
-            leftoverAmount += leftover
-            addedPerItem.add(item to (item.amount - leftover))
-        }
-        return DeliveryResult(leftoverAmount, addedPerItem)
-    }
-
-    private fun removeDeliveredItems(inventory: Inventory, addedPerItem: List<Pair<ItemStack, Int>>) {
-        for ((item, added) in addedPerItem) {
-            if (added > 0) {
-                inventory.removeItem(item.clone().apply { amount = added })
-            }
-        }
-    }
+    private data class SaleOrder(val stack: ItemStack, val amount: Int, val cost: Long)
 
     private fun rollbackContainerAndPlayer(containerInv: Inventory, player: Player, stack: ItemStack) {
         val result = transferSimilar(containerInv, player.inventory, stack, stack.amount)
@@ -339,21 +354,6 @@ open class ContainerTradeService(
     private fun refundShop(guildId: UUID?, ownerUuid: UUID, cost: Long): Boolean {
         return if (guildId != null) guildProvider?.bankDeposit(guildId.toString(), cost) ?: false
         else economy.deposit(ownerUuid, cost)
-    }
-
-    private fun fireTransactionEvent(data: TransactionEventData) {
-        log.info(
-            "TRADE shop=${data.shopId} dir=${data.direction} buyer=${data.player.uniqueId} " +
-            "item=${data.item.type} qty=${data.quantity} cost=${data.cost} " +
-            "owner=${data.ownerUuid}"
-        )
-        Bukkit.getPluginManager().callEvent(
-            net.badgersmc.em.events.PostShopTransactionEvent(
-                buyer = data.player, landlordId = data.ownerUuid,
-                item = data.item, quantity = data.quantity, pricePaid = data.cost.toDouble(),
-                shopId = data.shopId, direction = data.direction
-            )
-        )
     }
 
     private fun buildSellStack(shop: Shop): ItemStack? {
@@ -478,7 +478,7 @@ open class ContainerTradeService(
         } catch (e: Exception) {
             return rollbackBarterAfterVaultFailure(ctx, sellStack, costStack, collectedItems, e)
         }
-        fireTransactionEvent(TransactionEventData(ctx.player, ctx.ownerUuid, sellStack, shop.sellAmount, 0, shop.id, shop.direction))
+        publishShopTransaction(TransactionEventData(ctx.player, ctx.ownerUuid, sellStack, shop.sellAmount, 0, shop.id, shop.direction))
         return ContainerTradeResult.Success("Traded ${shop.sellAmount}x for ${shop.costAmount}x")
     }
 
@@ -632,7 +632,7 @@ open class ContainerTradeService(
             compensationAlerts.alert("placement-barter-vault-deposit", detail, ctx.player.uniqueId, amounts.cost.toLong())
             return ContainerTradeResult.CompensationFailed("Barter vault persistence failed", detail)
         }
-        fireTransactionEvent(TransactionEventData(ctx.player, ctx.ownerUuid, ctx.sellStack, amounts.sell, 0, shop.id, shop.direction))
+        publishShopTransaction(TransactionEventData(ctx.player, ctx.ownerUuid, ctx.sellStack, amounts.sell, 0, shop.id, shop.direction))
         return ContainerTradeResult.Success("Traded ${amounts.sell}x for ${amounts.cost}x")
     }
 

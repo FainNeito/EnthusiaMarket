@@ -8,6 +8,8 @@
 - [x] HISTORY-DURABILITY — REQ-348/349/350: inline SQL regression reproduced; forced local records, bounded background delivery, transactional receipts and retention/retry/quarantine/shutdown proof implemented. Clean full suite: 848 cases, zero failures/errors, eleven external-resource skips; ten corresponding MariaDB cases passed on isolated native 11.8.3. Detekt and architecture checks passed. Game/economy/XP events are never replayed.
 - [x] HISTORY-REVIEW — #202 published; its Codacy complexity finding was resolved, focused recovery/SQL tests and Detekt passed, and refined head passed Codacy with zero annotations. No human/inline findings returned. Hosted workflows need maintainer approval; dependencies #197/#201 and production/client acceptance remain separate.
 
+- [~] **TDD-340** Guild stall read API (REQ-340/341): API, current-member authority shared with PR #197, ownership filtering, offline roster freshness, denied/failed reads, held stalls and asynchronous boundaries implemented. Evidence: docs/guild-stall-api.md, GuildStallQueryTest and GuildStallReadProviderTest; clean full and focused local checks passed. Deliver as dependent canonical PR; hosted final-head/live acceptance remain separate. No merge or production change. Project-local EARS/state helpers are absent.
+
 **Date:** 2026-05-24
 **Status:** Bootstrap (emitted by `/spear:init`; extend via `/spear:spec`)
 
@@ -1119,6 +1121,15 @@ Validation: Market 806 tests, 0 failures/errors, 7 skipped; architecture checks 
 
 - [x] **FRAME-332** — REQ-332: proved failing defaults and shared-total behavior before implementation; 811 tests passed (7 skipped), architecture checks and Detekt passed. Configurable finite/zero limits and other entity checks are retained; defaults and evidence updated. Exact-head hosted checks and live acceptance remain separately pending; no production configuration was changed.
 
+## Guild-shop XP (REQ-342)
+
+See [guild-shop-xp.md](guild-shop-xp.md) for policy, payment boundary, journal states and SPEAR evidence.
+
+- [x] **SHOP-XP-SPEC-342** — approved configurable limits and excluded purchase paths in docs/guild-shop-xp.md.
+- [x] **SHOP-XP-ENGINE-342** — durable sale journal, pre-payment quote, completed-only replay and atomic companion consumption.
+- [x] **SHOP-XP-ARCH-342** — domain ports and actual companion artifact / isolated classloader contract.
+- [ ] **SHOP-XP-REFINE-342** — final full-suite/Detekt after current #197 authority and MariaDB fixture updates; exact-head hosted checks/review.
+- [ ] **SHOP-XP-RELEASE-342** — merge/release companion; update CI runtime pin/hash and require contract execution; verify canonical combined build/pins, MariaDB/staging/player acceptance. No production changes.
 - [x] **REFINE-331** — REQ-323/326/329: earlier complexity findings resolved; exact published head `52470817` passed Codacy with no annotations. Regression/architecture tests and Java-21 Detekt passed with the released companion runtime. This does not close hosted build approval, MariaDB Docker execution, human review or production acceptance gates.
 
 ## Production correctness review (2026-10-07)
