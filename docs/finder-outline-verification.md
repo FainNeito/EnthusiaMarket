@@ -18,5 +18,6 @@ Private interactive preview: https://enthusiamarket-stall-outline.awareyak.chatg
 
 Codacy MCP CLI is unavailable; final hosted analysis/PR review will be inspected after publication. Market workflow approval remains a maintainer gate. No production plugin upload, restart, merge, terrain mutation or player acceptance is claimed.
 
-
 Exact-head Codacy at 9bfeefd identified five complexity findings: outline sampling parameters, render settings parameters, origin parameters/branches and start branches. Refinement groups rendering/sampling settings and extracts arrival-expiry and footprint capture helpers without changing behavior. Full Java 25 checks are repeated on the refined runtime; Java 22 Detekt passes. Refined local review.1 artifact SHA-256: 5d42fbd9212720a7c68f3ef79216a0159903b322f3d078c924a26403638b2aee. Hosted preview reaches the expected private ChatGPT login; logged-in phone and Minecraft appearance remain unverified.
+
+The stricter follow-up origin-complexity finding is resolved by separating location validation from arrival-phase advancement; Markdown spacing is corrected. Final refined canonical clean Java 25 test/shadowJar/JaCoCo passes all 927 cases with zero failures/errors and eight unchanged skips; Java 22 Detekt passes. Final unmerged review.1 artifact SHA-256: dc253d5f7ba732613968aa38cc5b62b0ac2722d9769c08f70f469843b0dd18de. Final exact-head hosted status is recorded in the PR handoff after push.
