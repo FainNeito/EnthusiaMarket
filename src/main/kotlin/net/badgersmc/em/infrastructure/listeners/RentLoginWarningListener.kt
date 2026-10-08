@@ -51,11 +51,7 @@ class RentLoginWarningListener(
                 val notices = warnings.warnings(snapshot, actor, Instant.now())
                 val limit = config.rentWarnings.maxMessages.coerceIn(1, MAX_MESSAGES)
                 notices.take(limit).forEach { warning ->
-                    player.sendMessage(lang.msg(if (warning.grace) "rent_warning.grace" else "rent_warning.due",
-                        "stall" to warning.stallId, "deadline" to warning.deadline.toString()))
-                    if (warning.insufficientFunds) player.sendMessage(lang.msg(
-                        if (warning.guildPayer) "rent_warning.guild_funds" else "rent_warning.personal_funds",
-                        "amount" to warning.amount))
+                    sendNotice(player, warning)
                 }
                 if (notices.size > limit) player.sendMessage(lang.msg("rent_warning.more",
                     "count" to notices.size - limit))
@@ -65,6 +61,13 @@ class RentLoginWarningListener(
                 }
             }
         }
+    }
+
+    private fun sendNotice(player: org.bukkit.entity.Player, warning: RentLoginWarningService.Warning) {
+        player.sendMessage(lang.msg(if (warning.grace) "rent_warning.grace" else "rent_warning.due",
+            "stall" to warning.stallId, "deadline" to warning.deadline.toString()))
+        if (warning.insufficientFunds) player.sendMessage(lang.msg(
+            if (warning.guildPayer) "rent_warning.guild_funds" else "rent_warning.personal_funds", "amount" to warning.amount))
     }
 
     override fun close() {

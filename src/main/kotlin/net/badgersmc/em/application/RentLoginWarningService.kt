@@ -36,13 +36,19 @@ class RentLoginWarningService(
         val deadline = if (grace) RentTimingPolicy.graceEndsAt(stall, config)
             else RentTimingPolicy.effectiveNextRentAt(stall, config)
         if (deadline == null || (!grace && deadline.isAfter(horizon))) return null
-        val calculated = stall.rentTerms.dailyRent(stall.winningBid)
-        val amount = if (stall.winningBid > 0) maxOf(1, calculated) else calculated.coerceAtLeast(0)
+        val amount = renewalAmount(stall)
         val guildPayer = stall.owner.type == OwnerType.GUILD
-        val insufficient = config.rentWarnings.insufficientFundsEnabled && amount > 0 &&
-            cannotAfford(stall, actor, amount, guildPayer)
+        val insufficient = insufficientFunds(stall, actor, amount, guildPayer)
         return Warning(stall.id.value, deadline, grace, amount, guildPayer, insufficient)
     }
+
+    private fun renewalAmount(stall: Stall): Long {
+        val calculated = stall.rentTerms.dailyRent(stall.winningBid)
+        return if (stall.winningBid > 0) maxOf(1, calculated) else calculated.coerceAtLeast(0)
+    }
+
+    private fun insufficientFunds(stall: Stall, actor: UUID, amount: Long, guild: Boolean): Boolean =
+        config.rentWarnings.insufficientFundsEnabled && amount > 0 && cannotAfford(stall, actor, amount, guild)
 
     @Suppress("TooGenericExceptionCaught")
     private fun canRenew(stall: Stall, actor: UUID): Boolean = try {
