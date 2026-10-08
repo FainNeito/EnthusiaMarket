@@ -18,9 +18,14 @@ import org.bukkit.block.Lectern
 /** Public workstation use must not grant visitors decoration/book ownership. */
 @net.badgersmc.nexus.paper.listeners.Listener
 @Component
-open class StallVisitorProtectionListener(private val stalls: StallRepository, private val guilds: GuildProvider) : Listener {
+open class StallVisitorProtectionListener(
+    private val stalls: StallRepository, private val guilds: GuildProvider,
+    private val accessListener: StallAccessListener? = null,
+    private val cachedRegions: StallAccessRegions? = null,
+) : Listener {
     protected open fun mayModify(player: Player, location: Location): Boolean {
         if (player.hasPermission("enthusiamarket.admin")) return true
+        cachedRegions?.let { return it.at(location).all { stall -> stall.canManage(player.uniqueId, guilds) } }
         val world = location.world ?: return false
         val manager = WorldGuard.getInstance().platform.regionContainer.get(BukkitAdapter.adapt(world)) ?: return true
         return manager.getApplicableRegions(BukkitAdapter.asBlockVector(location)).mapNotNull {
@@ -51,6 +56,7 @@ open class StallVisitorProtectionListener(private val stalls: StallRepository, p
     fun onReadLectern(event: org.bukkit.event.player.PlayerInteractEvent) {
         if (!isMainHandBookRead(event)) return
         val lectern = event.clickedBlock?.state as? Lectern ?: return
+        if (accessListener?.allowed(event.player, lectern.location, net.badgersmc.em.domain.stall.StallCapability.LECTERN) == false) return
         if (mayModify(event.player, lectern.location)) return
         // Open a copy of a written book; no lectern inventory is exposed to visitors.
         val book = writtenBook(lectern) ?: return

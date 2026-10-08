@@ -24,8 +24,13 @@ import org.bukkit.inventory.Inventory
 /** WorldGuard membership is a projection; current guild rank is the authority. */
 @net.badgersmc.nexus.paper.listeners.Listener
 @Component
-open class GuildStallProtectionListener(private val stalls: StallRepository, private val guilds: GuildProvider) : Listener {
+open class GuildStallProtectionListener(
+    private val stalls: StallRepository, private val guilds: GuildProvider,
+    private val policy: net.badgersmc.em.domain.ports.StallAccessPolicy = net.badgersmc.em.domain.ports.StallAccessPolicy.Open,
+    private val cachedRegions: StallAccessRegions? = null,
+) : Listener {
     protected open fun at(location: Location): List<Stall> {
+        cachedRegions?.let { return it.at(location).filter { stall -> stall.owner.type == OwnerType.GUILD } }
         val world = location.world ?: return emptyList()
         val manager = WorldGuard.getInstance().platform.regionContainer.get(BukkitAdapter.adapt(world)) ?: return emptyList()
         return manager.getApplicableRegions(BukkitAdapter.asBlockVector(location)).mapNotNull {
@@ -41,11 +46,15 @@ open class GuildStallProtectionListener(private val stalls: StallRepository, pri
         return if (holder is Container) listOfNotNull(inventory.location) else emptyList()
     }
 
-    private fun allowed(player: Player, locations: List<Location>, permission: GuildProvider.GuildPermission): Boolean {
+    private fun allowed(player: Player, locations: List<Location>, permission: GuildProvider.GuildPermission, allies: Boolean = true): Boolean {
         if (player.hasPermission("enthusiamarket.admin")) return true
         return locations.flatMap(::at).all {
-            it.isActiveGuildStall() && guilds.isMember(player.uniqueId, it.owner.id) &&
+            val capability = if (permission == GuildProvider.GuildPermission.ACCESS_SHOP_CHESTS)
+                net.badgersmc.em.domain.stall.StallCapability.CHESTS else net.badgersmc.em.domain.stall.StallCapability.STOCK
+            val member = it.isActiveGuildStall() && guilds.isMember(player.uniqueId, it.owner.id) &&
                 guilds.hasShopPermission(player.uniqueId, it.owner.id, permission)
+            policy.allows(it.id.value, player.uniqueId, capability) &&
+                (member || (allies && policy.alliedAllows(it.id.value, player.uniqueId, capability)))
         }
     }
 
@@ -70,27 +79,27 @@ open class GuildStallProtectionListener(private val stalls: StallRepository, pri
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     fun onBreak(event: BlockBreakEvent) {
-        if (!allowed(event.player, listOf(event.block.location), GuildProvider.GuildPermission.EDIT_SHOP_STOCK)) event.isCancelled = true
+        if (!allowed(event.player, listOf(event.block.location), GuildProvider.GuildPermission.EDIT_SHOP_STOCK, false)) event.isCancelled = true
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     fun onPlace(event: BlockPlaceEvent) {
-        if (!allowed(event.player, listOf(event.block.location), GuildProvider.GuildPermission.EDIT_SHOP_STOCK)) event.isCancelled = true
+        if (!allowed(event.player, listOf(event.block.location), GuildProvider.GuildPermission.EDIT_SHOP_STOCK, false)) event.isCancelled = true
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     fun onBucketEmpty(event: org.bukkit.event.player.PlayerBucketEmptyEvent) {
-        if (!allowed(event.player, listOf(event.block.location), GuildProvider.GuildPermission.EDIT_SHOP_STOCK)) event.isCancelled = true
+        if (!allowed(event.player, listOf(event.block.location), GuildProvider.GuildPermission.EDIT_SHOP_STOCK, false)) event.isCancelled = true
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     fun onBucketFill(event: org.bukkit.event.player.PlayerBucketFillEvent) {
-        if (!allowed(event.player, listOf(event.block.location), GuildProvider.GuildPermission.EDIT_SHOP_STOCK)) event.isCancelled = true
+        if (!allowed(event.player, listOf(event.block.location), GuildProvider.GuildPermission.EDIT_SHOP_STOCK, false)) event.isCancelled = true
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     fun onEntityPlace(event: org.bukkit.event.entity.EntityPlaceEvent) {
         val player = event.player ?: return
-        if (!allowed(player, listOf(event.entity.location), GuildProvider.GuildPermission.EDIT_SHOP_STOCK)) event.isCancelled = true
+        if (!allowed(player, listOf(event.entity.location), GuildProvider.GuildPermission.EDIT_SHOP_STOCK, false)) event.isCancelled = true
     }
 }
