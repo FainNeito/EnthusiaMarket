@@ -57,11 +57,15 @@ class StallEffectGuard(
             change(player) { player.removePotionEffect(effect.type) }
         }
         effects.keys.filter { it.name !in blocked }.forEach { type ->
-            val effect = effects.remove(type)?.remaining(now)
-            if (effect != null && player.getPotionEffect(type) == null) change(player) { player.addPotionEffect(effect) }
+            restoreEffect(player, effects.remove(type)?.remaining(now))
         }
         if (effects.isEmpty()) held.remove(player.uniqueId)
         reconcileEntry(player)
+    }
+
+    private fun restoreEffect(player: Player, effect: PotionEffect?) {
+        if (effect == null || player.getPotionEffect(effect.type) != null) return
+        change(player) { player.addPotionEffect(effect) }
     }
 
     private fun reconcileEntry(player: Player) {
