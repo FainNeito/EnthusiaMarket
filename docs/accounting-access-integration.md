@@ -11,7 +11,7 @@ Project-local EARS/state helpers are absent. This manual requirement/task/eviden
 - [x] Inspect current main and exact open PR heads; preserve unrelated dirty worktree.
 - [x] Reproduce integration conflicts in isolated worktree.
 - [x] Prove permission denial plus accounting/reward composition, complete combined build and architecture/static checks.
-- [ ] Publish reviewable source and inspect exact-head hosted checks/review findings.
+- [x] Publish reviewable combined source as Market #216 and inspect exact-head hosted checks/review findings.
 - [ ] Maintainer review/merge, network pin reconciliation and separately authorized client acceptance.
 
 ## Verification and architecture
@@ -21,3 +21,5 @@ Combined Java 25/Paper 26.2 build: 942 cases, zero failures/errors, 14 external 
 Separate notification/history/accounting startup and shutdown fields are retained; both access policy and reward ports remain in trade DI. The positional test harness argument is replaced with explicit named ports. Access denial precedes persistence/payment/inventory/reward interactions; allowed sales retain reward prepare/payment/delivery/complete order. Accounting observation requirement is renumbered REQ-381 to avoid collision with notification REQ-345. Migrations V031-034 remain additive and distinct. Existing SQLite/outbox/accounting failure contracts execute in the combined suite; native MariaDB and server startup are not repeated or claimed in this rehearsal. Codacy MCP tools are unavailable here; local Detekt and exact-head hosted Codacy review remain distinct.
 
 Final unmerged local review artifact SHA-256: 36a6ba690d4a8733afa064afe9b48890a99f67a58061d41af716c954e4cfbda1. Production unchanged; in-game Java/Bedrock acceptance deferred. Hosted workflows still pin the released older Guilds runtime; paired new-API release/pin reconciliation remains a required release gate, even if those hosted builds pass.
+
+Published: https://github.com/BadgersMC/EnthusiaMarket/pull/216. Initial head f798bf2 is mergeable; build, Wiki Checks and PR quality diagnostics require maintainer approval (`action_required`); Codacy is running. No human review or inline finding at publication. A documentation-only follow-up records this status; recheck its exact head before reporting final hosted results.
