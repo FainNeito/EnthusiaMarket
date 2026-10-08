@@ -4,14 +4,16 @@ import org.bukkit.Material
 
 /** Explicit families avoid interpreting display names or incidental substrings as categories. */
 internal object SearchCategoryMaterials {
-    fun matches(category: SearchCategory, material: Material): Boolean =
-        matchers.getValue(category)(material)
+    fun matches(category: SearchCategory, material: Material): Boolean {
+        return matchers.getValue(category)(material)
+    }
 
-    private fun tools(name: String) = equipment(name, TOOL_SUFFIXES, TOOL_ITEMS)
-    private fun weapons(name: String) = equipment(name, WEAPON_SUFFIXES, WEAPON_ITEMS)
-    private fun armor(name: String) = equipment(name, ARMOR_SUFFIXES, ARMOR_ITEMS)
-    private fun equipment(name: String, suffixes: Set<String>, items: Set<String>) =
-        name in items || suffixes.any(name::endsWith)
+    private fun tools(name: String): Boolean { return equipment(name, TOOL_SUFFIXES, TOOL_ITEMS) }
+    private fun weapons(name: String): Boolean { return equipment(name, WEAPON_SUFFIXES, WEAPON_ITEMS) }
+    private fun armor(name: String): Boolean { return equipment(name, ARMOR_SUFFIXES, ARMOR_ITEMS) }
+    private fun equipment(name: String, suffixes: Set<String>, items: Set<String>): Boolean {
+        return name in items || suffixes.any(name::endsWith)
+    }
 
     private fun wood(name: String): Boolean {
         val unstripped = name.removePrefix("STRIPPED_")
@@ -20,10 +22,13 @@ internal object SearchCategoryMaterials {
         }
     }
 
-    private fun foliage(name: String) = SearchBuildingCategories.isFlower(name) ||
-        equipment(name, FOLIAGE_SUFFIXES, FOLIAGE_ITEMS)
+    private fun foliage(name: String): Boolean {
+        return SearchBuildingCategories.isFlower(name) || equipment(name, FOLIAGE_SUFFIXES, FOLIAGE_ITEMS)
+    }
 
-    private fun building(material: Material) = material.isBlock && buildingName(material.name)
+    private fun building(material: Material): Boolean {
+        return material.isBlock && buildingName(material.name)
+    }
 
     private fun buildingName(name: String): Boolean {
         return SearchBuildingCategories.isStone(name) || wood(name) ||
