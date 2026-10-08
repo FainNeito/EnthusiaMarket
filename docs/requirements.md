@@ -623,4 +623,4 @@ REQ-323 through REQ-342 are reserved by existing pending Market work, including 
 
 ### REQ-380 — Search stock feedback
 
-**Event-driven.** WHEN a Market item search has matching shops but no entries visible under the default stock filter THE SYSTEM SHALL send localized feedback naming the query as not in stock without opening or replacing the player's inventory.
+**Event-driven.** WHEN a Market item search has shops matching the selected direction but no entries visible under the default stock filter THE SYSTEM SHALL send localized feedback naming the query as not in stock without opening or replacing the player's inventory.
