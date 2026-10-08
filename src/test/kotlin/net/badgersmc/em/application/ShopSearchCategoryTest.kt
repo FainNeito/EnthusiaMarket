@@ -64,4 +64,13 @@ class ShopSearchCategoryTest {
         assertNull(service.findMatch(false, box, "flowers"))
         assertNotNull(service.findMatch(true, ItemStack(Material.STONE_BRICKS), "stone_br"))
     }
+    @Test fun `supported modern families include variants without tools leaking into blocks`() {
+        mapOf("storage" to listOf(Material.COPPER_CHEST, Material.WAXED_OXIDIZED_COPPER_CHEST),
+            "transport" to listOf(Material.BAMBOO_CHEST_RAFT, Material.RED_HARNESS),
+            "weapons" to listOf(Material.COPPER_SPEAR, Material.WOODEN_SPEAR),
+            "wood" to listOf(Material.PALE_OAK_HANGING_SIGN, Material.STRIPPED_WARPED_HYPHAE),
+            "lighting" to listOf(Material.WAXED_EXPOSED_COPPER_LANTERN, Material.OXIDIZED_COPPER_BULB))
+            .forEach { (category, materials) -> materials.forEach { assertNotNull(service.findMatch(true, ItemStack(it), "category:$category"), it.name) } }
+        assertNull(service.findMatch(true, ItemStack(Material.COPPER_SPEAR), "category:building"))
+    }
 }

@@ -5,7 +5,7 @@ topic: shop-search
 summary: Find shops buying or selling items, including colored shulkers and container contents.
 keywords: [shop, search, find, lookup, query]
 related: [buy-sell-trade, shop-creation]
-updated: 2026-10-07
+updated: 2026-10-08
 ---
 
 # Shop search
@@ -19,12 +19,14 @@ Find shops selling what you need — or buying what you have.
 
 ## Basic search
 
-Type any Minecraft item name or prefix. Tab-complete is supported — press Tab to see material names matching your typed prefix (case-insensitive). Categories such as `armor`, `tools`, `potions` and `food` also work.
+Type any Minecraft item name or prefix. Tab-complete suggests material names and categories matching your typed prefix, case-insensitively. Existing individual searches continue to work.
 
 ```text
 /shop search diamond
 /shop search ender_pearl
 /shop search oak_log
+/shop search category:combat
+/shop search item:stone
 ```
 
 Results open in a GUI showing:
@@ -43,7 +45,30 @@ Click **Shop Type** (the hopper in the top row) to cycle through:
 
 The filter stays selected when you sort, change the out-of-stock toggle, or move between pages. Changing shop type returns to page one. Existing trade shops remain in the combined view; this search control does not enable barter.
 
-## Stone and flower categories
+## Categories and exact items
+
+Use `category:<name>` to select a defined group, or `item:<material>` for one exact Minecraft material. For example, `category:stone` includes stone building families, while `item:stone` finds only Stone. `item:diamond` excludes diamond tools and armor; plain `diamond` keeps the existing prefix search. Namespace forms such as `item:minecraft:stone` also work. Unknown explicit categories do not fall back to item-name matching.
+
+| Category | Includes |
+| --- | --- |
+| `tools` | Mining/farming/utility equipment; existing sword inclusion retained |
+| `combat` | Weapons, armor, arrows, shields, totems and combat consumables |
+| `weapons`, `armor` | Offensive equipment; wearable protection including horse/wolf armor and elytra |
+| `foliage`, `flowers` | Plants/leaves/moss/fungi; a narrower flower group |
+| `wood`, `stone` | Defined building families and their variants |
+| `redstone` | Components, automation and input/output blocks |
+| `building`, `decoration`, `lighting` | Building materials; decoration; light sources |
+| `food`, `farming` | Edible items; crops/seeds/growing supplies |
+| `ores`, `ore_blocks`, `materials` | Existing broad ore/resource group; ore blocks/ancient debris; crafting resources |
+| `potions`, `brewing`, `enchanting` | Potion items; ingredients/equipment; books/enchanting supplies |
+| `storage`, `shulker` | Containers including bundles; all shulker-box colors |
+| `transport`, `workstations`, `drops` | Travel/rails; crafting/processing blocks; mob drops |
+
+Groups overlap deliberately: axes are Tools, Weapons and Combat; flowers are Flowers, Foliage and Decoration. Classification uses the actual material, not an item's custom display name. Enchanting does not mean every enchanted tool; look up the tool's category or material.
+
+Bare aliases still work (`tool`, `weapon`, `armour`, `potion`, `ore`, `flower`, `stones`, `shulker_box`). Legacy bare queries retain their old item-prefix coverage as well as expanded category membership. Use explicit `category:wood` to exclude incidental names such as wooden tools or mushroom stems, and `category:redstone` to exclude redstone ore. The legacy broad `ores` group is preserved; `ore_blocks` narrows it without removing old searches.
+
+### Stone and flowers
 
 Search `stone` or `stones` for stone building blocks and their slabs, stairs, walls and other building variants. This includes cobblestone, granite, diorite, andesite, deepslate, tuff, blackstone, basalt, calcite, dripstone blocks and end stone. Stone tools, stonecutters, ores, redstone and glowstone are excluded. Use `stone_sword` or another material name to search those items directly.
 

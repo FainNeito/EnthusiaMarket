@@ -13,6 +13,7 @@ class WebsiteSyncCommandRegistrationTest {
     @Test
     fun `existing admin and website sync subcommands share one em root`() {
         WebsiteSyncSecretArgumentRegistration.register()
+        MarketSearchArgumentRegistration.register()
         val definitions = PaperCommandScanner().scanCommands(
             "net.badgersmc.em.infrastructure.commands",
             WebsiteSyncCommandRegistrationTest::class.java.classLoader,

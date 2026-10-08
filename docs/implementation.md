@@ -251,3 +251,9 @@ ChatPriceListener claims pending create-price and bulk-quantity input at LOWEST 
 
 - Per-component code-level docs — owned by each component's own KDoc.
 - CI configuration — owned by `tech-stack.md` §CI and the workflow file itself.
+
+## Expanded category lookup (REQ-377-379)
+
+SearchCategory owns the shared stdlib vocabulary/aliases used by query parsing and completion. MarketSearchQuery distinguishes AUTO, exact ITEM and strict CATEGORY modes. SearchCategoryMaterials supplies bounded material-family predicates; shop metadata/display names never determine membership. ShopSearchService parses once per candidate shop before its existing depth/item-budget traversal. Bare prefixes and legacy wood substring coverage are retained; stone/flower aliases remain strict. Exact selectors resolve colliding category/material names. Category queries suppress misleading single-material price tickers.
+
+Both command adapters use the shared parser/matcher/completion/ticker behavior. The /finditem adapter retains asynchronous repository reads/server-thread metadata handling and now forwards the existing private trail callback like /shop search. Permission, state/persistence and trade behavior are unchanged. Runtime-derived catalog data exports through a test for an interactive review simulation; it is not a live market connection.

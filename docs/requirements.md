@@ -620,3 +620,19 @@ REQ-323 through REQ-342 are reserved by existing pending Market work, including 
 ### REQ-335 — Sellback moderation reservation
 
 **Unwanted.** IF a stall has an active moderation mutation lock when sellback is confirmed THEN THE SYSTEM SHALL reject sellback before ownership, refund, shop, offer, IP, region or schematic mutations.
+
+## Expanded categories and explicit lookup
+
+### REQ-377 - Category families
+
+**Event-driven.** WHEN a player searches a supported Market category THE SYSTEM SHALL match its defined item materials and supported container contents, allow intentional category overlap, and retain opt-outs and direction/stock controls.
+
+### REQ-378 - Explicit lookup and compatibility
+
+**Event-driven.** WHEN a query uses `item:<material>` THE SYSTEM SHALL perform exact material lookup; WHEN a query uses `category:<name>` THE SYSTEM SHALL select only the defined category. Bare material/prefix searches and established aliases SHALL retain existing coverage, and ambiguous stone/flower aliases SHALL retain their category meaning.
+
+### REQ-379 - Shared completion and entrypoints
+
+**Event-driven.** WHEN a player completes either Market search command THE SYSTEM SHALL suggest category and explicit selector forms alongside ordinary item materials. Both entrypoints SHALL share matching/ticker interpretation and search-result direction-guide behavior.
+
+Detailed taxonomy, proof and delivery boundaries: expanded-search-verification.md.

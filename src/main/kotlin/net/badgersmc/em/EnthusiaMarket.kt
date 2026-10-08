@@ -294,6 +294,7 @@ open class EnthusiaMarket : JavaPlugin() {
 
         // Phase 5: Register Paper commands (triggers bean creation via DI).
         net.badgersmc.em.infrastructure.commands.WebsiteSyncSecretArgumentRegistration.register()
+        net.badgersmc.em.infrastructure.commands.MarketSearchArgumentRegistration.register()
         // itemMaterials suggestion provider backs `/shop search` tab-completion (REQ-283):
         // computed once here, prefix-filtered per keystroke by the pure MaterialSuggestions helper.
         val itemMaterialNames = org.bukkit.Material.entries.filter { it.isItem }.map { it.name }

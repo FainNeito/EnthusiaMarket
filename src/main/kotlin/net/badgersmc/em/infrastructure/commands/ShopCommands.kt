@@ -159,24 +159,24 @@ class ShopCommands(
         @Context sender: CommandSender,
         @net.badgersmc.nexus.commands.annotations.Arg("query")
         @net.badgersmc.nexus.paper.commands.annotations.Suggests("itemMaterials")
-        query: String,
+        query: MarketSearchArgument,
     ) {
         val player = sender as? Player ?: run { sender.sendMessage(lang.msg("shop.cmd.players_only")); return }
-        if (query.length < 2) {
-            player.sendMessage(lang.msg("shop.cmd.search.unknown_item", "query" to query)); return
+        if (net.badgersmc.em.application.MarketSearchQuery.parse(query.value) == null) {
+            player.sendMessage(lang.msg("shop.cmd.search.unknown_item", "query" to query.value)); return
         }
         val results = shopRepository.all().mapNotNull { shop ->
             val item = ItemStackSerializer.deserialize(shop.sellItem) ?: return@mapNotNull null
-            shopSearchService.findMatch(shop.searchEnabled, item, query)?.let {
+            shopSearchService.findMatch(shop.searchEnabled, item, query.value)?.let {
                 net.badgersmc.em.interaction.gui.SearchResultsMenu.Result(shop, it.material, it.nested)
             }
         }
-        showSearchResults(player, query, results)
+        showSearchResults(player, query.value, results)
     }
 
     private fun showSearchResults(player: Player, query: String, results: List<net.badgersmc.em.interaction.gui.SearchResultsMenu.Result>) {
         if (results.isNotEmpty()) {
-            val ticker = org.bukkit.Material.matchMaterial(query)?.let {
+            val ticker = shopSearchService.tickerMaterial(query)?.let {
                 net.badgersmc.em.application.PriceTickerService.compute(it.name, transactions)
             }
             net.badgersmc.em.interaction.gui.SearchResultsMenu(

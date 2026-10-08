@@ -16,7 +16,6 @@ import net.badgersmc.em.domain.stall.StallRepository
 import net.badgersmc.em.interaction.gui.SearchResultsMenu
 import net.badgersmc.nexus.i18n.LangService
 import org.bukkit.Bukkit
-import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 
@@ -44,7 +43,7 @@ object FindItemRegistrar {
             val node: LiteralCommandNode<CommandSourceStack> = Commands.literal("finditem")
                 .requires { src -> src.sender.hasPermission("enthusiamarket.shop.use") }
                 .then(
-                    RequiredArgumentBuilder.argument<CommandSourceStack, String>("query", StringArgumentType.word())
+                    RequiredArgumentBuilder.argument<CommandSourceStack, String>("query", MarketSearchArgumentRegistration.argumentType())
                         .suggests(itemProvider)
                         .executes { ctx ->
                             val query = StringArgumentType.getString(ctx, "query")
@@ -56,7 +55,7 @@ object FindItemRegistrar {
                             // Offload DB queries off the main thread; open the GUI
                             // back on the server thread (REQ-605 sync requirement).
                             Bukkit.getScheduler().runTaskAsynchronously(plugin) { _ ->
-                                if (query.length < 2) {
+                                if (net.badgersmc.em.application.MarketSearchQuery.parse(query) == null) {
                                     Bukkit.getScheduler().runTask(plugin) { _ ->
                                         player.sendMessage(lang.msg("shop.cmd.search.unknown_item", "query" to query))
                                     }
@@ -64,7 +63,7 @@ object FindItemRegistrar {
                                 }
                                 // Nested container metadata is inspected on the server thread.
                                 val candidates = shopRepo.all().filter { it.searchEnabled }
-                                val ticker = Material.matchMaterial(query)?.let {
+                                val ticker = searchService.tickerMaterial(query)?.let {
                                     PriceTickerService.compute(it.name, transactions)
                                 }
                                 Bukkit.getScheduler().runTask(plugin) { _ ->
@@ -77,7 +76,9 @@ object FindItemRegistrar {
                                     if (results.isEmpty()) {
                                         player.sendMessage(lang.msg("shop.cmd.search.none", "query" to query))
                                     } else {
-                                        SearchResultsMenu(results, query, lang, stallRepo, ticker).open(player)
+                                        SearchResultsMenu(results, query, lang, stallRepo, ticker,
+                                            navigate = nexus.getBean(net.badgersmc.em.infrastructure.listeners.FinderTrailService::class)::start,
+                                        ).open(player)
                                     }
                                 }
                             }

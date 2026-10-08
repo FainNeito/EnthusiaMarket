@@ -7,7 +7,6 @@ import org.bukkit.block.ShulkerBox
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.BlockStateMeta
 import org.bukkit.inventory.meta.BundleMeta
-import java.util.Locale
 
 /**
  * Matches the shop's traded item, including supported container contents.
@@ -34,13 +33,13 @@ class ShopSearchService {
 
     /** Finds an exact or prefix material match in the sold item and its supported containers. */
     fun findMatch(searchEnabled: Boolean, soldItem: ItemStack, query: String): Match? {
-        if (!searchEnabled || query.length < MIN_QUERY_LENGTH) return null
-        val normalized = query.uppercase(Locale.ROOT)
+        if (!searchEnabled) return null
+        val parsed = MarketSearchQuery.parse(query) ?: return null
         var visited = 0
 
         fun search(item: ItemStack, depth: Int): Match? {
             if (visited++ >= MAX_ITEMS_SCANNED) return null
-            if (matchesQuery(item.type, normalized)) {
+            if (matchesQuery(item.type, parsed)) {
                 return Match(item.type, depth > 0)
             }
             if (depth >= MAX_CONTAINER_DEPTH) return null
@@ -59,49 +58,29 @@ class ShopSearchService {
         return (meta as? BundleMeta)?.items?.filterNot { it.type.isAir }.orEmpty()
     }
 
-    private fun matchesQuery(material: Material, query: String): Boolean = when (query) {
-        "STONE", "STONES" -> SearchBuildingCategories.isStone(material.name)
-        "FLOWER", "FLOWERS" -> SearchBuildingCategories.isFlower(material.name)
-        else -> material.name == query || material.name.startsWith(query) ||
-            CATEGORY_MATCHERS[query]?.invoke(material) == true
+    fun tickerMaterial(query: String): Material? = MarketSearchQuery.parse(query)?.tickerItem
+        ?.let(Material::matchMaterial)?.takeIf { it.isItem }
+
+    private fun matchesQuery(material: Material, query: MarketSearchQuery): Boolean = when (query.mode) {
+        MarketSearchQuery.Mode.ITEM -> material.name == query.term
+        MarketSearchQuery.Mode.CATEGORY -> SearchCategoryMaterials.matches(requireNotNull(query.category), material)
+        MarketSearchQuery.Mode.AUTO -> automaticMatch(material, query)
     }
 
+    private fun automaticMatch(material: Material, query: MarketSearchQuery): Boolean {
+        val category = query.category
+        if (category in STRICT_LEGACY_CATEGORIES) return SearchCategoryMaterials.matches(requireNotNull(category), material)
+        return material.name.startsWith(query.term) || category?.let { SearchCategoryMaterials.matches(it, material) } == true ||
+            legacyWood(material.name, category)
+    }
+
+    private fun legacyWood(name: String, category: SearchCategory?) = category == SearchCategory.WOOD &&
+        LEGACY_WOOD_PARTS.any(name::contains)
+
     companion object {
-        private const val MIN_QUERY_LENGTH = 2
         private const val MAX_CONTAINER_DEPTH = 4
         private const val MAX_ITEMS_SCANNED = 1024
-
-        private val CATEGORY_MATCHERS: Map<String, (Material) -> Boolean> = mapOf(
-            "SHULKER" to { it == Material.SHULKER_BOX || it.name.endsWith("_SHULKER_BOX") },
-            "SHULKER_BOX" to { it == Material.SHULKER_BOX || it.name.endsWith("_SHULKER_BOX") },
-            "ARMOR" to { it.name.endsWith("_HELMET") || it.name.endsWith("_CHESTPLATE") ||
-                it.name.endsWith("_LEGGINGS") || it.name.endsWith("_BOOTS") || it.name.endsWith("_HORSE_ARMOR") ||
-                it.name == "ELYTRA" },
-            "ARMOUR" to { it.name.endsWith("_HELMET") || it.name.endsWith("_CHESTPLATE") ||
-                it.name.endsWith("_LEGGINGS") || it.name.endsWith("_BOOTS") || it.name.endsWith("_HORSE_ARMOR") ||
-                it.name == "ELYTRA" },
-            "TOOLS" to { it.name.endsWith("_PICKAXE") || it.name.endsWith("_AXE") ||
-                it.name.endsWith("_SHOVEL") || it.name.endsWith("_HOE") || it.name.endsWith("_SWORD") ||
-                it.name in TOOL_MATERIALS },
-            "TOOL" to { it.name.endsWith("_PICKAXE") || it.name.endsWith("_AXE") ||
-                it.name.endsWith("_SHOVEL") || it.name.endsWith("_HOE") || it.name.endsWith("_SWORD") ||
-                it.name in TOOL_MATERIALS },
-            "WEAPONS" to { it.name.endsWith("_SWORD") || it.name.endsWith("_AXE") || it.name in WEAPON_MATERIALS },
-            "WEAPON" to { it.name.endsWith("_SWORD") || it.name.endsWith("_AXE") || it.name in WEAPON_MATERIALS },
-            "POTIONS" to { it.name in POTION_MATERIALS },
-            "POTION" to { it.name in POTION_MATERIALS },
-            "FOOD" to { it.isEdible },
-            "WOOD" to { "WOOD" in it.name || "LOG" in it.name || "STEM" in it.name || "PLANKS" in it.name },
-            "ORES" to { it.name.endsWith("_ORE") || it.name in ORE_MATERIALS },
-            "ORE" to { it.name.endsWith("_ORE") || it.name in ORE_MATERIALS },
-            "REDSTONE" to { it.name in REDSTONE_MATERIALS },
-        )
-        private val TOOL_MATERIALS = setOf("SHEARS", "FISHING_ROD", "FLINT_AND_STEEL", "BRUSH", "SPYGLASS")
-        private val WEAPON_MATERIALS = setOf("BOW", "CROSSBOW", "TRIDENT", "MACE", "SPEAR")
-        private val POTION_MATERIALS = setOf("POTION", "SPLASH_POTION", "LINGERING_POTION", "TIPPED_ARROW")
-        private val ORE_MATERIALS = setOf("COAL", "RAW_IRON", "RAW_COPPER", "RAW_GOLD", "IRON_INGOT", "COPPER_INGOT",
-            "GOLD_INGOT", "GOLD_NUGGET", "DIAMOND", "EMERALD", "LAPIS_LAZULI", "REDSTONE", "NETHER_QUARTZ")
-        private val REDSTONE_MATERIALS = setOf("REDSTONE", "REDSTONE_TORCH", "REPEATER", "COMPARATOR", "OBSERVER",
-            "PISTON", "STICKY_PISTON", "DISPENSER", "DROPPER", "HOPPER", "DAYLIGHT_DETECTOR", "LECTERN", "TARGET")
+        private val STRICT_LEGACY_CATEGORIES = setOf(SearchCategory.STONE, SearchCategory.FLOWERS)
+        private val LEGACY_WOOD_PARTS = setOf("WOOD", "LOG", "STEM", "PLANKS")
     }
 }
