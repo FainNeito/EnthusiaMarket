@@ -43,6 +43,17 @@ Click **Shop Type** (the hopper in the top row) to cycle through:
 
 The filter stays selected when you sort, change the out-of-stock toggle, or move between pages. Changing shop type returns to page one. Existing trade shops remain in the combined view; this search control does not enable barter.
 
+## Stone and flower categories
+
+Search `stone` or `stones` for stone building blocks and their slabs, stairs, walls and other building variants. This includes cobblestone, granite, diorite, andesite, deepslate, tuff, blackstone, basalt, calcite, dripstone blocks and end stone. Stone tools, stonecutters, ores, redstone and glowstone are excluded. Use `stone_sword` or another material name to search those items directly.
+
+Search `flower` or `flowers` for flower items, including tall flowers, petals, eyeblossoms, wildflowers, cactus flowers, spore blossoms and flowering azalea. Seeds, dyes, flower pots and leaves are excluded. Both categories also find matching contents inside supported shulker boxes and bundles, while respecting shop search opt-outs.
+
+```text
+/shop search stone
+/finditem flowers
+```
+
 ## Pagination
 
 Use the previous/next arrows at the bottom to change pages. The menu shows 36 results per page. The stock toggle shows or hides empty selling shops; buying shops can be listed with empty containers because you supply their items. Capacity and owner funds are checked when trading.
