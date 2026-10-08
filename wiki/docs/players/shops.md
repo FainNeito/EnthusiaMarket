@@ -167,8 +167,8 @@ Guild shop managers can view observed contributions and sales:
 ```text
 /guildsales stall-id
 /guildsales stall-id today
-/guildsales stall-id range 2026-10-01 2026-10-08
-/guildsales export stall-id range 2026-10-01 2026-10-08
+/guildsales range stall-id 2026-10-01 2026-10-08
+/guildsales export range stall-id 2026-10-01 2026-10-08
 ```
 
 The alias is `/stallsales`. Dates use the server timezone and include both supplied

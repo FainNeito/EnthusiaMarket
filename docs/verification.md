@@ -108,10 +108,9 @@ Refine: 92 focused Stall/Buyout/Auction/Rent/Eviction tests passed with zero fai
 
 See [guild-shop-xp.md](guild-shop-xp.md) for policy, payment boundary, journal states and SPEAR evidence.
 
-
 ## Approved guild stock accounting (8 October 2026)
 
-See [stall-accounting.md](stall-accounting.md): 892-test paired clean build passes
+See [stall-accounting.md](stall-accounting.md): 894-test paired clean build passes
 with 12 unrelated optional skips; exact integer FIFO, receipt/lot rollback,
 native MariaDB retry, unknown stock, inventory interference, access denial,
 command registration and CSV escaping are covered. Java-22 Detekt passes.

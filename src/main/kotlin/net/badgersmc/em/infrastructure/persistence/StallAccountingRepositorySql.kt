@@ -9,8 +9,7 @@ import javax.sql.DataSource
 @Repository
 class StallAccountingRepositorySql(private val ds: DataSource) : StallAccountingRepository {
     @Synchronized override fun apply(observation: StallAccountingObservation) {
-        require(observation.before >= 0 && observation.after >= 0 && observation.grossRevenue >= 0)
-        require(observation.saleQuantity == 0 || observation.saleQuantity == observation.before - observation.after)
+        validate(observation)
         ds.connection.use { c ->
             c.autoCommit = false
             try {
@@ -21,6 +20,11 @@ class StallAccountingRepositorySql(private val ds: DataSource) : StallAccounting
                 throw failure
             }
         }
+    }
+
+    private fun validate(observation: StallAccountingObservation) {
+        require(observation.before >= 0 && observation.after >= 0 && observation.grossRevenue >= 0)
+        require(observation.saleQuantity == 0 || observation.saleQuantity == observation.before - observation.after)
     }
 
     private fun applyRecord(c: Connection, o: StallAccountingObservation) {

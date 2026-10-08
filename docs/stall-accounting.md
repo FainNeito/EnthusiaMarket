@@ -26,7 +26,6 @@ rollback, restart delivery and report authorization require automated proof.
 Java/Bedrock client acceptance and canonical integration release remain separate.
 No production writes, migration, payout, merge or deployment is authorized.
 
-
 ## Prove / engine / architecture / refinement
 
 The allocation contracts prove FIFO splitting, exact payment conservation even
@@ -57,18 +56,33 @@ tables and outbox in ordinary backups. Exact native and local-suite totals are
 recorded below; hosted CI and live Java/Bedrock acceptance remain separate.
 
 This branch targets canonical main and includes #202's durability source and
-#205's reviewed date filters. Those existing PRs originate from a fork, so their
+PR #205's reviewed date filters. Those existing PRs originate from a fork, so their
 branches cannot be used as a canonical-repository PR base. Both dependencies must reach canonical main before release. No
 production migration, build upload, role deletion, merge or activation occurred.
-
 
 ### Local verification, 8 October 2026
 
 `clean test shadowJar` on Java 25 / Paper 26.2 with a frozen actual Guilds
-community artifact: **892 tests, zero failures/errors, 12 unrelated skips**.
+community artifact: **894 tests, zero failures/errors, 12 unrelated skips**.
 The new MariaDB accounting and existing loopback XP contracts ran with zero
 skips; the 12 skips are Docker-only historical/moderation profiles and one remote
 authentication test. Detekt passed under supported analyzer Java 22; production
 compilation remains Java 25. The paired compatibility attempt with a simultaneously
 replaced artifact was invalidated and rerun with fixed artifact copies.
 No result from that failed harness run is presented as a successful check.
+
+
+### Hosted review refinement
+
+[PR #207](https://github.com/BadgersMC/EnthusiaMarket/pull/207) pairs with Guilds
+#215. Initial Codacy findings prompted smaller capture/delivery helpers, explicit
+`range` subcommands and authenticated native test credentials. The local
+MariaDB test requires `MARKET_ACCOUNTING_TEST_MARIA_USER` and
+`MARKET_ACCOUNTING_TEST_MARIA_PASSWORD` alongside the disposable port; no empty
+credential default is permitted for this profile. Its schema grant is restricted
+to the random accounting-test schema prefix on loopback.
+The final refinement clean full build passes 894 tests with the same 12 unrelated
+skips; native accounting runs authenticated with zero skips. Detekt passes;
+wiki lint passes. Legacy root documentation has pre-existing lint findings outside
+the wiki CI profile; none are described as passing validation. Exact-head hosted
+Codacy and maintainer-approved fork workflows remain independent gates.

@@ -56,7 +56,7 @@ class ContainerStockListener(
         val shop = shopRepository.findById(event.shopId) ?: return
         val inventory = liveContainerInventory(shop) ?: return
         val rawStock = rawStockOf(inventory, shop)
-        if (event.direction == SignDirection.SELL) accounting?.sale(shop, event.guildId, rawStock, event.quantity, event.grossPayment ?: event.pricePaid.toLong())
+        if (event.direction == SignDirection.SELL) accounting?.sale(shop, event, rawStock)
         else accounting?.stock(shop, rawStock, rawStock, null)
         val trades = rawStock / shop.sellAmount.coerceAtLeast(1)
         lastRawStock[shop.id] = rawStock

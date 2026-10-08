@@ -250,7 +250,6 @@ ChatPriceListener claims pending create-price and bulk-quantity input at LOWEST 
 
 See [guild-shop-xp.md](guild-shop-xp.md) for policy, payment boundary, journal states and SPEAR evidence.
 
-
 ## Guild stall accounting (REQ-343 through REQ-345)
 
 Plain domain values allocate FIFO units and exact integer payment shares. Paper

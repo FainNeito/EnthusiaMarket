@@ -22,49 +22,69 @@ import java.util.UUID
 @Command(name = "guildsales", description = "Guild stall contribution and gross sales report", aliases = ["stallsales"])
 class GuildSalesCommand(private val repository: StallAccountingRepository, private val stalls: StallRepository,
     private val guilds: GuildProvider, private val lang: LangService, private val plugin: Plugin) {
+    private data class Request(val stall: String, val period: String = "all", val from: String = "", val to: String = "", val csv: Boolean = false)
+    private data class Query(val request: Request, val guild: String, val window: ShopHistoryWindow)
+
     @Subcommand("")
     @Permission("enthusiamarket.shop.use")
-    fun report(@Context sender: CommandSender, @Arg("stall") stallId: String,
-        @Arg("period") period: String = "all", @Arg("from") from: String = "", @Arg("to") to: String = "") = execute(sender, stallId, period, from, to, "chat")
+    fun report(@Context sender: CommandSender, @Arg("stall") stall: String, @Arg("period") period: String = "all") = execute(sender, Request(stall, period))
 
     @Subcommand("export")
     @Permission("enthusiamarket.shop.use")
-    fun exportReport(@Context sender: CommandSender, @Arg("stall") stallId: String,
-        @Arg("period") period: String = "all", @Arg("from") from: String = "", @Arg("to") to: String = "") = execute(sender, stallId, period, from, to, "csv")
+    fun exportReport(@Context sender: CommandSender, @Arg("stall") stall: String, @Arg("period") period: String = "all") = execute(sender, Request(stall, period, csv = true))
 
-    private fun execute(sender: CommandSender, stallId: String, period: String, from: String, to: String, format: String) {
+    @Subcommand("range")
+    @Permission("enthusiamarket.shop.use")
+    fun rangeReport(@Context sender: CommandSender, @Arg("stall") stall: String, @Arg("from") from: String, @Arg("to") to: String) = execute(sender, Request(stall, "range", from, to))
+
+    @Subcommand("export range")
+    @Permission("enthusiamarket.shop.use")
+    fun exportRange(@Context sender: CommandSender, @Arg("stall") stall: String, @Arg("from") from: String, @Arg("to") to: String) = execute(sender, Request(stall, "range", from, to, csv = true))
+
+    private fun execute(sender: CommandSender, request: Request) {
         val player = sender as? Player ?: return
-        val guild = authorizedGuild(player, stallId) ?: run { player.sendMessage(lang.msg("accounting.denied")); return }
-        val window = parseWindow(period, from, to) ?: run { player.sendMessage(lang.msg("accounting.usage")); return }
-        query(player, stallId, guild, window, format)
+        val guild = authorizedGuild(player, request.stall) ?: run { player.sendMessage(lang.msg("accounting.denied")); return }
+        val window = parseWindow(request) ?: run { player.sendMessage(lang.msg("accounting.usage")); return }
+        query(player, Query(request, guild, window))
     }
 
-    private fun parseWindow(period: String, from: String, to: String): ShopHistoryWindow? = try {
-        when (period.lowercase()) {
+    private fun parseWindow(request: Request): ShopHistoryWindow? = try {
+        when (request.period.lowercase()) {
             "all" -> ShopHistoryWindow(0, Long.MAX_VALUE)
             "today" -> ShopHistoryDates.today(Clock.systemUTC(), ZoneId.systemDefault())
-            "range" -> ShopHistoryDates.range(from, to, ZoneId.systemDefault())
+            "range" -> ShopHistoryDates.range(request.from, request.to, ZoneId.systemDefault())
             else -> null
         }
     } catch (failure: IllegalArgumentException) { null }
 
-    private fun query(player: Player, stallId: String, guild: String, window: ShopHistoryWindow, format: String) {
+    private fun query(player: Player, query: Query) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
             try {
-                val rows = repository.report(guild, stallId, window)
-                Bukkit.getScheduler().runTask(plugin, Runnable {
-                    if (!player.isOnline || Bukkit.getPlayer(player.uniqueId) !== player || authorizedGuild(player, stallId) != guild) return@Runnable
-                    player.sendMessage(lang.msg("accounting.header", "stall" to stallId))
-                    if (format == "csv") export(player, stallId, guild, rows) else rows.forEach { row ->
-                        player.sendMessage(lang.msg("accounting.row", "contributor" to (row.contributor?.let { Bukkit.getOfflinePlayer(it).name ?: it.toString() } ?: lang.raw("accounting.unattributed")),
-                            "item" to row.itemName, "stocked" to row.stocked, "sold" to row.quantity, "gross" to row.grossRevenue))
-                    }
-                })
-            } catch (failure: Exception) {
-                plugin.logger.warning("Guild sales query failed: ${failure.message}")
-                Bukkit.getScheduler().runTask(plugin, Runnable { if (player.isOnline) player.sendMessage(lang.msg("accounting.failed")) })
-            }
+                val rows = repository.report(query.guild, query.request.stall, query.window)
+                Bukkit.getScheduler().runTask(plugin, Runnable { deliver(player, query, rows) })
+            } catch (failure: Exception) { queryFailed(player, failure) }
         })
+    }
+
+    private fun queryFailed(player: Player, failure: Exception) {
+        plugin.logger.warning("Guild sales query failed: ${failure.message}")
+        Bukkit.getScheduler().runTask(plugin, Runnable { if (player.isOnline) player.sendMessage(lang.msg("accounting.failed")) })
+    }
+
+    private fun deliver(player: Player, query: Query, rows: List<ContributorSales>) {
+        if (!stillAuthorized(player, query)) return
+        player.sendMessage(lang.msg("accounting.header", "stall" to query.request.stall))
+        if (query.request.csv) export(player, query.request.stall, query.guild, rows)
+        else rows.forEach { row -> player.sendMessage(rowText(row)) }
+    }
+
+    private fun stillAuthorized(player: Player, query: Query): Boolean = player.isOnline &&
+        Bukkit.getPlayer(player.uniqueId) === player && authorizedGuild(player, query.request.stall) == query.guild
+
+    private fun rowText(row: ContributorSales): net.kyori.adventure.text.Component {
+        val contributor = row.contributor?.let { Bukkit.getOfflinePlayer(it).name ?: it.toString() } ?: lang.raw("accounting.unattributed")
+        return lang.msg("accounting.row", "contributor" to contributor, "item" to row.itemName,
+            "stocked" to row.stocked, "sold" to row.quantity, "gross" to row.grossRevenue)
     }
 
     private fun authorizedGuild(player: Player, stallId: String): String? {

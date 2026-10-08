@@ -639,12 +639,14 @@ See [guild-shop-xp.md](guild-shop-xp.md) for policy, payment boundary, journal s
 
 **Unwanted.** IF a stall has an active moderation mutation lock when sellback is confirmed THEN THE SYSTEM SHALL reject sellback before ownership, refund, shop, offer, IP, region or schematic mutations.
 
-
 ### REQ-343 — Guild stock attribution
+
 WHEN a currently authorized member manually adds provably identifiable guild-shop stock THE SYSTEM SHALL record the contributor, SHALL attribute completed SELL units FIFO, and SHALL mark existing, drifted, mixed, automated or shared same-item container stock unattributed. BUY trades SHALL NOT count as sales revenue. Taxes, rewards, ownership and payouts SHALL remain unchanged.
 
 ### REQ-344 — Read-only accounting reports
+
 WHEN a current guild shop manager requests a stall report THE SYSTEM SHALL verify active guild ownership, membership and shop authority before query and disclosure, SHALL support all/today/inclusive date ranges, and SHALL label net stocked units and gross customer payment rather than profit. Reports and optional CSV SHALL explicitly use the top 100 contributor/material rows. CSV SHALL neutralize formula cells and remain server-local.
 
 ### REQ-345 — Durable ordered observations
+
 WHEN a captured accounting observation is appended successfully THE SYSTEM SHALL retain it through SQL delivery failure or restart, SHALL apply its immutable recording ID once in a transaction, and SHALL preserve stock lots and receipts after failed writes. Uncertain inventory provenance SHALL replace remaining attribution with unknown stock. Corrupt earlier pending records SHALL block later delivery rather than silently reorder attribution.

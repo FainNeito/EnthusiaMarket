@@ -18,21 +18,26 @@ open class GuildStockAccounting(private val stalls: StallRepository, private val
         val stall = stalls.findById(StallId(shop.stallId)) ?: return
         if (!stall.isActiveGuildStall() || shop.adminShop) return
         val contributor = actor?.takeIf { guilds.isMember(it, stall.owner.id) && guilds.hasShopPermission(it, stall.owner.id, GuildProvider.GuildPermission.EDIT_SHOP_STOCK) }
-        capture(shop, stall.owner.id, before, after, contributor, 0, 0)
+        write(observation(shop, stall.owner.id, before, after)?.copy(contributor = contributor))
     }
 
-    fun sale(shop: Shop, guildId: UUID?, after: Int, quantity: Int, payment: Long) {
-        if (guildId == null || shop.adminShop || quantity <= 0) return
-        capture(shop, guildId.toString(), Math.addExact(after, quantity), after, null, quantity, payment)
+    fun sale(shop: Shop, event: net.badgersmc.em.events.PostShopTransactionEvent, after: Int) {
+        val guild = event.guildId ?: return
+        if (shop.adminShop || event.quantity <= 0) return
+        val captured = observation(shop, guild.toString(), Math.addExact(after, event.quantity), after) ?: return
+        write(captured.copy(saleQuantity = event.quantity, grossRevenue = event.grossPayment ?: event.pricePaid.toLong()))
     }
 
-    private fun capture(shop: Shop, guild: String, before: Int, after: Int, contributor: UUID?, sold: Int, payment: Long) {
-        val item = ItemStackSerializer.deserialize(shop.sellItem) ?: return
+    private fun observation(shop: Shop, guild: String, before: Int, after: Int): StallAccountingObservation? {
+        val item = ItemStackSerializer.deserialize(shop.sellItem) ?: return null
         val key = MessageDigest.getInstance("SHA-256").digest(shop.sellItem.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
-        try {
-            storage.record(StallAccountingObservation(UUID.randomUUID(), guild, shop.stallId, shop.id,
-                key, item.type.name.lowercase(), contributor, before, after, sold, payment, System.currentTimeMillis()))
-        } catch (failure: Exception) {
+        return StallAccountingObservation(UUID.randomUUID(), guild, shop.stallId, shop.id,
+            key, item.type.name.lowercase(), null, before, after, createdAt = System.currentTimeMillis())
+    }
+
+    private fun write(observation: StallAccountingObservation?) {
+        if (observation == null) return
+        try { storage.record(observation) } catch (failure: Exception) {
             Logger.getLogger(javaClass.name).warning("Could not capture stall accounting; future stock is unattributed: ${failure.message}")
         }
     }

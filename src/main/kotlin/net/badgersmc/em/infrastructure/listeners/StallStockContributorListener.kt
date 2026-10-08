@@ -15,6 +15,8 @@ import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryDragEvent
 import org.bukkit.event.inventory.InventoryMoveItemEvent
+import org.bukkit.event.inventory.InventoryAction
+import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.Inventory
 import org.bukkit.plugin.Plugin
 import java.util.UUID
@@ -54,34 +56,39 @@ open class StallStockContributorListener(private val stock: ContainerStockListen
             location.world?.name == shop.containerWorld && location.blockX == shop.containerX && location.blockY == shop.containerY && location.blockZ == shop.containerZ
         } }
         candidates.forEach { shop ->
-            captureShop(shop, inventory, actor, expected(shop), candidates)
+            captureShop(shop, inventory, Capture(actor, expected(shop), candidates))
         }
     }
 
-    private fun captureShop(shop: Shop, inventory: Inventory, actor: UUID?, expected: Int?, candidates: List<Shop>) {
-            val template = ItemStackSerializer.deserialize(shop.sellItem) ?: return
-            // A shared container exposes one physical stock pool. Never credit that pool
-            // to several shop ledgers or guess which shop a contributor intended.
-            val shared = candidates.any { other -> other.id != shop.id &&
-                ItemStackSerializer.deserialize(other.sellItem)?.let { ItemStackMatch.isSimilarIgnoringDamageNullZero(it, template) } == true }
-            val contributor = actor.takeUnless { shared }
-            val existing = pending[shop.id]
-            if (existing != null) {
-                if (contributor == null || contributor != existing.actor) existing.ambiguous = true
-                val delta = expected
-                existing.expected = if (delta != null && existing.expected != null) existing.expected!! + delta else null
-            } else {
-                val item = ItemStackSerializer.deserialize(shop.sellItem) ?: return
-                val entry = Pending(shop, inventory, ItemStackMatch.countSimilar(inventory, item), contributor, expected, contributor == null)
-                pending[shop.id] = entry
-                Bukkit.getScheduler().runTask(plugin, Runnable {
-                    pending.remove(shop.id)
-                    val current = ItemStackSerializer.deserialize(shop.sellItem) ?: return@Runnable
-                    val after = ItemStackMatch.countSimilar(inventory, current)
-                    val exact = entry.expected?.let { after == entry.before + it } == true
-                    accounting.stock(shop, entry.before, after, entry.actor.takeUnless { entry.ambiguous || !exact })
-                })
-            }
+    private data class Capture(val actor: UUID?, val expected: Int?, val candidates: List<Shop>)
+
+    private fun captureShop(shop: Shop, inventory: Inventory, capture: Capture) {
+        val template = ItemStackSerializer.deserialize(shop.sellItem) ?: return
+        val contributor = capture.actor.takeUnless { sharedPool(shop, template, capture.candidates) }
+        val existing = pending[shop.id]
+        if (existing != null) { updatePending(existing, contributor, capture.expected); return }
+        val entry = Pending(shop, inventory, ItemStackMatch.countSimilar(inventory, template), contributor, capture.expected, contributor == null)
+        pending[shop.id] = entry
+        Bukkit.getScheduler().runTask(plugin, Runnable { complete(entry) })
+    }
+
+    private fun sharedPool(shop: Shop, template: ItemStack, candidates: List<Shop>): Boolean = candidates.any { other ->
+        other.id != shop.id && ItemStackSerializer.deserialize(other.sellItem)?.let {
+            ItemStackMatch.isSimilarIgnoringDamageNullZero(it, template)
+        } == true
+    }
+
+    private fun updatePending(entry: Pending, actor: UUID?, delta: Int?) {
+        if (actor == null || actor != entry.actor) entry.ambiguous = true
+        entry.expected = entry.expected?.let { previous -> delta?.let { previous + it } }
+    }
+
+    private fun complete(entry: Pending) {
+        pending.remove(entry.shop.id)
+        val current = ItemStackSerializer.deserialize(entry.shop.sellItem) ?: return
+        val after = ItemStackMatch.countSimilar(entry.inventory, current)
+        val exact = entry.expected?.let { after == entry.before + it } == true
+        accounting.stock(entry.shop, entry.before, after, entry.actor.takeUnless { entry.ambiguous || !exact })
     }
 
     private fun units(stack: org.bukkit.inventory.ItemStack?, item: org.bukkit.inventory.ItemStack): Int =
@@ -95,18 +102,22 @@ open class StallStockContributorListener(private val stock: ContainerStockListen
 
     private fun expectedClick(shop: Shop, event: InventoryClickEvent): Int? {
         val item = ItemStackSerializer.deserialize(shop.sellItem) ?: return null
-        val cursor = event.cursor
-        val current = event.currentItem
-        if (event.clickedInventory !== event.inventory) {
-            if (event.action != org.bukkit.event.inventory.InventoryAction.MOVE_TO_OTHER_INVENTORY || units(current, item) == 0) return null
-            return minOf(units(current, item), room(event.inventory, item))
-        }
-        return when (event.action) {
-            org.bukkit.event.inventory.InventoryAction.PLACE_ALL,
-            org.bukkit.event.inventory.InventoryAction.PLACE_SOME -> if (units(cursor, item) > 0) minOf(cursor.amount, item.maxStackSize - (current?.amount ?: 0)) else 0
-            org.bukkit.event.inventory.InventoryAction.PLACE_ONE -> if (units(cursor, item) > 0) 1 else 0
-            org.bukkit.event.inventory.InventoryAction.SWAP_WITH_CURSOR -> units(cursor, item) - units(current, item)
-            else -> null // Unproven edit types remain unattributed.
-        }
+        if (event.clickedInventory !== event.inventory) return shiftDelta(event, item)
+        return topDelta(event, item)
     }
+
+    private fun shiftDelta(event: InventoryClickEvent, item: ItemStack): Int? {
+        if (event.action != InventoryAction.MOVE_TO_OTHER_INVENTORY || units(event.currentItem, item) == 0) return null
+        return minOf(units(event.currentItem, item), room(event.inventory, item))
+    }
+
+    private fun topDelta(event: InventoryClickEvent, item: ItemStack): Int? = when (event.action) {
+        InventoryAction.PLACE_ALL, InventoryAction.PLACE_SOME -> placement(event, item)
+        InventoryAction.PLACE_ONE -> if (units(event.cursor, item) > 0) 1 else 0
+        InventoryAction.SWAP_WITH_CURSOR -> units(event.cursor, item) - units(event.currentItem, item)
+        else -> null // Unproven edit types remain unattributed.
+    }
+
+    private fun placement(event: InventoryClickEvent, item: ItemStack): Int =
+        if (units(event.cursor, item) > 0) minOf(event.cursor.amount, item.maxStackSize - (event.currentItem?.amount ?: 0)) else 0
 }

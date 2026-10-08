@@ -16,7 +16,7 @@ internal class GuildSalesCommandTest {
         WebsiteSyncSecretArgumentRegistration.register()
         val command = PaperCommandScanner().scanCommands("net.badgersmc.em.infrastructure.commands", javaClass.classLoader)
             .single { it.annotation.name == "guildsales" }
-        assertEquals(setOf("", "export"), command.subcommands.map { it.path.joinToString(" ") }.toSet())
+        assertEquals(setOf("", "export", "range", "export range"), command.subcommands.map { it.path.joinToString(" ") }.toSet())
         val service = GuildSalesCommand(mockk(), mockk(), mockk(), mockk(), mockk())
         assertEquals("\"'=SUM(A1)\"", service.csvCell("=SUM(A1)"))
         assertEquals("\"diamond, \"\"named\"\"\"", service.csvCell("diamond, \"named\""))
@@ -26,8 +26,7 @@ internal class GuildSalesCommandTest {
         val repository = mockk<StallAccountingRepository>()
         val stalls = mockk<StallRepository>()
         every { stalls.findById(any()) } returns null
-        val lang = mockk<LangService>()
-        every { lang.msg("accounting.denied") } returns Component.text("Denied")
+        val lang = denialLanguage()
         val player = mockk<Player>(relaxed = true)
         val service = GuildSalesCommand(repository, stalls, mockk<GuildProvider>(), lang, mockk<Plugin>())
         service.report(player, "missing")
@@ -40,16 +39,13 @@ internal class GuildSalesCommandTest {
         val repository = mockk<StallAccountingRepository>()
         val stalls = mockk<StallRepository>()
         val guild = java.util.UUID.randomUUID().toString()
-        val stall = mockk<net.badgersmc.em.domain.stall.Stall>()
-        every { stall.owner } returns net.badgersmc.em.domain.stall.OwnerRef(net.badgersmc.em.domain.stall.OwnerType.GUILD, guild)
-        every { stall.isActiveGuildStall() } returns true
+        val stall = activeStall(guild)
         every { stalls.findById(any()) } returns stall
         val provider = mockk<GuildProvider>()
         var member = false
         every { provider.isMember(any(), guild) } answers { member }
         every { provider.hasShopPermission(any(), guild, GuildProvider.GuildPermission.MANAGE_SHOPS) } returns false
-        val lang = mockk<LangService>()
-        every { lang.msg("accounting.denied") } returns Component.text("Denied")
+        val lang = denialLanguage()
         val player = mockk<Player>(relaxed = true)
         val service = GuildSalesCommand(repository, stalls, provider, lang, mockk<Plugin>())
         service.report(player, "stall")
@@ -57,6 +53,16 @@ internal class GuildSalesCommandTest {
         service.exportReport(player, "stall")
         verify(exactly = 0) { repository.report(any(), any(), any()) }
         verify(exactly = 2) { player.sendMessage(Component.text("Denied")) }
+    }
+
+
+    private fun activeStall(guild: String): net.badgersmc.em.domain.stall.Stall = mockk {
+        every { owner } returns net.badgersmc.em.domain.stall.OwnerRef(net.badgersmc.em.domain.stall.OwnerType.GUILD, guild)
+        every { isActiveGuildStall() } returns true
+    }
+
+    private fun denialLanguage(): LangService = mockk {
+        every { msg("accounting.denied") } returns Component.text("Denied")
     }
 
 }

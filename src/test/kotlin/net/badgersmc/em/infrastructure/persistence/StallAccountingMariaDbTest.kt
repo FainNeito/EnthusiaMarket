@@ -15,12 +15,15 @@ internal class StallAccountingMariaDbTest {
         val port = System.getenv("MARKET_ACCOUNTING_TEST_MARIA_PORT").toInt()
         require(port in 1024..65535 && port != 3306)
         val schema = "em_accounting_" + UUID.randomUUID().toString().replace("-", "")
+        val user = requireNotNull(System.getenv("MARKET_ACCOUNTING_TEST_MARIA_USER"))
+        val password = requireNotNull(System.getenv("MARKET_ACCOUNTING_TEST_MARIA_PASSWORD"))
+        require(user.isNotBlank() && password.isNotBlank())
         val admin = "jdbc:mariadb://127.0.0.1:$port/"
-        DriverManager.getConnection(admin, "root", "").use { c ->
+        DriverManager.getConnection(admin, user, password).use { c ->
             c.createStatement().use { it.execute("CREATE DATABASE $schema") }
             try {
                 HikariDataSource(HikariConfig().apply {
-                    jdbcUrl = admin + schema; username = "root"; password = ""; maximumPoolSize = 2
+                    jdbcUrl = admin + schema; username = user; this.password = password; maximumPoolSize = 2
                 }).use { ds ->
                     verifyContracts(ds)
                 }
@@ -35,10 +38,10 @@ internal class StallAccountingMariaDbTest {
                     }
                     val repo = StallAccountingRepositorySql(ds)
                     val member = UUID.randomUUID()
-                    fun event(before: Int, after: Int, actor: UUID?, sold: Int = 0, payment: Long = 0) =
-                        StallAccountingObservation(UUID.randomUUID(), "guild", "stall", 1, "item", "diamond", actor, before, after, sold, payment, 100)
-                    repo.apply(event(0, 3, member))
-                    val sale = event(3, 2, null, 1, 7)
+                    fun event(stock: Pair<Int, Int>, actor: UUID?, sold: Int = 0, payment: Long = 0) =
+                        StallAccountingObservation(UUID.randomUUID(), "guild", "stall", 1, "item", "diamond", actor, stock.first, stock.second, sold, payment, 100)
+                    repo.apply(event(0 to 3, member))
+                    val sale = event(3 to 2, null, 1, 7)
                     ds.connection.use { connection -> connection.createStatement().use {
                         it.execute("CREATE TRIGGER reject_accounting BEFORE INSERT ON guild_sale_attribution FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'test failure'")
                     } }

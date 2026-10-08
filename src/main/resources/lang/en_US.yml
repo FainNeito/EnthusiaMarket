@@ -617,7 +617,7 @@ guildpolicy:
 
 accounting:
   denied: "<red>Only current guild stall managers can view this report."
-  usage: "<yellow>/guildsales [export] stall [all|today|range YYYY-MM-DD YYYY-MM-DD]"
+  usage: "<yellow>/guildsales [export] stall [all|today] or /guildsales [export] range stall YYYY-MM-DD YYYY-MM-DD"
   header: "<gold>Stall <stall>: top 100 contributor/item rows. Net stock and gross customer payment; no payouts. New accounting records only; history delivery may be pending."
   unattributed: "Unattributed"
   row: "<white><contributor> | <item> | net stocked <stocked> | sold <sold> | gross <gross>"
