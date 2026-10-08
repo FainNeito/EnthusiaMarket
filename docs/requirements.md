@@ -592,6 +592,7 @@ return the stall to UNOWNED.
 ## Guild-shop XP (REQ-342)
 
 See [guild-shop-xp.md](guild-shop-xp.md) for policy, payment boundary, journal states and SPEAR evidence.
+
 ### REQ-335 — Sellback moderation reservation
 
 **Unwanted.** IF a stall has an active moderation mutation lock when sellback is confirmed THEN THE SYSTEM SHALL reject sellback before ownership, refund, shop, offer, IP, region or schematic mutations.

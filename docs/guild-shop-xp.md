@@ -18,7 +18,7 @@ Vault and inventories have no shared SQL transaction or durable payment receipts
 - Prove: Market trade-boundary and persistent-journal tests cover preparation-before-payment, completion-after-delivery, withdrawal/delivery failure, own/personal/free/BUY boundaries, retry, acknowledgement loss, restart and ambiguous completion-write failure. Guilds owns the own-guild membership and prestige SQL proof.
 - Engine: V031 journal, synchronous pre-payment quote, completion/abort boundary and ordered bounded replay implemented. Best-effort notification events remain separate from the durable reward boundary.
 - Arch: domain ports isolate SQL and ServicesManager adapters. A JDK-only versioned API is resolved through the companion's own classloader on each call, without caching unavailable providers.
-- Refine/local: clean Java 25/Paper 26.2 test/shadowJar passed 842 tests, zero failures/errors, eight skips against the actual unmerged Guilds review artifact; the isolated-loader API contract executed (not skipped). Detekt passed on JDK 22. Disposable loopback MariaDB 11.8.3 passed the new journal contract and all seven current migration/moderation fixture bodies, including V031. Docker-dependent hosted/runtime acceptance remains separate.
+- Refine/local: clean Java 25/Paper 26.2 test/shadowJar passed 842 tests, zero failures/errors, nine optional skips against the actual unmerged Guilds review artifact; the isolated-loader API contract executed (not skipped). Detekt passed on JDK 22. Disposable loopback MariaDB 11.8.3 passed the new journal contract and all seven current migration/moderation fixture bodies, including V031. Docker-dependent hosted/runtime acceptance remains separate.
 - The existing BedrockHeadStore fake-clock test advanced time before the full worker mutation/persist step completed. A queued executor fence now waits for that step before changing time; production head-store code is unchanged.
 - Hosted checks/review for the final published head are pending. Local MariaDB proof does not establish staging/player acceptance.
 - Project-local EARS/state helpers are absent; this file and docs/tasks.md are the manual state/evidence record.
@@ -36,8 +36,10 @@ An unavailable XP provider refuses paid guild SELL purchases before side effects
 
 Optional native checks use only loopback disposable test databases. Gradle tracks the configured port and reruns configured checks, so a skipped/stale external-database result cannot be reused.
 
-Local unmerged review artifact: `build/libs/EnthusiaMarket-1.0.0-shop-xp-review.jar`; SHA-256 `8f4a973213280dbf09e8194c014627af07b304d28c4b9d317eb18ee3c5928fb8`. This is not a production artifact.
+Local unmerged review artifact: `build/libs/EnthusiaMarket-1.0.0-shop-xp-review.jar`; SHA-256 `6b0354457c8d42345bd2a64e1bb0bf0f82250f2d4d8e8e062681241287986001`. This is not a production artifact.
 
 ## Hosted review refinement
 
 Paid SELL now separates stock collection, payment/compensation and actual inventory delivery. The inventory helper preserves the original collected stacks and exact delivered amounts for rollback. Trade boundary regressions passed; the real revised Guilds artifact runtime contract executed (one test, zero skips). Clean Java 25/Paper 26.2 test + shadowJar passed 842 tests, zero failures/errors, nine optional skips. Java 22 Detekt passed. Documentation spacing findings were corrected. Hosted results for this revised head remain separate; no production changes.
+
+The final payment helper refinement preserves free-sale behavior and stock restoration while reducing branch complexity. Focused ContainerTrade tests and Java 22 Detekt passed after the change.

@@ -268,14 +268,15 @@ open class ContainerTradeService(
     private fun collectSalePayment(
         playerUuid: UUID, ctx: TradeContext, cost: Long, collectedItems: List<ItemStack>,
     ): ContainerTradeResult? {
-        if (cost > 0L && !economy.withdraw(playerUuid, cost)) {
-            for (item in collectedItems) ctx.containerInv.addItem(item)
+        if (cost <= 0L) return null
+        if (!economy.withdraw(playerUuid, cost)) {
+            collectedItems.forEach { ctx.containerInv.addItem(it) }
             return ContainerTradeResult.Failure("Withdraw failed")
         }
 
         val guildId = ctx.guildId
-        if (cost > 0L && !depositToShop(guildId, ctx.ownerUuid, cost)) {
-            for (item in collectedItems) ctx.containerInv.addItem(item)
+        if (!depositToShop(guildId, ctx.ownerUuid, cost)) {
+            collectedItems.forEach { ctx.containerInv.addItem(it) }
             val playerRefunded = economy.deposit(playerUuid, cost)
             return ContainerTradeResult.CompensationFailed(
                 error = guildPaymentFailure(guildId, "Owner deposit failed").reason,
