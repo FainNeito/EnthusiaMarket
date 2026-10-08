@@ -119,6 +119,14 @@ Each requirement carries a stable ID. Tasks reference requirements by ID. New re
 
 ---
 
+### REQ-351 — Registered help commands
+
+WHEN help advertises a command THE SYSTEM SHALL use a registered command path, include required arguments, and provide a useful prefill.
+
+### REQ-352 — Existing capability tutorial
+
+WHEN a player requests the existing shop tutorial THE SYSTEM SHALL describe supported creation, editing, bulk selection, search, rent renewal, expiry and barter-vault entry points without changing game or server policy.
+
 ## Interfaces & contracts
 
 ### REQ-020 — Persistence backend
@@ -518,14 +526,6 @@ return the stall to UNOWNED.
 **Event-driven.** WHEN an authorized administrator executes `/em rent extendall <duration>` THE SYSTEM SHALL add a positive duration to every actively held `OWNED` or `GRACE` stall without charging owners, SHALL leave unowned, auction, and moderation states unchanged, and SHALL report updated, recovered-from-grace, skipped, and failed counts.
 
 ---
-
-### REQ-351 — Registered help commands
-
-WHEN help advertises a command THE SYSTEM SHALL use a registered command path, include required arguments, and provide a useful prefill.
-
-### REQ-352 — Existing capability tutorial
-
-WHEN a player requests the existing shop tutorial THE SYSTEM SHALL describe supported creation, editing, bulk selection, search, rent renewal, expiry and barter-vault entry points without changing game or server policy.
 
 ## Acceptance
 

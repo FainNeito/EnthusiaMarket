@@ -1,12 +1,6 @@
 
 # Tasks — EnthusiaMarket
 
-## Player help maintenance (2026-10-07)
-
-- [x] HELP-351 — Existing help contract executed and failed on twelve entries with missing arguments or unregistered paths; corrected registered paths/prefills and clarification of existing behavior. Contract now passes.
-- [x] HELP-352 — Refresh quick tutorial and wiki; verify added locale keys resolve under a partial existing user locale while preserving overrides. Clean full suite: 776 cases, zero failures/errors, seven external-resource skips. Detekt, architecture, frontmatter/topic parity, 31-page markdown lint and strict MkDocs passed.
-- [x] HELP-REVIEW — #203 published independently; exact-head Codacy passed with zero annotations and no human/inline findings returned. CodeRabbit skipped review; hosted build/quality/wiki workflows need maintainer approval. Production permissions, rendering, locale rollout and client acceptance remain separate.
-
 **Date:** 2026-05-24
 **Status:** Bootstrap (emitted by `/spear:init`; extend via `/spear:spec`)
 
@@ -85,6 +79,12 @@ Reported: Netherite_Ingot (15 chars) doesn't show on sign. Custom anvil names lo
   Evidence: ``
 
 ---
+
+## Player help maintenance (2026-10-07)
+
+- [x] HELP-351 — Existing help contract executed and failed on twelve entries with missing arguments or unregistered paths; corrected registered paths/prefills and clarification of existing behavior. Contract now passes.
+- [x] HELP-352 — Refresh quick tutorial and wiki; verify added locale keys resolve under a partial existing user locale while preserving overrides. Clean full suite: 776 cases, zero failures/errors, seven external-resource skips. Detekt, architecture, frontmatter/topic parity, 31-page markdown lint and strict MkDocs passed.
+- [x] HELP-REVIEW — #203 published independently; exact-head Codacy passed with zero annotations and no human/inline findings returned. CodeRabbit skipped review; hosted build/quality/wiki workflows need maintainer approval. Production permissions, rendering, locale rollout and client acceptance remain separate.
 
 ## Milestone M1 — Shop signs (REQ-005, REQ-006, REQ-020)
 
