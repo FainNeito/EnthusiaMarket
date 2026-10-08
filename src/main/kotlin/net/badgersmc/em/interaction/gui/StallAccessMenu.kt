@@ -37,12 +37,13 @@ class StallAccessMenu(
         choices.drop(current * 45).take(45).forEach { choice ->
             pane.addItem(button(choice.title) { choice.select() })
         }
-        addControls(pane, player, id, section, current)
+        addControls(pane, player, id, section to current)
         gui.addPane(com.github.stefvanschie.inventoryframework.pane.util.Slot.fromXY(0, 0), pane)
         gui.blockItemTheft(); gui.show(player)
     }
 
-    private fun addControls(pane: OutlinePane, player: Player, id: String, section: String, current: Int) {
+    private fun addControls(pane: OutlinePane, player: Player, id: String, navigation: Pair<String, Int>) {
+        val (section, current) = navigation
         pane.addItem(button("Previous page") { open(player, id, section, current - 1) })
         pane.addItem(button("Next page") { open(player, id, section, current + 1) })
         pane.addItem(button("Visitor flags") { open(player, id) })

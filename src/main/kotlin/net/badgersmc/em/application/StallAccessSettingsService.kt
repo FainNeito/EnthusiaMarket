@@ -25,7 +25,7 @@ class StallAccessSettingsService(
     fun mayManage(stall: Stall, actor: UUID): Boolean = stall.id.value !in uncertain && index.isFresh(stall.id.value) &&
         !gate.isStallLocked(stall.id.value) && stall.state in ACTIVE_STATES && when (stall.owner.type) {
             OwnerType.NONE -> false
-            OwnerType.SOLO -> stall.owner.id == actor.toString() || actor in stall.members
+            OwnerType.SOLO -> soloMember(stall, actor)
             OwnerType.GUILD -> guilds.isMember(actor, stall.owner.id) &&
                 guilds.hasShopPermission(actor, stall.owner.id, GuildProvider.GuildPermission.MANAGE_SHOPS)
         }
@@ -50,6 +50,8 @@ class StallAccessSettingsService(
             throw failure
         }
     }
+
+    private fun soloMember(stall: Stall, actor: UUID): Boolean = stall.owner.id == actor.toString() || actor in stall.members
 
     /** Command-only reconciliation after an uncertain commit; never invoked by event checks. */
     fun refreshIfUncertain(id: String) {
@@ -81,7 +83,7 @@ class StallAccessSettingsService(
     private fun memberAllows(stall: Stall, actor: UUID, capability: StallCapability): Boolean {
         if (!index.isFresh(stall.id.value) || gate.isStallLocked(stall.id.value)) return false
         return when (stall.owner.type) {
-            OwnerType.SOLO -> stall.owner.id == actor.toString() || actor in stall.members
+            OwnerType.SOLO -> soloMember(stall, actor)
             OwnerType.GUILD -> guildMemberAllows(stall, actor, capability)
             OwnerType.NONE -> false
         }

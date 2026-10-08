@@ -62,8 +62,12 @@ class StallAccessListener(private val regions: StallAccessRegions, private val a
         val player = event.player as? Player ?: return
         if (!inventoryAllowed(player, event.inventory, StallCapability.CHESTS)) { event.isCancelled = true; return }
         val location = event.inventory.location ?: return
-        val capability = workstation(event.inventory.type) ?: return
-        if (!allowed(player, location, capability)) event.isCancelled = true
+        if (!workstationAllowed(player, event.inventory, location)) event.isCancelled = true
+    }
+
+    private fun workstationAllowed(player: Player, inventory: org.bukkit.inventory.Inventory, location: Location): Boolean {
+        val capability = workstation(inventory.type) ?: return true
+        return allowed(player, location, capability)
     }
 
     private fun workstation(type: org.bukkit.event.inventory.InventoryType): StallCapability? = when (type) {

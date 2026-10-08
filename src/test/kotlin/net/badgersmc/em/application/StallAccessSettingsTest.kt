@@ -107,11 +107,7 @@ class StallAccessSettingsTest {
         val failing = mockk<StallAccessSettingsRepository>()
         var readsFail = false
         every { failing.all() } answers { if (readsFail) error("Read unavailable") else repo.all() }
-        every { failing.save(any(), any()) } answers {
-            repo.save(firstArg(), secondArg())
-            readsFail = true
-            error("Commit acknowledgement unavailable")
-        }
+        failCommitAcknowledgement(failing) { readsFail = true }
         val guarded = StallAccessSettingsService(stalls, failing, guilds, gate)
         assertFails { guarded.edit(owner, "s1") { it.copy(blacklist = setOf(visitor)) } }
         stalls.save(stall())
@@ -121,6 +117,14 @@ class StallAccessSettingsTest {
         assertTrue(guarded.mayManage(stall(), owner))
         assertFalse(guarded.allows("s1", visitor, StallCapability.ITEM_PICKUP))
         assertEquals(setOf(visitor), guarded.current(stall()).blacklist)
+    }
+
+    private fun failCommitAcknowledgement(failing: StallAccessSettingsRepository, failReads: () -> Unit) {
+        every { failing.save(any(), any()) } answers {
+            repo.save(firstArg(), secondArg())
+            failReads()
+            error("Commit acknowledgement unavailable")
+        }
     }
 
     private fun assertUncertainDenial(guarded: StallAccessSettingsService) {

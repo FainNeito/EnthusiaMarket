@@ -88,9 +88,11 @@ class StallEffectGuard(
             it.state in setOf(net.badgersmc.em.domain.stall.StallState.OWNED, net.badgersmc.em.domain.stall.StallState.GRACE)
         }
         val incoming = event.cause in setOf(EntityPotionEffectEvent.Cause.POTION_SPLASH, EntityPotionEffectEvent.Cause.AREA_EFFECT_CLOUD)
-        if (stalls.any { effect.type.name in access.current(it).blockedEffects ||
-                (incoming && !access.current(it).allowIncomingPotions) }) event.isCancelled = true
+        if (stalls.any { blocksIncoming(access.current(it), effect.type.name, incoming) }) event.isCancelled = true
     }
+
+    private fun blocksIncoming(settings: net.badgersmc.em.domain.stall.StallAccessSettings, effect: String, incoming: Boolean): Boolean =
+        effect in settings.blockedEffects || (incoming && !settings.allowIncomingPotions)
 
     @EventHandler fun onDeath(event: PlayerDeathEvent) { held.remove(event.entity.uniqueId); lastAllowed.remove(event.entity.uniqueId) }
     @EventHandler fun onQuit(event: PlayerQuitEvent) { restore(event.player); lastAllowed.remove(event.player.uniqueId) }
