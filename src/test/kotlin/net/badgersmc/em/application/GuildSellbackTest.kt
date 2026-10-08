@@ -56,4 +56,34 @@ class GuildSellbackTest {
         assertIs<StallSellbackService.ExecuteResult.NotAuthorised>(service.execute(stall.id, actor))
         verify(exactly = 0) { stalls.save(any()) }
     }
+
+    @Test fun `guild sellback rechecks a moderation lock acquired after quote`() {
+        rejectsLockedConfirmation(stall)
+    }
+
+    @Test fun `personal sellback rechecks a moderation lock acquired after quote`() {
+        rejectsLockedConfirmation(stall.copy(owner = OwnerRef.solo(actor)))
+    }
+
+    private fun rejectsLockedConfirmation(owned: Stall) {
+        val gate = mockk<MarketMutationGate>()
+        every { stalls.findById(owned.id) } returns owned
+        every { gate.isStallLocked(owned.id.value) } returns false
+        val guarded = StallSellbackService(
+            stalls, shops, offers, economy, guilds, EnthusiaMarketConfig(), regions,
+            ipLimiter = ip, mutationGate = gate,
+        )
+        assertIs<StallSellbackService.QuoteResult.Ok>(guarded.quote(owned.id, actor))
+        every { gate.isStallLocked(owned.id.value) } returns true
+
+        val result = assertIs<StallSellbackService.ExecuteResult.Rejected>(guarded.execute(owned.id, actor))
+        assertTrue(result.reason.contains("temporarily unavailable"))
+        verify(exactly = 0) { stalls.save(any()) }
+        verify(exactly = 0) { guilds.bankDeposit(any(), any()) }
+        verify(exactly = 0) { economy.deposit(any(), any()) }
+        verify(exactly = 0) { shops.delete(any()) }
+        verify(exactly = 0) { offers.delete(any()) }
+        verify(exactly = 0) { regions.clearOwnersAndMembers(any(), any()) }
+        verify(exactly = 0) { ip.releaseStallByOwnerId(any()) }
+    }
 }
