@@ -620,3 +620,7 @@ REQ-323 through REQ-342 are reserved by existing pending Market work, including 
 ### REQ-335 — Sellback moderation reservation
 
 **Unwanted.** IF a stall has an active moderation mutation lock when sellback is confirmed THEN THE SYSTEM SHALL reject sellback before ownership, refund, shop, offer, IP, region or schematic mutations.
+
+### REQ-380 — Search stock feedback
+
+**Event-driven.** WHEN a Market item search has matching shops but no entries visible under the default stock filter THE SYSTEM SHALL send localized feedback naming the query as not in stock without opening or replacing the player's inventory.
