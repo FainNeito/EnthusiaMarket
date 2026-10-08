@@ -7,6 +7,15 @@
 Tags: `TDD` (failing test before code), `DOC` (markdown / template authoring), `INFRA` (manifests, CI, repo plumbing).
 State legend: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 
+## Search stock feedback (REQ-380)
+
+- [x] STOCK-380: reproduce empty-menu inventory replacement, guard the shared
+  search presentation before GUI/stall lookup creation, and preserve complete
+  trades, mixed stock, BUY/admin semantics and explicit out-of-stock display.
+  Evidence: SearchResultsStockFeedbackTest (7 cases; 4 red before guard, all
+  green after); canonical clean 781-case suite, architecture and Detekt pass.
+  See finditem-stock-verification.md for artifact, preview and delivery limits.
+
 ## Item data component preservation (REQ-300, REQ-301)
 
 Reported: Ominous keys purchased from market have their data components stripped, making them non-functional. Root cause: (1) `ItemStackSerializer.deserialize()` round-trips through legacy `ItemStack.serialize()`/`deserialize()` Map format which drops modern Paper 1.21+ data components. (2) SELL/TRADE trade paths deliver `sellStack.clone()` (deserialized template) instead of items cloned from the actual container inventory.
