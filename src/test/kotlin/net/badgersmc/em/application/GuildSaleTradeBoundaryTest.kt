@@ -57,14 +57,18 @@ class GuildSaleTradeBoundaryTest {
         every { economy.balance(buyer) } returns 1000
         every { economy.withdraw(buyer, any()) } returns true
         every { guilds.bankDeposit(guild.toString(), any()) } returns true
-        every { stock.contents } returns arrayOf(stack)
-        every { stack.isSimilar(any()) } returns true
-        every { stack.amount } returns 10
-        every { inventory.addItem(any()) } returns hashMapOf()
+        configureStock()
         every { rewards.prepare(guild, buyer, shop.id) } returns id
         val container = mockk<Container>()
         every { container.inventory } returns stock
         service = ContainerTradeServiceHarness(stalls, economy, guilds, mockItemStack = stack, mockContainer = container, saleRewards = rewards)
+    }
+
+    private fun configureStock() {
+        every { stock.contents } returns arrayOf(stack)
+        every { stack.isSimilar(any()) } returns true
+        every { stack.amount } returns 10
+        every { inventory.addItem(any()) } returns hashMapOf()
     }
 
     @AfterEach fun close() { unmockkAll() }

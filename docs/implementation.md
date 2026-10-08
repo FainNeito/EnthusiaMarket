@@ -246,7 +246,6 @@ ChatPriceListener claims pending create-price and bulk-quantity input at LOWEST 
 - Per-component code-level docs — owned by each component's own KDoc.
 - CI configuration — owned by `tech-stack.md` §CI and the workflow file itself.
 
-
 ## Guild-shop XP (REQ-342)
 
 See [guild-shop-xp.md](guild-shop-xp.md) for policy, payment boundary, journal states and SPEAR evidence.

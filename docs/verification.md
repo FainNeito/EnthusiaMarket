@@ -104,7 +104,6 @@ Engine/architecture: no additional production code change is supported by this r
 
 Refine: 92 focused Stall/Buyout/Auction/Rent/Eviction tests passed with zero failures/errors/skips; Detekt passed on Java 21. This is verification of an existing canonical fix, not a claimed new red/green implementation. Hosted checks for the evidence/test follow-up remain distinct. Project-local EARS/state tooling remains absent. A future targeted repair needs exact installed source/version evidence, a read-only database/WorldGuard comparison and current-owner confirmation of intended members. No database change, WorldGuard mutation, sellback, deployment or production operation was performed.
 
-
 ## Guild-shop XP (REQ-342)
 
 See [guild-shop-xp.md](guild-shop-xp.md) for policy, payment boundary, journal states and SPEAR evidence.

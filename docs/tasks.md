@@ -1114,12 +1114,9 @@ Validation: Market 806 tests, 0 failures/errors, 7 skipped; architecture checks 
 
 - [x] **FRAME-332** — REQ-332: proved failing defaults and shared-total behavior before implementation; 811 tests passed (7 skipped), architecture checks and Detekt passed. Configurable finite/zero limits and other entity checks are retained; defaults and evidence updated. Exact-head hosted checks and live acceptance remain separately pending; no production configuration was changed.
 
-
-
 ## Guild-shop XP (REQ-342)
 
 See [guild-shop-xp.md](guild-shop-xp.md) for policy, payment boundary, journal states and SPEAR evidence.
-
 
 - [x] **SHOP-XP-SPEC-342** — approved configurable limits and excluded purchase paths in docs/guild-shop-xp.md.
 - [x] **SHOP-XP-ENGINE-342** — durable sale journal, pre-payment quote, completed-only replay and atomic companion consumption.

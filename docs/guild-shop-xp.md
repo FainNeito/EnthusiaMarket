@@ -24,7 +24,6 @@ Vault and inventories have no shared SQL transaction or durable payment receipts
 - Project-local EARS/state helpers are absent; this file and docs/tasks.md are the manual state/evidence record.
 - Hosted CI, merged companion build, staging and player acceptance remain separate; no production changes authorized.
 
-
 ## Companion and release gates
 
 Companion: [LumaGuilds PR #212](https://github.com/BadgersMC/LumaGuilds/pull/212), native database follow-up e579f77. Market's inherited dependencies are [#197](https://github.com/BadgersMC/EnthusiaMarket/pull/197) and [#198](https://github.com/BadgersMC/EnthusiaMarket/pull/198). This branch remains a draft stack until those changes and the companion API are reviewed and merged. Canonical main was refreshed at 14351db; #197 advanced to 7d7e54a and its relevant authority/MariaDB-fixture changes were incorporated in merge 153dbd7 before delivery.
@@ -38,3 +37,7 @@ An unavailable XP provider refuses paid guild SELL purchases before side effects
 Optional native checks use only loopback disposable test databases. Gradle tracks the configured port and reruns configured checks, so a skipped/stale external-database result cannot be reused.
 
 Local unmerged review artifact: `build/libs/EnthusiaMarket-1.0.0-shop-xp-review.jar`; SHA-256 `8f4a973213280dbf09e8194c014627af07b304d28c4b9d317eb18ee3c5928fb8`. This is not a production artifact.
+
+## Hosted review refinement
+
+Paid SELL now separates stock collection, payment/compensation and actual inventory delivery. The inventory helper preserves the original collected stacks and exact delivered amounts for rollback. Trade boundary regressions passed; the real revised Guilds artifact runtime contract executed (one test, zero skips). Clean Java 25/Paper 26.2 test + shadowJar passed 842 tests, zero failures/errors, eight optional skips. Java 22 Detekt passed. Documentation spacing findings were corrected. Hosted results for this revised head remain separate; no production changes.
