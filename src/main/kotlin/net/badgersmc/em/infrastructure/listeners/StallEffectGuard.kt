@@ -69,10 +69,15 @@ class StallEffectGuard(
             lastAllowed[player.uniqueId] = player.location.clone()
             return
         }
-        val candidate = listOfNotNull(lastAllowed[player.uniqueId], player.world.spawnLocation).firstOrNull { location ->
-            allowedDestination(player, location)
-        } ?: return
+        val candidate = escapeDestination(player) ?: return
         player.teleport(candidate)
+    }
+
+    private fun escapeDestination(player: Player): org.bukkit.Location? {
+        for (location in listOfNotNull(lastAllowed[player.uniqueId], player.world.spawnLocation)) {
+            if (allowedDestination(player, location)) return location
+        }
+        return null
     }
 
     private fun allowedDestination(player: Player, location: org.bukkit.Location): Boolean =

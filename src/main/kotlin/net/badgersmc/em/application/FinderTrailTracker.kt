@@ -32,7 +32,6 @@ class FinderTrailTracker {
         val players = active.keys.toList()
         if (players.isEmpty()) return plans
         val ordered = order(players)
-        offset = (offset + 1) % players.size
         var budget = maxParticles.coerceAtLeast(0)
         for (player in ordered) {
             val trail = active.getValue(player)
@@ -46,7 +45,11 @@ class FinderTrailTracker {
         return plans
     }
 
-    private fun order(players: List<UUID>): List<UUID> = players.drop(offset % players.size) + players.take(offset % players.size)
+    private fun order(players: List<UUID>): List<UUID> {
+        val ordered = players.drop(offset % players.size) + players.take(offset % players.size)
+        offset = (offset + 1) % players.size
+        return ordered
+    }
 
     private fun origin(
         trail: Trail, now: Instant, maxRange: Double,
