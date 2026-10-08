@@ -43,10 +43,9 @@ class ShopEditMenu(
     private var searchEnabled: Boolean = shop.searchEnabled
 
     override fun open(player: Player) {
-        if (player.uniqueId != shop.owner &&
-            !player.hasPermission("enthusiamarket.admin") &&
-            !player.hasPermission("enthusiamarket.admin.shop")
-        ) {
+        val mayEdit = management.canEdit(shop, player.uniqueId) || management.canDelete(shop, player.uniqueId)
+        val admin = player.hasPermission("enthusiamarket.admin") || player.hasPermission("enthusiamarket.admin.shop")
+        if (!mayEdit && !admin) {
             player.sendMessage(lang.msg("shop.edit.not_owner"))
             return
         }
@@ -142,15 +141,22 @@ class ShopEditMenu(
         // Save + delete.
         pane.addItem(GuiItem(decorated(Material.LIME_STAINED_GLASS_PANE, lang.msg("gui.shop.edit.save"))) {
             it.isCancelled = true
-            shopRepository.upsert(applyEdits(shop, sellItemB64, sellAmount, costAmount, hopperIn, hopperOut, frozen, searchEnabled, costItemB64))
+            val current = shopRepository.findById(shop.id) ?: return@GuiItem
+            val draft = applyEdits(current, sellItemB64, sellAmount, costAmount, hopperIn, hopperOut, frozen, searchEnabled, costItemB64)
+            if (!management.saveEdits(player.uniqueId, draft, player.hasPermission("enthusiamarket.admin.shop") || player.hasPermission("enthusiamarket.admin"))) {
+                player.closeInventory()
+                player.sendMessage(lang.msg("shop.edit.not_owner"))
+                return@GuiItem
+            }
             player.closeInventory()
             player.sendMessage(lang.msg("shop.edit.saved"))
         }, 8, 0)
         pane.addItem(GuiItem(decorated(Material.RED_CONCRETE, lang.msg("gui.shop.edit.delete"))) {
             it.isCancelled = true
-            management.delete(shop.owner, shop.id)
+            val deleted = if (player.hasPermission("enthusiamarket.admin.shop") || player.hasPermission("enthusiamarket.admin")) management.adminDelete(shop.id)
+            else management.delete(player.uniqueId, shop.id)
             player.closeInventory()
-            player.sendMessage(lang.msg("shop.delete.done"))
+            player.sendMessage(lang.msg(if (deleted) "shop.delete.done" else "shop.edit.not_owner"))
         }, 8, 2)
 
         gui.addPane(Slot.fromXY(0, 0), pane)

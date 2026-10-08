@@ -118,8 +118,7 @@ data class Stall(
      * Checks whether [playerUuid] has management authority over this stall.
      *
      * - **SOLO**: the player must match the owner UUID or be in the member set.
-     * - **GUILD**: the player must be a guild member. Any guild member can
-     *   manage (MANAGE_SHOPS is not required — shop creation is gated separately).
+     * - **GUILD**: the player must currently belong to the guild and hold its shop-management permission.
      * - **NONE** (unowned): always returns false.
      *
      * @param playerUuid  the actor requesting management.
@@ -137,7 +136,8 @@ data class Stall(
                 }
             }
             OwnerType.GUILD -> {
-                guildProvider.isMember(playerUuid, owner.id)
+                guildProvider.isMember(playerUuid, owner.id) &&
+                    guildProvider.hasShopPermission(playerUuid, owner.id, GuildProvider.GuildPermission.MANAGE_SHOPS)
             }
         }
     }

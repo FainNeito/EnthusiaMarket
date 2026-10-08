@@ -1095,3 +1095,33 @@ Baseline: current `main` at `8d04bd9` (PR #194 Staff Market integration). This m
   Tag: DOC
   Description: Update operator/developer docs after implementation with the authoritative active-owner states, transfer cleanup rules, moderation boundary, reconciliation behavior, and /em rent extendall usage.
   Evidence: `docs/ownership-integrity-26.2.md; docs/implementation.md §3.11-3.12; docs/db-schema.md V029; src/main/resources/migrations/V029__ownership_integrity_reconciliation.sql; src/main/kotlin/net/badgersmc/em/infrastructure/commands/AdminCommands.kt; src/main/resources/paper-plugin.yml; src/main/resources/lang/en_US.yml`
+
+## Local Discord bug-fix review (2026-10-03)
+
+- [x] **TDD-327** — REQ-323/324: enforce current guild permissions and roster projection; GuildShopAccessTest and GuildStallProtectionTest.
+- [x] **TDD-328** — REQ-325/326: guild-bank API, sellback, durable guild auction escrow/awards; GuildSellbackTest, GuildAuctionTest, AuctionRepositorySqlTest and LumaGuilds GuildLookupImplTest.
+- [x] **TDD-329** — REQ-327/328: Java/Bedrock authority checks, sign redraws and spear creation; ContainerStockListenerTest, ShopCreateListenerTest and editor tests.
+- [x] **TDD-330** — REQ-329/330: creature matching, visitor boundaries and double-chest hopper guard; SpecialItemMatchTest and listener regressions.
+- [x] **DOC-330** — Publish a local review report with test/build evidence and separate remaining live acceptance. No upload or production changes.
+
+Evidence is a brownfield regression review; no historical test-first claim is made for implementation already written during this audit.
+
+Validation: Market 806 tests, 0 failures/errors, 7 skipped; architecture checks and Detekt passed; local shaded review build succeeded. Companion LumaGuilds API/bank suite: 41 tests, 0 failures/errors/skips, local build passed. See docs/reported-bug-fixes.md for remaining live acceptance.
+
+## SPEAR check refinement (2026-10-04)
+
+- [x] **STALE-335** — REQ-321: investigate ticket bug-0406 stale members after expired-stall repurchase. Existing canonical ownership changes already clear roster/access on forfeiture and award. Added a repurchase regression and passed 92 ownership/lifecycle tests; production build, stall48 data, WorldGuard and intended current members remain unverified. No automatic purge or production repair authorized/performed.
+
+- [x] **CHAT-334** — REQ-334: reproduced the legacy broadcast leak before implementation (5 focused tests, 2 failures), then passed the full 817-test suite (7 skipped) and Detekt. Pending input is claimed before LOW broadcasters, server-thread callbacks and Paper fallback are preserved, and duplicate callbacks are prevented. Exact-head hosted results and live acceptance remain separate; no production changes.
+
+- [x] **SIGN-333** — REQ-327: verified the reported price-only edit from 3 to 5 through management persistence and the production timer refresh, asserting actual sign price text with unchanged stock; all 24 focused management/listener tests passed. The implementation is already pending in PR #197; production adoption/live acceptance remains unverified.
+
+- [x] **FRAME-332** — REQ-332: proved failing defaults and shared-total behavior before implementation; 811 tests passed (7 skipped), architecture checks and Detekt passed. Configurable finite/zero limits and other entity checks are retained; defaults and evidence updated. Exact-head hosted checks and live acceptance remain separately pending; no production configuration was changed.
+
+- [x] **REFINE-331** — REQ-323/326/329: earlier complexity findings resolved; exact published head `52470817` passed Codacy with no annotations. Regression/architecture tests and Java-21 Detekt passed with the released companion runtime. This does not close hosted build approval, MariaDB Docker execution, human review or production acceptance gates.
+
+## Production correctness review (2026-10-07)
+
+- [x] **DB-337** — REQ-326/311: reproduced six MariaDB setup failures caused by the missing auctions baseline, corrected the V027 fixture and expected migrations 28/29/30, and proved personal bid preservation, guild funding reload and migration rerun behavior. Seven native MariaDB 11.8.3 cases passed without skips; clean canonical suite found 821 cases with zero failures/errors and eight skips, including the seven Docker-only cases separately exercised natively. ShadowJar, architecture checks and Java-21 Detekt passed. Hosted Docker execution remains pending. No production schema operation.
+
+- [x] **LOCK-336** — REQ-335: reproduced personal/guild confirmation after a moderation reservation (five focused cases, two failing before the guard); all five pass in the final full suite. Clean full build against checksum-verified released Guilds 3.0.23: 820 tests, zero failures/errors, seven skips; shadowJar and Java-21 Detekt passed. Existing durable repository lock/revision fences remain unchanged. Hosted checks, installed companion provenance, network integration and client acceptance remain separate gates; no merge or production operation performed.

@@ -72,7 +72,7 @@ class ShopDeletedEventTest {
 
         val block = mockContainerBlock()
         val breakEvent = BlockBreakEvent(block, player)
-        val listener = BlockProtectionListener(repo, mockk<AdminBreakMode>(relaxed = true), mockk<ShopManagementService>(relaxed = true), mockk(relaxed = true))
+        val listener = BlockProtectionListener(repo, mockk<AdminBreakMode>(relaxed = true), mockk<ShopManagementService>(relaxed = true).also { svc -> every { svc.canDelete(any(), any()) } answers { firstArg<Shop>().owner == secondArg<UUID>() } }, mockk(relaxed = true))
 
         // ── When: the container is broken ──
         listener.onBlockBreak(breakEvent)

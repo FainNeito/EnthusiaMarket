@@ -40,6 +40,7 @@ class ContainerStockListener(
 
     /** shopId → last-persisted raw stock (dedup: skip sign update if unchanged). */
     private val lastRawStock: MutableMap<Long, Int> = mutableMapOf()
+    private val lastRenderedShop: MutableMap<Long, Shop> = mutableMapOf()
     private var previouslyDepletedShops: MutableSet<Long> = mutableSetOf()
 
     private val log = Logger.getLogger(ContainerStockListener::class.java.name)
@@ -106,7 +107,7 @@ class ContainerStockListener(
     /** Recompute + persist + sign-update for a single shop whose inventory is known to be loaded. */
     private fun refreshOne(shop: Shop, inventory: Inventory) {
         val rawStock = rawStockOf(inventory, shop)
-        if (rawStock == lastRawStock[shop.id]) return                      // unchanged → skip
+        if (rawStock == lastRawStock[shop.id] && lastRenderedShop[shop.id] == shop.copy(stockCount = 0)) return
 
         // Persist stock_count to DB regardless of sign availability —
         // /shop search reads shop.stockCount (V019). This is the whole
@@ -189,6 +190,15 @@ class ContainerStockListener(
 
     /** PERF-5: no-physics update — sign text change doesn't need block physics recalculation. */
     private fun updateSignStock(state: Sign, shop: Shop, trades: Int) {
+        val item = ItemStackSerializer.deserialize(shop.sellItem)
+        val cost = if (shop.direction == SignDirection.TRADE) {
+            val costItem = ItemStackSerializer.deserialize(shop.costItem)
+            "${shop.costAmount} ${costItem?.type?.name?.lowercase() ?: "item"}"
+        } else shop.costAmount.toString()
+        net.badgersmc.em.application.ShopSignRenderer().lines(
+            shop.direction, item?.type?.name?.lowercase() ?: "item", shop.sellAmount, cost,
+            item?.itemMeta?.displayName(),
+        ).take(3).forEachIndexed { index, line -> state.line(index, line) }
         state.line(3, lang.msg("container_sign.stock_line", "trades" to trades))
         // Red header when SELL shop is out of stock
         if (shop.direction == SignDirection.SELL) {
@@ -196,6 +206,7 @@ class ContainerStockListener(
             state.line(0, lang.msg(headerKey))
         }
         state.update(false)
+        lastRenderedShop[shop.id] = shop.copy(stockCount = 0)
     }
 
     private fun trackDepletion(shop: Shop, trades: Int) {

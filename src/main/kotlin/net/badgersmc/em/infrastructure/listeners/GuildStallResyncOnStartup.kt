@@ -51,10 +51,6 @@ class GuildStallResyncOnStartup(
 
             try {
                 val memberUuids = guildProvider.memberIds(stall.owner.id)
-                if (memberUuids.isEmpty()) {
-                    skipped++
-                    continue
-                }
                 regionMembers.clearOwnersAndMembers(stall.world, stall.regionId)
                 regionMembers.syncGuildMembers(stall.world, stall.regionId, memberUuids)
                 synced++

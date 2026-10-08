@@ -125,6 +125,9 @@ object ItemStackMatch {
      *  [CraftMetaItem.equals] treats `null != 0` and rejects them. */
     internal fun isSimilarIgnoringDamageNullZero(a: ItemStack, b: ItemStack): Boolean {
         if (a.isSimilar(b)) return true
+        if (a.type == b.type && a.type.name in setOf("AXOLOTL_BUCKET", "TADPOLE_BUCKET", "SALMON_BUCKET", "COD_BUCKET", "TROPICAL_FISH_BUCKET", "BEEHIVE", "BEE_NEST")) {
+            return SpecialItemMatch.matches(normalizedBytes(a), normalizedBytes(b))
+        }
         val aMeta = a.itemMeta
         val bMeta = b.itemMeta
         if (aMeta is Damageable && bMeta is Damageable) {

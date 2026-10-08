@@ -26,6 +26,7 @@ class AuctionBidMenu(
     private val auctionService: AuctionLifecycleService,
     private val lang: LangService,
 ) : Menu {
+    private var guildTarget: String? = null
 
     @Suppress("LongMethod")
     override fun open(player: Player) {
@@ -40,6 +41,16 @@ class AuctionBidMenu(
     private fun buildBidGui(player: Player, amounts: List<Long>): ChestGui {
         val gui = ChestGui(3, ComponentHolder.of(lang.msg("gui.auction_bid.title", "stall" to auction.stallId.value)))
         val pane = StaticPane(9, 3)
+        val guilds = auctionService.eligibleGuilds(player.uniqueId)
+        if (guilds.isNotEmpty()) {
+            val label = guilds.firstOrNull { it.id == guildTarget }?.name ?: "Personal"
+            pane.addItem(GuiItem(decorated(Material.CHEST, Component.text("Bid for: $label"))) {
+                it.isCancelled = true
+                val targets = listOf<String?>(null) + guilds.map { guild -> guild.id }
+                guildTarget = targets[(targets.indexOf(guildTarget) + 1) % targets.size]
+                open(player)
+            }, 0, 0)
+        }
 
         pane.addItem(
             GuiItem(MenuItems.currencyIcon(lang.msg("gui.auction_bid.summary", "stall" to auction.stallId.value),
@@ -55,6 +66,8 @@ class AuctionBidMenu(
                 val p = event.whoClicked as? Player ?: return@GuiItem
                 p.closeInventory()
                 pendingCustomBids[p.uniqueId] = auction to Instant.now()
+                if (guildTarget == null) pendingGuildTargets.remove(p.uniqueId)
+                else pendingGuildTargets[p.uniqueId] = guildTarget!!
                 p.sendMessage(lang.msg("gui.auction_bid.custom_prompt", "stall" to auction.stallId.value))
             }, 0, 1)
 
@@ -83,8 +96,8 @@ class AuctionBidMenu(
             return
         }
 
-        val message = when (val result = auctionService.placeBid(auction.id, player.uniqueId, amount,
-            player.address.address.hostAddress ?: "unknown")) {
+        val message = when (val result = auctionService.placeBid(auction.id, AuctionLifecycleService.BidRequest(player.uniqueId, amount,
+            player.address?.address?.hostAddress ?: "unknown", guildTarget))) {
             is AuctionResult.Success -> lang.msg(
                 "admin.bid.success",
                 "amount" to (result.auction.highBid?.amount ?: amount),
@@ -112,21 +125,24 @@ class AuctionBidMenu(
 
         /** Pending custom-bid prompts: player UUID → (auction, when prompted). */
         val pendingCustomBids: ConcurrentHashMap<UUID, Pair<Auction, Instant>> = ConcurrentHashMap()
+        private val pendingGuildTargets: ConcurrentHashMap<UUID, String> = ConcurrentHashMap()
 
         /** Handle a chat message that might be a custom bid amount. Returns true if consumed. */
         fun handleChat(player: Player, message: String, lang: LangService, auctionService: AuctionLifecycleService): Boolean {
             val entry = pendingCustomBids.remove(player.uniqueId) ?: return false
             val (auction, promptedAt) = entry
+            val guild = pendingGuildTargets.remove(player.uniqueId)
             if (java.time.Duration.between(promptedAt, Instant.now()).seconds > CUSTOM_BID_TIMEOUT_SEC) {
                 player.sendMessage(lang.msg("gui.auction_bid.custom_timeout", "stall" to auction.stallId.value))
                 return true
             }
-            return executeCustomBid(player, message, auction, lang, auctionService)
+            return executeCustomBid(player, message, auction, lang, auctionService, guild)
         }
 
         private fun executeCustomBid(
             player: Player, message: String, auction: Auction,
             lang: LangService, auctionService: AuctionLifecycleService,
+            guild: String?,
         ): Boolean {
             val amount = message.trim().toLongOrNull()?.takeIf { it > 0 }
             if (amount == null) {
@@ -137,8 +153,8 @@ class AuctionBidMenu(
                 player.sendMessage(lang.msg("gui.auction_bid.no_permission"))
                 return true
             }
-            val result = auctionService.placeBid(auction.id, player.uniqueId, amount,
-                player.address.address.hostAddress ?: "unknown")
+            val result = auctionService.placeBid(auction.id, AuctionLifecycleService.BidRequest(player.uniqueId, amount,
+                player.address?.address?.hostAddress ?: "unknown", guild))
             player.sendMessage(formatBidResult(result, amount, lang))
             return true
         }

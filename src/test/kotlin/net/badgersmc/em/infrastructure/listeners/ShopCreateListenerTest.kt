@@ -32,6 +32,23 @@ import kotlin.test.Test
 import net.kyori.adventure.text.Component
 
 class ShopCreateListenerTest {
+    @Test fun `sneaking spear air interaction resolves sign within six blocks`() {
+        val player = mockk<Player>(relaxed = true)
+        val held = ItemStack(Material.WOODEN_SPEAR)
+        every { player.isSneaking } returns true
+        every { player.inventory.itemInMainHand } returns held
+        val sign = mockk<Block>(relaxed = true)
+        val attached = containerBlock()
+        wallSignBlock(sign, attached)
+        every { sign.location } returns location()
+        every { player.getTargetBlockExact(6) } returns sign
+        val shops = mockk<ShopRepository>(relaxed = true)
+        every { shops.findBySign(worldName, 100, 64, 200) } returns mockk(relaxed = true)
+        val event = PlayerInteractEvent(player, Action.LEFT_CLICK_AIR, held, null, BlockFace.SELF, EquipmentSlot.HAND)
+        listenerWithStall(shopRepo = shops).onSignInteract(event)
+        verify { player.getTargetBlockExact(6) }
+        verify { shops.findBySign(worldName, 100, 64, 200) }
+    }
 
     private val testUuid = UUID.fromString("11111111-1111-1111-1111-111111111111")
     private val worldName = "world"

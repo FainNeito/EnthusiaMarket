@@ -40,6 +40,7 @@ class ShopCommands(
     private val stallRepository: StallRepository,
     private val shopSearchService: ShopSearchService,
     private val playerNameResolver: PlayerNameResolver,
+    private val menuFactory: net.badgersmc.em.interaction.MenuFactory? = null,
 ) {
     @Subcommand("list")
     @Permission("enthusiamarket.shop.use")
@@ -107,7 +108,10 @@ class ShopCommands(
         if (management.shopsOwnedBy(player.uniqueId).isEmpty()) {
             player.sendMessage(lang.msg("shop.cmd.none_owned")); return
         }
-        net.badgersmc.em.interaction.gui.OwnedShopsMenu(player.uniqueId, shopRepository, management, lang).open(player)
+        if (menuFactory?.shouldUseBedrockMenus(player) == true) {
+            net.badgersmc.em.interaction.bedrock.BedrockOwnedShopsForm(player, shopRepository, management,
+                java.util.logging.Logger.getLogger(javaClass.name), lang).open(player)
+        } else net.badgersmc.em.interaction.gui.OwnedShopsMenu(player.uniqueId, shopRepository, management, lang).open(player)
     }
 
     @Subcommand("delete")

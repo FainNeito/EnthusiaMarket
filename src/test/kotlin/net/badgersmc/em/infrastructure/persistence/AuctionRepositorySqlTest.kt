@@ -18,6 +18,14 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class AuctionRepositorySqlTest {
+    @Test fun `guild bidder funding survives create and reload`() {
+        val guildId = UUID.randomUUID().toString()
+        val auction = sampleAuction(highBid = Bid(UUID.randomUUID(), 100, Instant.now(), guildId))
+        repo.create(auction)
+        assertEquals(guildId, repo.findById(auction.id)?.highBid?.guildId)
+        repo.save(auction.copy(highBid = auction.highBid!!.copy(amount = 120)))
+        assertEquals(guildId, repo.findById(auction.id)?.highBid?.guildId)
+    }
     private lateinit var ds: HikariDataSource
     private lateinit var repo: AuctionRepositorySql
 

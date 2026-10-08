@@ -13,10 +13,54 @@ import java.util.UUID
 @Service
 class ShopManagementService(
     private val shopRepository: ShopRepository,
+    private val access: ShopAccessPolicy? = null,
 ) {
     private val log = java.util.logging.Logger.getLogger(ShopManagementService::class.java.name)
 
-    fun shopsOwnedBy(owner: UUID): List<Shop> = shopRepository.findByOwner(owner)
+    fun shopsOwnedBy(owner: UUID): List<Shop> = if (access == null) shopRepository.findByOwner(owner)
+        else shopRepository.all().filter { canEdit(it, owner) || canDelete(it, owner) }
+
+    fun canEdit(shop: Shop, actor: UUID): Boolean =
+        access?.allows(shop, actor, net.badgersmc.em.domain.ports.GuildProvider.GuildPermission.MODIFY_SHOP_PRICES)
+            ?: (shop.owner == actor || actor in shop.trusted)
+
+    fun canDelete(shop: Shop, actor: UUID): Boolean =
+        if (access?.isGuildShop(shop) == true)
+            access.allows(shop, actor, net.badgersmc.em.domain.ports.GuildProvider.GuildPermission.EDIT_SHOP_STOCK)
+        else shop.owner == actor
+
+    /** Check field-specific authority against the current row when a menu submits. */
+    fun saveEdits(actor: UUID, draft: Shop, admin: Boolean = false): Boolean {
+        val current = shopRepository.findById(draft.id) ?: return false
+        if (!admin && !maySaveEdits(actor, current, draft)) return false
+        shopRepository.upsert(current.copy(
+            sellItem = draft.sellItem, sellAmount = draft.sellAmount, costItem = draft.costItem,
+            costAmount = draft.costAmount, hopperAllowIn = draft.hopperAllowIn,
+            hopperAllowOut = draft.hopperAllowOut, frozen = draft.frozen, searchEnabled = draft.searchEnabled,
+        ))
+        return true
+    }
+
+    private fun maySaveEdits(actor: UUID, current: Shop, draft: Shop): Boolean {
+        if (access?.isGuildShop(current) != true) return canEdit(current, actor)
+        if (!mayChangePrice(actor, current, draft)) return false
+        if (!mayChangeStock(actor, current, draft)) return false
+        return canEdit(current, actor) || canDelete(current, actor)
+    }
+
+    private fun mayChangePrice(actor: UUID, current: Shop, draft: Shop): Boolean =
+        !priceChanged(current, draft) || canEdit(current, actor)
+
+    private fun mayChangeStock(actor: UUID, current: Shop, draft: Shop): Boolean =
+        !stockChanged(current, draft) || canDelete(current, actor)
+
+    private fun priceChanged(current: Shop, draft: Shop): Boolean =
+        current.costAmount != draft.costAmount || current.costItem != draft.costItem
+
+    private fun stockChanged(current: Shop, draft: Shop): Boolean =
+        current.sellItem != draft.sellItem || current.sellAmount != draft.sellAmount ||
+            current.hopperAllowIn != draft.hopperAllowIn || current.hopperAllowOut != draft.hopperAllowOut ||
+            current.frozen != draft.frozen || current.searchEnabled != draft.searchEnabled
 
     /** Trust [target] on each of [shopIds] the [actor] actually owns. Returns count changed. */
     fun trust(actor: UUID, target: UUID, shopIds: List<Long>): Int =
@@ -35,7 +79,7 @@ class ShopManagementService(
     /** Delete a single shop if [actor] owns it. Returns true when deleted. */
     fun delete(actor: UUID, shopId: Long): Boolean {
         val shop = shopRepository.findById(shopId) ?: return false
-        if (shop.owner != actor) return false
+        if (!canDelete(shop, actor)) return false
         shopRepository.delete(shopId)
         fireShopDeleted(shop.owner)
         return true
@@ -43,11 +87,15 @@ class ShopManagementService(
 
     /** Delete every shop [actor] owns. Returns count deleted. */
     fun deleteAll(actor: UUID): Int {
-        val owned = shopsOwnedBy(actor)
+        if (access == null) {
+            val owned = shopRepository.findByOwner(actor)
+            val count = shopRepository.deleteByOwner(actor)
+            owned.forEach { fireShopDeleted(it.owner) }
+            return count
+        }
+        val owned = shopsOwnedBy(actor).filter { canDelete(it, actor) }
         if (owned.isEmpty()) return 0
-        val deleted = shopRepository.deleteByOwner(actor)
-        owned.forEach { fireShopDeleted(it.owner) }
-        return deleted
+        return owned.count { delete(actor, it.id) }
     }
 
     /** Delete a shop regardless of owner (admin tooling, SP5). Returns true when deleted. */
@@ -79,7 +127,7 @@ class ShopManagementService(
         var changed = 0
         for (id in shopIds) {
             val shop = shopRepository.findById(id) ?: continue
-            if (shop.owner != actor) continue
+            if (!canDelete(shop, actor)) continue
             val updated = edit(shop)
             if (updated != shop) {
                 shopRepository.upsert(updated)

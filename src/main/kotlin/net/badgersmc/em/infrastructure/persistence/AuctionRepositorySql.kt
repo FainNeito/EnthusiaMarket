@@ -38,8 +38,8 @@ class AuctionRepositorySql(private val ds: DataSource) : AuctionRepository {
                 """INSERT INTO auctions
                    (id, stall_id, state, start_at, end_at, starting_bid,
                     high_bid_amount, high_bidder, high_placed_at, anti_snipe_sec,
-                    anti_snipe_extend_sec, auction_duration_sec)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+                    anti_snipe_extend_sec, auction_duration_sec, high_bid_guild_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
             ).use { ps ->
                 bind(ps, auction)
                 val rows = ps.executeUpdate()
@@ -55,7 +55,7 @@ class AuctionRepositorySql(private val ds: DataSource) : AuctionRepository {
                    SET state = ?, start_at = ?, end_at = ?, starting_bid = ?,
                        high_bid_amount = ?, high_bidder = ?, high_placed_at = ?,
                        anti_snipe_sec = ?, anti_snipe_extend_sec = ?,
-                       auction_duration_sec = ?
+                       auction_duration_sec = ?, high_bid_guild_id = ?
                    WHERE id = ?"""
             ).use { ps ->
                 ps.setString(1, auction.state.name)
@@ -74,7 +74,8 @@ class AuctionRepositorySql(private val ds: DataSource) : AuctionRepository {
                 ps.setLong(8, auction.antiSnipeWindow.toSeconds())
                 ps.setLong(9, auction.antiSnipeExtension.toSeconds())
                 ps.setLong(10, auction.auctionDuration.toSeconds())
-                ps.setString(11, auction.id.value)
+                ps.setString(11, auction.highBid?.guildId)
+                ps.setString(12, auction.id.value)
                 val rows = ps.executeUpdate()
                 if (rows != 1) error("AuctionRepositorySql.save: expected 1 row, affected $rows")
             }
@@ -125,6 +126,7 @@ class AuctionRepositorySql(private val ds: DataSource) : AuctionRepository {
         ps.setLong(10, auction.antiSnipeWindow.toSeconds())
         ps.setLong(11, auction.antiSnipeExtension.toSeconds())
         ps.setLong(12, auction.auctionDuration.toSeconds())
+        ps.setString(13, auction.highBid?.guildId)
     }
 
     private fun queryOne(sql: String, prep: PreparedStatement.() -> Unit): Auction? {
@@ -159,7 +161,8 @@ class AuctionRepositorySql(private val ds: DataSource) : AuctionRepository {
             Bid(
                 bidder = UUID.fromString(highBidderStr),
                 amount = highBidAmount,
-                placedAt = Instant.ofEpochMilli(highPlacedAtMs)
+                placedAt = Instant.ofEpochMilli(highPlacedAtMs),
+                guildId = rs.getString("high_bid_guild_id"),
             )
         } else {
             null
