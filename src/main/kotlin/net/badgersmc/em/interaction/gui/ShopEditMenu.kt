@@ -43,17 +43,19 @@ class ShopEditMenu(
     private var searchEnabled: Boolean = shop.searchEnabled
 
     override fun open(player: Player) {
-        val mayEdit = management.canEdit(shop, player.uniqueId) || management.canDelete(shop, player.uniqueId)
-        val admin = player.hasPermission("enthusiamarket.admin") || player.hasPermission("enthusiamarket.admin.shop")
-        if (!mayEdit && !admin) {
-            player.sendMessage(lang.msg("shop.edit.not_owner"))
-            return
-        }
         render(player)
     }
 
     @Suppress("LongMethod", "CyclomaticComplexMethod")
     private fun render(player: Player) {
+        val current = shopRepository.findById(shop.id)
+        val allowed = current != null && (management.canEdit(current, player.uniqueId) ||
+            management.canDelete(current, player.uniqueId) || admin(player))
+        if (!allowed) {
+            player.closeInventory()
+            player.sendMessage(lang.msg("shop.edit.not_owner"))
+            return
+        }
         val gui = ChestGui(3, ComponentHolder.of(lang.msg("gui.shop.edit.title")))
         val pane = StaticPane(9, 3)
 
@@ -71,10 +73,13 @@ class ShopEditMenu(
             Material.OAK_SIGN,
             lang.msg("gui.shop.edit.direction", "direction" to dirLabel),
             stockLore
-        )), 0, 1)
+        )), 0, 0)
 
         // Sell item preview (decoded). Clicking sets the sell item to the item in hand.
         val preview = ItemStackSerializer.deserialize(sellItemB64) ?: ItemStack(Material.BARRIER)
+        preview.itemMeta = preview.itemMeta?.apply {
+            lore(lore().orEmpty() + lang.msg("gui.shop.edit.item_from_hand"))
+        }
         pane.addItem(GuiItem(preview) { event ->
             event.isCancelled = true
             val hand = player.inventory.itemInMainHand
@@ -87,7 +92,7 @@ class ShopEditMenu(
 
         // Sell amount controls.
         pane.addItem(GuiItem(decorated(Material.LIME_DYE, lang.msg("gui.shop.edit.sell_up", "amount" to sellAmount))) {
-            it.isCancelled = true; sellAmount += 1; render(player)
+            it.isCancelled = true; sellAmount = (sellAmount.toLong() + 1).coerceAtMost(Int.MAX_VALUE.toLong()).toInt(); render(player)
         }, 2, 0)
         pane.addItem(GuiItem(decorated(Material.PAPER, lang.msg("gui.shop.edit.sell_amount", "amount" to sellAmount))), 2, 1)
         pane.addItem(GuiItem(decorated(Material.RED_DYE, lang.msg("gui.shop.edit.sell_down", "amount" to sellAmount))) {
@@ -107,14 +112,14 @@ class ShopEditMenu(
             }, 4, 0)
             pane.addItem(GuiItem(decorated(Material.PAPER, lang.msg("gui.shop.edit.cost_item"))), 4, 1)
             pane.addItem(GuiItem(decorated(Material.LIME_DYE, lang.msg("gui.shop.edit.cost_amount_up", "amount" to costAmount))) {
-                it.isCancelled = true; costAmount += 1; render(player)
+                it.isCancelled = true; costAmount = (costAmount.toLong() + 1).coerceAtMost(Int.MAX_VALUE.toLong()).toInt(); render(player)
             }, 4, 2)
             pane.addItem(GuiItem(decorated(Material.RED_DYE, lang.msg("gui.shop.edit.cost_amount_down", "amount" to costAmount))) {
                 it.isCancelled = true; costAmount = (costAmount - 1).coerceAtLeast(1); render(player)
             }, 5, 2)
         } else {
             pane.addItem(GuiItem(decorated(Material.LIME_DYE, lang.msg("gui.shop.edit.cost_up", "cost" to costAmount))) {
-                it.isCancelled = true; costAmount += 10; render(player)
+                it.isCancelled = true; costAmount = (costAmount.toLong() + 10).coerceAtMost(Int.MAX_VALUE.toLong()).toInt(); render(player)
             }, 4, 0)
             pane.addItem(GuiItem(MenuItems.currencyIcon(lang.msg("gui.shop.edit.cost", "cost" to costAmount))), 4, 1)
             pane.addItem(GuiItem(decorated(Material.RED_DYE, lang.msg("gui.shop.edit.cost_down", "cost" to costAmount))) {
@@ -123,45 +128,57 @@ class ShopEditMenu(
         }
 
         // Hopper toggles + freeze.
-        pane.addItem(GuiItem(decorated(if (hopperIn) Material.HOPPER else Material.GRAY_DYE, lang.msg("gui.shop.edit.hopper_in", "state" to hopperIn))) {
+        pane.addItem(GuiItem(decorated(if (hopperIn) Material.HOPPER else Material.GRAY_DYE, lang.msg("gui.shop.edit.hopper_in", "state" to stateLabel(hopperIn)))) {
             it.isCancelled = true; hopperIn = !hopperIn; render(player)
         }, 6, 0)
-        pane.addItem(GuiItem(decorated(if (hopperOut) Material.HOPPER else Material.GRAY_DYE, lang.msg("gui.shop.edit.hopper_out", "state" to hopperOut))) {
+        pane.addItem(GuiItem(decorated(if (hopperOut) Material.HOPPER else Material.GRAY_DYE, lang.msg("gui.shop.edit.hopper_out", "state" to stateLabel(hopperOut)))) {
             it.isCancelled = true; hopperOut = !hopperOut; render(player)
         }, 6, 1)
-        pane.addItem(GuiItem(decorated(if (frozen) Material.BLUE_ICE else Material.WATER_BUCKET, lang.msg("gui.shop.edit.freeze", "state" to frozen))) {
+        pane.addItem(GuiItem(decorated(if (frozen) Material.BLUE_ICE else Material.WATER_BUCKET, lang.msg("gui.shop.edit.freeze", "state" to stateLabel(frozen)))) {
             it.isCancelled = true; frozen = !frozen; render(player)
         }, 6, 2)
 
         // Search toggle.
-        pane.addItem(GuiItem(decorated(if (searchEnabled) Material.SPYGLASS else Material.GRAY_DYE, lang.msg("gui.shop.edit.search", "state" to searchEnabled))) {
+        pane.addItem(GuiItem(decorated(if (searchEnabled) Material.SPYGLASS else Material.GRAY_DYE, lang.msg("gui.shop.edit.search", "state" to stateLabel(searchEnabled)))) {
             it.isCancelled = true; searchEnabled = !searchEnabled; render(player)
-        }, 7, 1)
+        }, 7, 0)
 
         // Save + delete.
         pane.addItem(GuiItem(decorated(Material.LIME_STAINED_GLASS_PANE, lang.msg("gui.shop.edit.save"))) {
             it.isCancelled = true
-            val current = shopRepository.findById(shop.id) ?: return@GuiItem
-            val draft = applyEdits(current, sellItemB64, sellAmount, costAmount, hopperIn, hopperOut, frozen, searchEnabled, costItemB64)
-            if (!management.saveEdits(player.uniqueId, draft, player.hasPermission("enthusiamarket.admin.shop") || player.hasPermission("enthusiamarket.admin"))) {
-                player.closeInventory()
-                player.sendMessage(lang.msg("shop.edit.not_owner"))
-                return@GuiItem
-            }
-            player.closeInventory()
-            player.sendMessage(lang.msg("shop.edit.saved"))
+            save(player)
         }, 8, 0)
         pane.addItem(GuiItem(decorated(Material.RED_CONCRETE, lang.msg("gui.shop.edit.delete"))) {
             it.isCancelled = true
-            val deleted = if (player.hasPermission("enthusiamarket.admin.shop") || player.hasPermission("enthusiamarket.admin")) management.adminDelete(shop.id)
-            else management.delete(player.uniqueId, shop.id)
-            player.closeInventory()
-            player.sendMessage(lang.msg(if (deleted) "shop.delete.done" else "shop.edit.not_owner"))
+            ShopDeleteConfirmMenu(shop, shopRepository, management, lang) { render(player) }.open(player)
         }, 8, 2)
+        pane.addItem(GuiItem(decorated(Material.ARROW, lang.msg("gui.shop.edit.back"))) {
+            it.isCancelled = true
+            val back = { OwnedShopsMenu(player.uniqueId, shopRepository, management, lang).open(player) }
+            if (draft(shop) == shop) back()
+            else ShopDraftExitMenu(lang, { if (save(player)) back() }, back, { render(player) }).open(player)
+        }, 0, 2)
 
         gui.addPane(Slot.fromXY(0, 0), pane)
         gui.blockItemTheft()
         gui.show(player)
+    }
+
+    private fun admin(player: Player) =
+        player.hasPermission("enthusiamarket.admin") || player.hasPermission("enthusiamarket.admin.shop")
+
+    private fun stateLabel(enabled: Boolean) =
+        lang.raw(if (enabled) "gui.shop.edit.state_enabled" else "gui.shop.edit.state_disabled")
+
+    private fun draft(current: Shop) = applyEdits(current, sellItemB64, sellAmount, costAmount,
+        hopperIn, hopperOut, frozen, searchEnabled, costItemB64)
+
+    private fun save(player: Player): Boolean {
+        val current = shopRepository.findById(shop.id)
+        val saved = current != null && management.saveEdits(player.uniqueId, draft(current), admin(player))
+        player.closeInventory()
+        player.sendMessage(lang.msg(if (saved) "shop.edit.saved" else "shop.edit.not_owner"))
+        return saved
     }
 
     private fun decorated(material: Material, name: Component, lore: List<Component> = emptyList()): ItemStack {

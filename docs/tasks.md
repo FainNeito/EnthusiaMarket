@@ -7,6 +7,14 @@
 Tags: `TDD` (failing test before code), `DOC` (markdown / template authoring), `INFRA` (manifests, CI, repo plumbing).
 State legend: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 
+## Shop menu cleanup (REQ-359..362)
+
+- [x] **TDD-359** — Prove compact BUY/SELL slots, amounts and unavailable-state handling with actual inventory clicks; preserve batch execution and legacy TRADE placement.
+- [x] **TDD-360** — Prove all bulk presets/custom/maximum have distinct clickable slots and preserve multiplier without executing trades.
+- [x] **TDD-361** — Group editor controls, preserve draft changes until authorized save, and verify leaving a draft and revoked authority.
+- [x] **TDD-362** — Require a separate item/location confirmation before editor deletion, preserve draft on cancel, and recheck current authority exactly once.
+- [ ] **DOC-359** — Record local, hosted, integration and real-client evidence separately in `docs/menu-cleanup-verification.md`; deliver through a dependency-aware reviewable PR.
+
 ## Item data component preservation (REQ-300, REQ-301)
 
 Reported: Ominous keys purchased from market have their data components stripped, making them non-functional. Root cause: (1) `ItemStackSerializer.deserialize()` round-trips through legacy `ItemStack.serialize()`/`deserialize()` Map format which drops modern Paper 1.21+ data components. (2) SELL/TRADE trade paths deliver `sellStack.clone()` (deserialized template) instead of items cloned from the actual container inventory.

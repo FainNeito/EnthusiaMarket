@@ -47,7 +47,7 @@ class PurchaseBulkMenu(
             waiting[player.uniqueId] = Pending(shop, tradeService, lang)
             player.closeInventory()
             player.sendMessage(lang.msg("gui.shop.bulk_prompt"))
-        }, 4, 1)
+        }, 6, 1)
         pane.addItem(GuiItem(named(Material.ARROW, lang.msg("gui.shop.bulk_back"))) {
             it.isCancelled = true
             PurchaseMenu(shop, tradeService, lang, selected).open(player)

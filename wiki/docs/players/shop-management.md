@@ -33,6 +33,21 @@ Opens a GUI listing all your shops. Click one to edit:
 - Toggle search visibility.
 - Toggle frozen state (pause trading).
 
+On Java, quantity and price have separate columns. Quantity changes by one item;
+price changes by ten currency per trade. Hopper input/output, search visibility
+and freeze controls show **Enabled** or **Disabled**. Click the shop item to use
+the item and quantity currently held in your hand.
+
+Edits remain a draft until **Save**. **Back to your shops** offers Save, Discard
+changes or Keep editing when the draft has changed. Closing the inventory normally
+does not save. Permissions are checked again when changes are saved.
+
+**Delete** in the Java editor opens a separate confirmation showing the shop item,
+price/quantity and sign location. **Keep shop** returns to the same draft;
+**Confirm shop deletion** checks current deletion authority before removing it.
+Bedrock retains its existing quantity/price inputs and settings form; submitting
+that form saves through the same permission service.
+
 ## Trust a player
 
 Let another player manage your shops:

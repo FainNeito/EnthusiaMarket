@@ -65,14 +65,16 @@ class PurchaseMenu(
     private var hasRendered = false
 
     private fun render(player: Player) {
-        val gui = ChestGui(5, ComponentHolder.of(lang.msg("gui.shop.title", "amount" to (shop.sellAmount * multiplier))))
-        val pane = StaticPane(9, 5)
+        val barter = shop.direction == SignDirection.TRADE
+        val rows = if (barter) 5 else 3
+        val gui = ChestGui(rows, ComponentHolder.of(lang.msg("gui.shop.title", "amount" to (shop.sellAmount.toLong() * multiplier))))
+        val pane = StaticPane(9, rows)
 
         // --- Row 0: YOU RECEIVE / arrow / YOU GIVE labels ---
         val receiveLabel = lang.msg("gui.shop.receive_label")
         val giveLabel = lang.msg("gui.shop.give_label")
         pane.addItem(GuiItem(decorated(Material.GREEN_STAINED_GLASS_PANE, receiveLabel)), 2, 0)
-        pane.addItem(GuiItem(decorated(Material.ARROW, Component.text("→"))), 4, 0)
+        pane.addItem(GuiItem(decorated(Material.ARROW, Component.text("→"))), 4, if (barter) 0 else 1)
         if (shop.direction == SignDirection.TRADE) {
             pane.addItem(GuiItem(decorated(Material.RED_STAINED_GLASS_PANE, giveLabel, listOf(
                 lang.msg("gui.shop.trade_drop_hint")
@@ -86,7 +88,7 @@ class PurchaseMenu(
         pane.addItem(GuiItem(decorated(row.receiveItem, row.receiveName, row.receiveLore)), 2, 1)
         pane.addItem(GuiItem(statusItem(PurchaseMenu.summary(shop, player, tradeService))) {
             it.isCancelled = true
-        }, 4, 1)
+        }, 4, if (barter) 1 else 0)
         if (shop.direction == SignDirection.TRADE) {
             // Leave slot 15 empty — GuiItem blocks native item placement.
             // Visual border indicates the drop zone (LumaGuilds GuildBannerMenu pattern).
@@ -102,7 +104,13 @@ class PurchaseMenu(
         ))) {
             it.isCancelled = true
             PurchaseBulkMenu(shop, tradeService, lang, multiplier).open(player)
-        }, 4, 3)
+        }, if (barter) 4 else 3, if (barter) 3 else 2)
+        if (!barter) {
+            pane.addItem(GuiItem(decorated(Material.BARRIER, lang.msg("gui.shop.close"))) {
+                it.isCancelled = true
+                player.closeInventory()
+            }, 8, 2)
+        }
 
         // Shulker box preview button (IS2-12, REQ-298)
         addShulkerPreview(pane, player)
@@ -142,22 +150,36 @@ class PurchaseMenu(
             SignDirection.BUY -> "gui.shop.confirm_sell"
             SignDirection.TRADE -> "gui.shop.confirm_trade"
         }
-        val canPurchase = multiplier <= PurchaseMenu.summary(shop, player, tradeService).maxTrades
+        val summary = PurchaseMenu.summary(shop, player, tradeService)
+        val canPurchase = multiplier <= summary.maxTrades
         val buttonLore = listOf(
             lang.msg("gui.shop.confirm_lore", "dir" to dirLabel, "direction" to dirLabel),
-            lang.msg(if (canPurchase) "gui.shop.confirm_ready" else "gui.shop.confirm_unaffordable"),
+            if (canPurchase) lang.msg("gui.shop.confirm_ready") else unavailableReason(summary),
         )
 
         pane.addItem(GuiItem(decorated(
             if (canPurchase) Material.LIME_CONCRETE else Material.RED_CONCRETE,
-            lang.msg(buttonKey, "trades" to multiplier), buttonLore,
+            lang.msg(if (canPurchase) buttonKey else "gui.shop.confirm_unavailable",
+                "trades" to multiplier, "amount" to (shop.sellAmount.toLong() * multiplier),
+                "cost" to (shop.costAmount.toLong() * multiplier), "item" to sellName), buttonLore,
         )) { event ->
             event.isCancelled = true
             if (!canPurchase) return@GuiItem
             executeTrade(player)
             multiplier = 1
             render(player)
-        }, 4, 2)
+        }, if (shop.direction == SignDirection.TRADE) 4 else 5, 2)
+    }
+
+    private fun unavailableReason(summary: Summary): Component {
+        val key = when {
+            shop.frozen -> "gui.shop.unavailable_frozen"
+            multiplier > summary.stockTrades -> "gui.shop.unavailable_stock"
+            shop.direction == SignDirection.SELL -> "gui.shop.unavailable_money"
+            else -> "gui.shop.unavailable_items"
+        }
+        return lang.msg(key, "amount" to (shop.sellAmount.toLong() * multiplier),
+            "cost" to (shop.costAmount.toLong() * multiplier), "item" to sellName)
     }
 
     private fun executeTrade(player: Player) {
@@ -325,8 +347,8 @@ class PurchaseMenu(
 
     @Suppress("CyclomaticComplexMethod")
     private fun buildRowItems(): RowItems {
-        val totalAmount = shop.sellAmount * multiplier
-        val totalCost = shop.costAmount * multiplier
+        val totalAmount = shop.sellAmount.toLong() * multiplier
+        val totalCost = shop.costAmount.toLong() * multiplier
         val avail = ShopDisplay.tradesAvailable(shop)
         val stockStr = if (avail == Int.MAX_VALUE) "Unlimited" else avail.toString()
         return when (shop.direction) {
@@ -364,8 +386,8 @@ class PurchaseMenu(
         }
     }
 
-    private fun displayAmount(item: ItemStack, requested: Int): ItemStack = item.apply {
-        amount = requested.coerceIn(1, maxStackSize.coerceAtLeast(1))
+    private fun displayAmount(item: ItemStack, requested: Long): ItemStack = item.apply {
+        amount = requested.coerceIn(1, maxStackSize.coerceAtLeast(1).toLong()).toInt()
     }
 
     companion object {
@@ -376,9 +398,11 @@ class PurchaseMenu(
             private val receivePerTrade: Int,
             private val paymentPerTrade: Int,
             private val currencyPayment: Boolean,
+            private val currencyReceive: Boolean = false,
         ) {
             val stockText: String get() = if (stockTrades == Int.MAX_VALUE) "Unlimited" else stockTrades.toString()
-            fun receivedFor(trades: Int): String = (receivePerTrade.toLong() * trades.coerceAtLeast(0)).toString()
+            fun receivedFor(trades: Int): String = (receivePerTrade.toLong() * trades.coerceAtLeast(0)).toString() +
+                if (currencyReceive) " currency" else " items"
             fun paymentFor(trades: Int): String = (paymentPerTrade.toLong() * trades.coerceAtLeast(0)).toString() +
                 if (currencyPayment) " currency" else " items"
         }
@@ -393,8 +417,11 @@ class PurchaseMenu(
                 SignDirection.BUY -> sell?.let { ItemStackMatch.countSimilar(player.inventory, it) / shop.sellAmount } ?: 0
                 SignDirection.TRADE -> cost?.let { ItemStackMatch.countSimilar(player.inventory, it) / shop.costAmount } ?: 0
             }
-            return Summary(stock, affordable, minOf(stock, affordable), shop.sellAmount, shop.costAmount,
-                shop.direction != SignDirection.TRADE)
+            val buyingItems = shop.direction == SignDirection.BUY
+            return Summary(stock, affordable, if (shop.frozen) 0 else minOf(stock, affordable),
+                if (buyingItems) shop.costAmount else shop.sellAmount,
+                if (buyingItems) shop.sellAmount else shop.costAmount,
+                shop.direction == SignDirection.SELL, buyingItems)
         }
     }
 }

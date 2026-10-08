@@ -54,6 +54,20 @@ Players trade one item for another. No currency changes hands.
 - Line 2: quantity of items you want to receive.
 - Line 3: quantity and item you give in return (e.g., `10xdiamond`).
 
+## Buying and selling through the Java menu
+
+Money-based shops use three rows. **YOU RECEIVE** and **YOU GIVE** show the trade
+from your perspective, and the action states the item quantity and currency total.
+The amount chest opens a separate picker for 1, 8, 16, 32 or 64 trades, Custom and
+Maximum. Every option has its own slot. Selecting an amount returns to the shop;
+it does not complete a trade. For example, 8 trades of 8 diamonds for 100 currency
+means 64 diamonds for 800 currency.
+
+The red unavailable action explains frozen shops, insufficient stock, currency or
+matching items. The trade service still checks inventory space, shop funding and
+other conditions when the action executes. Bedrock retains its single-trade form.
+Existing barter placement and shulker previews keep their existing behavior.
+
 ## Trusting players
 
 Let other players manage your shop without giving them stall ownership:
