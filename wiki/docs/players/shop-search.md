@@ -2,10 +2,10 @@
 title: Shop search
 audience: player
 topic: shop-search
-summary: How to find shops selling what you need with /shop search.
+summary: Find shops buying or selling items, including colored shulkers and container contents.
 keywords: [shop, search, find, lookup, query]
 related: [buy-sell-trade, shop-creation]
-updated: 2026-06-25
+updated: 2026-10-07
 ---
 
 # Shop search
@@ -14,11 +14,12 @@ Find shops selling what you need — or buying what you have.
 
 ```text
 /shop search <item>
+/finditem <item>
 ```
 
 ## Basic search
 
-Type any Minecraft item name. Tab-complete is supported — press Tab to see material names matching your typed prefix (case-insensitive).
+Type any Minecraft item name or prefix. Tab-complete is supported — press Tab to see material names matching your typed prefix (case-insensitive). Categories such as `armor`, `tools`, `potions` and `food` also work.
 
 ```text
 /shop search diamond
@@ -34,21 +35,21 @@ Results open in a GUI showing:
 
 ## Filter by direction
 
-Add a mode after your query:
+Click **Shop Type** (the hopper in the top row) to cycle through:
 
-```text
-/shop search diamond sell    — only shops selling diamonds
-/shop search dirt buy        — only shops buying dirt
-/shop search ender_pearl any — all directions (default)
-```
+- **All shop types:** the default combined results.
+- **Shop sells (you buy):** only shops selling the item to you.
+- **Shop buys (you sell):** only shops buying the item from you.
+
+The filter stays selected when you sort, change the out-of-stock toggle, or move between pages. Changing shop type returns to page one. Existing trade shops remain in the combined view; this search control does not enable barter.
 
 ## Pagination
 
-If there are many results, specify a page number:
+Use the previous/next arrows at the bottom to change pages. The menu shows 36 results per page. The stock toggle shows or hides empty selling shops; buying shops can be listed with empty containers because you supply their items. Capacity and owner funds are checked when trading.
 
-```text
-/shop search diamond sell 2
-```
+## Shulkers and container contents
+
+`shulker` and `shulker_box` find uncolored boxes and every colored variant. A specific query such as `red_shulker_box` stays color-specific. Searches also inspect supported shulker and bundle contents, so searching for `gunpowder` can find a shop selling a box containing it. The result identifies the matched contents; the shop still trades its configured box or bundle.
 
 ## What shops are searchable
 
@@ -58,4 +59,4 @@ New shops are **searchable by default**. Shop owners can toggle this in the edit
 
 - **Sell search** means you're looking to BUY from shops that SELL. You're the customer.
 - **Buy search** means you're looking to SELL to shops that BUY. You're the supplier.
-- Results show live stock counts — if it says 0, the container is empty.
+- Results use the recorded matching stock count. Refreshing the search captures newer shop data; the trade checks current availability.
