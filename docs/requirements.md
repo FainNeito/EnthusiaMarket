@@ -11,6 +11,22 @@ Each requirement carries a stable ID. Tasks reference requirements by ID. New re
 
 ## Product (what the system is for)
 
+### REQ-359 — Compact money-trade menus
+
+**Event-driven.** WHEN a player opens a money-based shop THE SYSTEM SHALL show a three-row menu with direction-correct item and money totals, a distinct amount selector and trade action, and an explanation when the selected trade is unavailable while preserving application-owned trade validation and legacy barter placement.
+
+### REQ-360 — Distinct bulk choices
+
+**Event-driven.** WHEN a player selects a bulk trade amount THE SYSTEM SHALL expose each preset, custom input and maximum in a distinct slot, distinguish trades from total items and payment, and return the selected multiplier to the purchase menu without executing a trade.
+
+### REQ-361 — Explicit draft editing
+
+**Event-driven.** WHEN an authorized player edits a shop THE SYSTEM SHALL group quantity, price and settings, display enabled or disabled states, apply changes only through the authorized save service, and offer save, discard or continued editing when leaving a changed draft through its Back control.
+
+### REQ-362 — Shop deletion confirmation
+
+**Event-driven.** WHEN a player requests deletion from the shop editor THE SYSTEM SHALL display a separate confirmation identifying the shop item and location, preserve the draft on cancellation, and execute deletion at most once through current actor or administrator authority only after confirmation.
+
 ### REQ-001 — Stall marketplace as core product
 
 **Ubiquitous.** THE SYSTEM SHALL expose WorldGuard regions as rentable or ownable market stalls for individual players and guilds.
@@ -526,22 +542,6 @@ return the stall to UNOWNED.
 ---
 
 ## Acceptance
-
-### REQ-359 — Compact money-trade menus
-
-**Event-driven.** WHEN a player opens a money-based shop THE SYSTEM SHALL show a three-row menu with direction-correct item and money totals, a distinct amount selector and trade action, and an explanation when the selected trade is unavailable while preserving application-owned trade validation and legacy barter placement.
-
-### REQ-360 — Distinct bulk choices
-
-**Event-driven.** WHEN a player selects a bulk trade amount THE SYSTEM SHALL expose each preset, custom input and maximum in a distinct slot, distinguish trades from total items and payment, and return the selected multiplier to the purchase menu without executing a trade.
-
-### REQ-361 — Explicit draft editing
-
-**Event-driven.** WHEN an authorized player edits a shop THE SYSTEM SHALL group quantity, price and settings, display enabled or disabled states, apply changes only through the authorized save service, and offer save, discard or continued editing when leaving a changed draft through its Back control.
-
-### REQ-362 — Shop deletion confirmation
-
-**Event-driven.** WHEN a player requests deletion from the shop editor THE SYSTEM SHALL display a separate confirmation identifying the shop item and location, preserve the draft on cancellation, and execute deletion at most once through current actor or administrator authority only after confirmation.
 
 ### REQ-100 — Smoke test on MockBukkit
 
