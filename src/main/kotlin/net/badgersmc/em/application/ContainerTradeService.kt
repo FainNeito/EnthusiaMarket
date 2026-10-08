@@ -30,7 +30,8 @@ internal data class TransactionEventData(
     val quantity: Int,
     val cost: Long,
     val shopId: Long,
-    val direction: net.badgersmc.em.domain.shop.SignDirection
+    val direction: net.badgersmc.em.domain.shop.SignDirection,
+    val guildId: UUID? = null
 )
 
 private data class TradeContext(
@@ -140,7 +141,7 @@ open class ContainerTradeService(
                 return buyPaymentDepositFailed(ctx, sellStack, guildId, cost)
             }
         }
-        publishShopTransaction(TransactionEventData(ctx.player, ctx.ownerUuid, sellStack, sellStack.amount, cost, shop.id, shop.direction))
+        publishShopTransaction(TransactionEventData(ctx.player, ctx.ownerUuid, sellStack, sellStack.amount, cost, shop.id, shop.direction, ctx.guildId))
         return ContainerTradeResult.Success("Sold ${sellStack.amount}x for $cost")
     }
 
@@ -248,7 +249,7 @@ open class ContainerTradeService(
             else saleRewards?.aborted(intent)
         }
         if (result is ContainerTradeResult.Success) {
-            publishShopTransaction(TransactionEventData(ctx.player, ctx.ownerUuid, sellStack, scaledSell, cost, shop.id, shop.direction))
+            publishShopTransaction(TransactionEventData(ctx.player, ctx.ownerUuid, sellStack, scaledSell, cost, shop.id, shop.direction, ctx.guildId))
         }
         return result
     }
@@ -478,7 +479,7 @@ open class ContainerTradeService(
         } catch (e: Exception) {
             return rollbackBarterAfterVaultFailure(ctx, sellStack, costStack, collectedItems, e)
         }
-        publishShopTransaction(TransactionEventData(ctx.player, ctx.ownerUuid, sellStack, shop.sellAmount, 0, shop.id, shop.direction))
+        publishShopTransaction(TransactionEventData(ctx.player, ctx.ownerUuid, sellStack, shop.sellAmount, 0, shop.id, shop.direction, ctx.guildId))
         return ContainerTradeResult.Success("Traded ${shop.sellAmount}x for ${shop.costAmount}x")
     }
 

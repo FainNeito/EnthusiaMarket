@@ -258,6 +258,9 @@ tasks {
         useJUnitPlatform()
         val testMariaPort = providers.environmentVariable("GUILD_SHOP_XP_TEST_MARIA_PORT")
         inputs.property("guildShopXpTestMariaPort", testMariaPort.orElse(""))
+        val accountingMariaPort = providers.environmentVariable("MARKET_ACCOUNTING_TEST_MARIA_PORT")
+        inputs.property("accountingMariaPort", accountingMariaPort.orElse(""))
+        outputs.upToDateWhen { !accountingMariaPort.isPresent }
         testMariaPort.orNull?.let { environment("GUILD_SHOP_XP_TEST_MARIA_PORT", it) }
         outputs.upToDateWhen { !testMariaPort.isPresent }
         // Runtime-contract tests inspect this exact companion artifact through an isolated loader.

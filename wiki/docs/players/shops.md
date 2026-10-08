@@ -159,3 +159,29 @@ Dates must use `YYYY-MM-DD`, and start must be on or before end.
 Next-page links retain the selected filter. `all` and the original history command
 show all **retained** records; pruned transactions are unavailable. Retention settings
 are unchanged. These commands do not mark sales as notified or expose other players' history.
+
+
+## Guild stall contribution reports
+
+Guild shop managers can view observed contributions and sales:
+
+```text
+/guildsales stall-id
+/guildsales stall-id today
+/guildsales stall-id range 2026-10-01 2026-10-08
+/guildsales export stall-id range 2026-10-01 2026-10-08
+```
+
+The alias is `/stallsales`. Dates use the server timezone and include both supplied
+days. Reports show the top 100 contributor/material rows, net manually stocked
+units, sold units and **gross customer payment**, not profit. Custom variants are
+tracked separately for FIFO but summarized under their base material in reports.
+An authorized guild stall menu can also open the all-time report.
+
+FIFO assigns sales to the oldest recorded stock first. Existing stock, hoppers,
+ambiguous edits, unobserved changes and same-item shops sharing a chest are
+**unattributed**. BUY-shop intake is not SELL revenue. Reporting starts with newly
+observed records and may trail recent sales while durable records are delivered.
+No payouts, tax or shop XP settings change. CSV files stay in the server's
+`accounting-exports` folder for an administrator to retrieve; this is not a public
+download command.

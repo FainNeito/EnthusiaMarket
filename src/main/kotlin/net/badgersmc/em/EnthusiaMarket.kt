@@ -30,6 +30,7 @@ open class EnthusiaMarket : JavaPlugin() {
 
     private var nexus: NexusContext? = null
     private var shopNotifications: net.badgersmc.em.infrastructure.listeners.ShopNotificationStorage? = null
+    private var stallAccounting: net.badgersmc.em.infrastructure.listeners.StallAccountingStorage? = null
     private var shopHistory: net.badgersmc.em.infrastructure.listeners.ShopHistoryStorage? = null
     private var scheduler: NexusScheduler? = null
     private var websiteSync: net.badgersmc.em.websync.WebsiteSyncService? = null
@@ -116,6 +117,7 @@ open class EnthusiaMarket : JavaPlugin() {
         ctx.registerBean("dataSource", DataSource::class, ds as DataSource)
         shopNotifications = ctx.getBean<net.badgersmc.em.infrastructure.listeners.ShopNotificationStorage>()
         shopHistory = ctx.getBean<net.badgersmc.em.infrastructure.listeners.ShopHistoryStorage>()
+        stallAccounting = ctx.getBean<net.badgersmc.em.infrastructure.listeners.StallAccountingStorage>()
 
         // Stable Staff integration. Register the policy before Nexus constructs any
         // purchase or auction services so every acquisition shares the durable fence.
@@ -531,6 +533,7 @@ open class EnthusiaMarket : JavaPlugin() {
     }
 
     override fun onDisable() {
+        stallAccounting?.close()
         shopHistory?.close()
         shopNotifications?.close()
         server.servicesManager.unregisterAll(this)

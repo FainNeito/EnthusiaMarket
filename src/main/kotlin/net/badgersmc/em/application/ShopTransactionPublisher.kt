@@ -16,6 +16,6 @@ internal fun publishShopTransaction(data: TransactionEventData) {
             buyer = data.player, landlordId = data.ownerUuid,
             item = data.item, quantity = data.quantity, pricePaid = data.cost.toDouble(),
             shopId = data.shopId, direction = data.direction
-        )
+        ).apply { guildId = data.guildId; grossPayment = data.cost }
     )
 }

@@ -614,3 +614,12 @@ container_sign:
 guildpolicy:
   not_in_guild: "<shadow:#000000:1><red>You must be in a guild to manage trade policy.</red></shadow>"
   no_permission: "<shadow:#000000:1><red>You need the MANAGE_SHOPS guild permission for that.</red></shadow>"
+
+accounting:
+  denied: "<red>Only current guild stall managers can view this report."
+  usage: "<yellow>/guildsales [export] stall [all|today|range YYYY-MM-DD YYYY-MM-DD]"
+  header: "<gold>Stall <stall>: top 100 contributor/item rows. Net stock and gross customer payment; no payouts. New accounting records only; history delivery may be pending."
+  unattributed: "Unattributed"
+  row: "<white><contributor> | <item> | net stocked <stocked> | sold <sold> | gross <gross>"
+  failed: "<red>Accounting is unavailable. Try again later."
+  exported: "<green>Report saved in the plugin accounting-exports folder: <file>. Ask staff for the file."

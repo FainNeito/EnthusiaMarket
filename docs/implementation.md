@@ -249,3 +249,14 @@ ChatPriceListener claims pending create-price and bulk-quantity input at LOWEST 
 ## Guild-shop XP (REQ-342)
 
 See [guild-shop-xp.md](guild-shop-xp.md) for policy, payment boundary, journal states and SPEAR evidence.
+
+
+## Guild stall accounting (REQ-343 through REQ-345)
+
+Plain domain values allocate FIFO units and exact integer payment shares. Paper
+adapters capture immutable guild/stall/item/actor observations; the single-worker
+forced-file outbox orders their transactional SQL delivery. Additive migration
+V033 stores receipt IDs, remaining lots, stock events and sale attribution.
+Reporting adapters authorize through the existing GuildProvider and reuse date
+window values. No economic write path or XP policy is added by reporting.
+See [stall-accounting.md](stall-accounting.md) for proof and release boundaries.
