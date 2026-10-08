@@ -19,3 +19,5 @@ Architecture: application code depends only on domain and standard library. Plat
 Refine: clean full Java 25/Paper 26.2 `test shadowJar` passed 779 cases, zero failures/errors, seven existing external-resource skips. Java-21 Detekt and architecture checks passed. Local unmerged review JAR SHA-256: `cec4d594a28c119f8b30f857821bd5a3854bd281b9f14d993be4f6e788e7df94`. JUnit alignment matches the other prepared maintenance PRs.
 
 This fixes shop-sign resolution, not purchase-stall sign/stall SQL reads or auction/currency settlement. A complete storage-outage settlement design must preserve item/money conservation and durable reservations; no Bukkit/economy call is moved to a worker by this change. Production profiling and Java/Bedrock acceptance remain separate gates.
+
+Published as #204. Head `1522bbe18a3babc50096951ea5b1a5103670f082` passed Codacy with zero annotations; no human/inline findings returned. CodeRabbit skipped automatic review. Hosted build/quality workflows require maintainer approval. This documentation update does not change the tested engine.
