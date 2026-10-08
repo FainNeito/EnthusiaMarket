@@ -25,8 +25,10 @@ internal object SearchCategoryMaterials {
 
     private fun building(material: Material) = material.isBlock && buildingName(material.name)
 
-    private fun buildingName(name: String) = SearchBuildingCategories.isStone(name) || wood(name) ||
-        equipment(name, BUILDING_SUFFIXES, BUILDING_ITEMS) || name.endsWith("COPPER") || "COPPER_" in name
+    private fun buildingName(name: String): Boolean {
+        return SearchBuildingCategories.isStone(name) || wood(name) ||
+            equipment(name, BUILDING_SUFFIXES, BUILDING_ITEMS) || name.endsWith("COPPER") || "COPPER_" in name
+    }
 
     private val matchers: Map<SearchCategory, (Material) -> Boolean> = mapOf(
         SearchCategory.TOOLS to { tools(it.name) },
