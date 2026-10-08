@@ -36,7 +36,8 @@ class FinderTrailTracker {
         var budget = maxParticles.coerceAtLeast(0)
         for (player in ordered) {
             val trail = active.getValue(player)
-            val from = origin(player, trail, now, maxRange, position(player)) ?: continue
+            val from = origin(trail, now, maxRange, position(player))
+            if (from == null) { stop(player); continue }
             val distance = from.distance(trail.target)
             val count = minOf(budget, POINTS_PER_PLAYER, distance.toInt())
             plans[player] = points(from, trail.target, count, distance)
@@ -48,20 +49,17 @@ class FinderTrailTracker {
     private fun order(players: List<UUID>): List<UUID> = players.drop(offset % players.size) + players.take(offset % players.size)
 
     private fun origin(
-        player: UUID, trail: Trail, now: Instant, maxRange: Double,
+        trail: Trail, now: Instant, maxRange: Double,
         location: Pair<String, Point>?,
     ): Point? {
-        if (location == null || location.first != trail.world || !now.isBefore(trail.expiresAt)) {
-            stop(player)
-            return null
-        }
+        if (location == null) return null
+        if (location.first != trail.world || !now.isBefore(trail.expiresAt)) return null
         val distance = location.second.distance(trail.target)
-        if (!distance.isFinite() || distance <= ARRIVAL_RADIUS || distance > maxRange) {
-            stop(player)
-            return null
-        }
-        return location.second
+        return location.second.takeIf { validDistance(distance, maxRange) }
     }
+
+    private fun validDistance(distance: Double, maxRange: Double): Boolean =
+        distance.isFinite() && distance > ARRIVAL_RADIUS && distance <= maxRange
 
     private fun points(from: Point, target: Point, count: Int, distance: Double): List<Point> {
         return (1..count).map { step ->
