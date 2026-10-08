@@ -23,7 +23,7 @@ sealed class ContainerTradeResult {
     data class CompensationFailed(val error: String, val compensation: String) : ContainerTradeResult()
 }
 
-private data class TransactionEventData(
+internal data class TransactionEventData(
     val player: Player,
     val ownerUuid: UUID,
     val item: ItemStack,
@@ -54,6 +54,7 @@ open class ContainerTradeService(
     private val guildProvider: GuildProvider?,
     private val tradePolicy: GuildTradePolicyService? = null,
     private val shopVault: ShopVaultService? = null,
+    private val saleRewards: net.badgersmc.em.domain.ports.GuildSaleRewards? = null,
 ) {
     private val log = Logger.getLogger(ContainerTradeService::class.java.name)
     private val compensationAlerts = CompensationAlertService()
@@ -139,7 +140,7 @@ open class ContainerTradeService(
                 return buyPaymentDepositFailed(ctx, sellStack, guildId, cost)
             }
         }
-        fireTransactionEvent(TransactionEventData(ctx.player, ctx.ownerUuid, sellStack, sellStack.amount, cost, shop.id, shop.direction))
+        publishShopTransaction(TransactionEventData(ctx.player, ctx.ownerUuid, sellStack, sellStack.amount, cost, shop.id, shop.direction))
         return ContainerTradeResult.Success("Sold ${sellStack.amount}x for $cost")
     }
 
@@ -238,6 +239,29 @@ open class ContainerTradeService(
         }
         if (economy.balance(playerUuid) < cost) return ContainerTradeResult.Failure("Insufficient funds")
 
+        val intent = try {
+            if (ctx.guildId != null && cost > 0 && shop.direction == net.badgersmc.em.domain.shop.SignDirection.SELL) {
+                saleRewards?.prepare(ctx.guildId, playerUuid, shop.id)
+            } else null
+        } catch (e: Exception) {
+            log.warning("Guild-shop XP preparation failed for shop ${shop.id}: ${e.javaClass.simpleName}")
+            return ContainerTradeResult.Failure("Guild shop rewards are temporarily unavailable — try again later")
+        }
+        val result = executePaidSell(playerUuid, ctx, sellStack, scaledSell, cost)
+        if (intent != null) {
+            if (result is ContainerTradeResult.Success) saleRewards?.completed(intent)
+            else saleRewards?.aborted(intent)
+        }
+        if (result is ContainerTradeResult.Success) {
+            publishShopTransaction(TransactionEventData(ctx.player, ctx.ownerUuid, sellStack, scaledSell, cost, shop.id, shop.direction))
+        }
+        return result
+    }
+
+    @Suppress("ReturnCount")
+    private fun executePaidSell(
+        playerUuid: UUID, ctx: TradeContext, sellStack: ItemStack, scaledSell: Int, cost: Long,
+    ): ContainerTradeResult {
         val (collectedItems, removalResult) = removeAndCollectSimilar(ctx.containerInv, sellStack, scaledSell)
         if (removalResult.isNotEmpty()) {
             for (item in collectedItems) ctx.containerInv.addItem(item)
@@ -269,7 +293,6 @@ open class ContainerTradeService(
             )
         }
 
-        fireTransactionEvent(TransactionEventData(ctx.player, ctx.ownerUuid, sellStack, scaledSell, cost, shop.id, shop.direction))
         return ContainerTradeResult.Success("Bought ${scaledSell}x for $cost")
     }
 
@@ -339,21 +362,6 @@ open class ContainerTradeService(
     private fun refundShop(guildId: UUID?, ownerUuid: UUID, cost: Long): Boolean {
         return if (guildId != null) guildProvider?.bankDeposit(guildId.toString(), cost) ?: false
         else economy.deposit(ownerUuid, cost)
-    }
-
-    private fun fireTransactionEvent(data: TransactionEventData) {
-        log.info(
-            "TRADE shop=${data.shopId} dir=${data.direction} buyer=${data.player.uniqueId} " +
-            "item=${data.item.type} qty=${data.quantity} cost=${data.cost} " +
-            "owner=${data.ownerUuid}"
-        )
-        Bukkit.getPluginManager().callEvent(
-            net.badgersmc.em.events.PostShopTransactionEvent(
-                buyer = data.player, landlordId = data.ownerUuid,
-                item = data.item, quantity = data.quantity, pricePaid = data.cost.toDouble(),
-                shopId = data.shopId, direction = data.direction
-            )
-        )
     }
 
     private fun buildSellStack(shop: Shop): ItemStack? {
@@ -478,7 +486,7 @@ open class ContainerTradeService(
         } catch (e: Exception) {
             return rollbackBarterAfterVaultFailure(ctx, sellStack, costStack, collectedItems, e)
         }
-        fireTransactionEvent(TransactionEventData(ctx.player, ctx.ownerUuid, sellStack, shop.sellAmount, 0, shop.id, shop.direction))
+        publishShopTransaction(TransactionEventData(ctx.player, ctx.ownerUuid, sellStack, shop.sellAmount, 0, shop.id, shop.direction))
         return ContainerTradeResult.Success("Traded ${shop.sellAmount}x for ${shop.costAmount}x")
     }
 
@@ -632,7 +640,7 @@ open class ContainerTradeService(
             compensationAlerts.alert("placement-barter-vault-deposit", detail, ctx.player.uniqueId, amounts.cost.toLong())
             return ContainerTradeResult.CompensationFailed("Barter vault persistence failed", detail)
         }
-        fireTransactionEvent(TransactionEventData(ctx.player, ctx.ownerUuid, ctx.sellStack, amounts.sell, 0, shop.id, shop.direction))
+        publishShopTransaction(TransactionEventData(ctx.player, ctx.ownerUuid, ctx.sellStack, amounts.sell, 0, shop.id, shop.direction))
         return ContainerTradeResult.Success("Traded ${amounts.sell}x for ${amounts.cost}x")
     }
 

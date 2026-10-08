@@ -277,7 +277,9 @@ class BedrockHeadStoreTest {
         val second = UUID.randomUUID()
         val store = store(upload = { calls.incrementAndGet(); DeliveryOutcome.Retry() }, clock = { now })
         store.capture(first, validSkin())
-        await { calls.get() == 1 }
+        // The upload callback increments before deferHash reads the clock and persists.
+        // Wait for that durable transition before advancing fake time.
+        await { calls.get() == 1 && pendingSchedules().values.toSet() == setOf("1:10000") }
 
         now = 1_000L
         store.capture(second, validSkin())
@@ -290,7 +292,7 @@ class BedrockHeadStoreTest {
 
         now = 10_000L
         store.retryPending()
-        await { calls.get() == 2 }
+        await { calls.get() == 2 && pendingSchedules().values.toSet() == setOf("2:30000") }
         assertEquals(setOf("2:30000"), pendingSchedules().values.toSet())
         store.close()
     }

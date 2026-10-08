@@ -1115,3 +1115,15 @@ Validation: Market 806 tests, 0 failures/errors, 7 skipped; architecture checks 
 - [x] **FRAME-332** — REQ-332: proved failing defaults and shared-total behavior before implementation; 811 tests passed (7 skipped), architecture checks and Detekt passed. Configurable finite/zero limits and other entity checks are retained; defaults and evidence updated. Exact-head hosted checks and live acceptance remain separately pending; no production configuration was changed.
 
 - [ ] **REFINE-331** — REQ-323/326/329: resolve the three remaining exact-head Codacy findings while preserving permissions, escrow rollback and creature normalization. Validate with existing regression tests, architecture checks, Detekt and the actual merged companion runtime. Record hosted checks and production boundaries in docs/verification.md.
+
+
+## Guild-shop XP (REQ-342)
+
+See [guild-shop-xp.md](guild-shop-xp.md) for policy, payment boundary, journal states and SPEAR evidence.
+
+
+- [x] **SHOP-XP-SPEC-342** — approved configurable limits and excluded purchase paths in docs/guild-shop-xp.md.
+- [x] **SHOP-XP-ENGINE-342** — durable sale journal, pre-payment quote, completed-only replay and atomic companion consumption.
+- [x] **SHOP-XP-ARCH-342** — domain ports and actual companion artifact / isolated classloader contract.
+- [ ] **SHOP-XP-REFINE-342** — final full-suite/Detekt after current #197 authority and MariaDB fixture updates; exact-head hosted checks/review.
+- [ ] **SHOP-XP-RELEASE-342** — merge/release companion; update CI runtime pin/hash and require contract execution; verify canonical combined build/pins, MariaDB/staging/player acceptance. No production changes.

@@ -588,3 +588,8 @@ return the stall to UNOWNED.
 ### REQ-334 — Private custom-price chat input
 
 **Event-driven.** WHEN a player with a pending Market price or bulk-quantity prompt sends chat THE SYSTEM SHALL cancel that message before legacy chat broadcasters process it and schedule the existing input handler on the server thread. The Paper-only chat path SHALL remain supported; a legacy-cancelled message SHALL NOT schedule a duplicate callback through the Paper event. Chat without a pending prompt SHALL retain normal broadcasting behavior.
+
+
+## Guild-shop XP (REQ-342)
+
+See [guild-shop-xp.md](guild-shop-xp.md) for policy, payment boundary, journal states and SPEAR evidence.

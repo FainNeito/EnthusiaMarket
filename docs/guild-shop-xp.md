@@ -1,0 +1,36 @@
+# Guild-shop XP delivery
+
+## Spec (REQ-342)
+
+WHEN an outside customer completes a paid EnthusiaMarket SELL purchase from a guild-owned stall, THE SYSTEM SHALL award that stall's owning guild one configurable XP award (default 5), bounded by a guild UTC-day cap (500), buyer/guild UTC-day cap (50), and buyer/guild cooldown (300 seconds) shared across shops. Guild members, free trades, BUY shops, barter, and failed or compensated purchases SHALL award zero. Quantity and price SHALL NOT multiply XP. BUY-shop resale is a separate trade, not a refund.
+
+WHEN a completed sale is redelivered, THE SYSTEM SHALL atomically consume its durable ID once with its caps and progression update. Eligibility and prestige identity SHALL be captured before payment. Pending sales from a previous prestige run SHALL NOT award XP to a new run. Purchased rewards SHALL remain untouched. Permanent consumption records SHALL outlive the ordinary XP-history retention policy.
+
+## Architecture / acceptance
+
+Guilds owns policy, membership snapshot, progression identity, caps and idempotence. Market owns the completed-sale journal and replay. A JDK-only ServicesManager API avoids a dependency cycle. Policy is snapshotted before payment; retries retain that quote. Guilds reuses its existing SQL XP engine in the same transaction. Progression cache refresh and level events follow committed awards.
+
+Vault and inventories have no shared SQL transaction or durable payment receipts. A crash between item/payment effects and the Market COMPLETED journal write is ambiguous. PREPARED records never replay automatically; staff must investigate the trade evidence. Completed journal records retry after transient errors or acknowledgement loss. If preparation is unavailable, the purchase is refused before any side effect, rather than silently losing its reward. Personal/free trades remain unaffected.
+
+## SPEAR state
+
+- Spec: approved user policy above; Guilds base a15b244, Market main 14351db and stacked API dependency 322933c (PRs #197/#198).
+- Prove: Market trade-boundary and persistent-journal tests cover preparation-before-payment, completion-after-delivery, withdrawal/delivery failure, own/personal/free/BUY boundaries, retry, acknowledgement loss, restart and ambiguous completion-write failure. Guilds owns the own-guild membership and prestige SQL proof.
+- Engine: V031 journal, synchronous pre-payment quote, completion/abort boundary and ordered bounded replay implemented. Best-effort notification events remain separate from the durable reward boundary.
+- Arch: domain ports isolate SQL and ServicesManager adapters. A JDK-only versioned API is resolved through the companion's own classloader on each call, without caching unavailable providers.
+- Refine/local: Java 25/Paper 26.2 clean test/shadowJar passed 836 tests, zero failures/errors, seven skips against the actual unmerged Guilds review artifact; the isolated-loader API contract executed (not skipped). Subsequent personal/free boundary tests passed. Final full-suite validation is being repeated after a test-only synchronization refinement. Detekt passed on JDK 22.
+- The existing BedrockHeadStore fake-clock test sometimes advanced time after the callback count incremented but before deferHash persisted backoff (expected 10000, observed 11000). It now waits for the durable retry schedule before advancing the clock and asserting a grouped retry; production head-store code is unchanged.
+- Hosted CI/review and MariaDB/staging/player acceptance remain separate. Project-local EARS/state helpers are absent; this record is manual.
+- Project-local EARS/state helpers are absent; this file and docs/tasks.md are the manual state/evidence record.
+- Hosted CI, merged companion build, staging and player acceptance remain separate; no production changes authorized.
+
+
+## Companion and release gates
+
+Companion: [LumaGuilds PR #212](https://github.com/BadgersMC/LumaGuilds/pull/212), head 246015836f99fbd7a3b01514d7e992b42da42c9a. Market's inherited dependencies are [#197](https://github.com/BadgersMC/EnthusiaMarket/pull/197) and [#198](https://github.com/BadgersMC/EnthusiaMarket/pull/198). This branch remains a draft stack until those changes and the companion API are reviewed and merged. Canonical main was refreshed at 14351db; #197 advanced to 7d7e54a and its relevant authority/MariaDB-fixture changes are being incorporated before delivery.
+
+Market CI currently downloads the checksum-pinned released Guilds 3.0.17, which lacks GuildShopXpApi. The runtime contract explicitly skips with a diagnostic, and the workflow emits a warning; CI green on that release is not hosted proof of shop XP. Update the companion version/hash after #212 is merged and released, and require the contract to execute before production integration. Local paired-artifact validation must execute the contract. Gradle tracks configured companion path and contents so replacing the artifact invalidates results.
+
+PREPARED journal entries mean unconfirmed or crash-ambiguous trades and never replay. ABORTED entries are known failures. Only COMPLETED records replay, ordered by sale time/ID, at most 100 every ten seconds. ACKNOWLEDGED stores the terminal Guilds outcome. Do not blindly promote PREPARED rows: inspect the actual payment and inventory evidence. The journal records owning guild, buyer, shop, ID and sale time; durable Guilds receipts survive ordinary XP audit cleanup.
+
+An unavailable XP provider refuses paid guild SELL purchases before side effects with an explicit retry message. Deploy the merged Guilds API before the merged Market consumer; this draft is not authorized for production. Personal/free/BUY/barter trading is preserved. No item return/refund feature was added. Source fixes, canonical build/pins, hashes, CI and staging acceptance must be verified before any production upload/activation. No production changes, merge, restart or activation was performed.

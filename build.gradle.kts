@@ -256,6 +256,13 @@ configure<net.badgersmc.nexus.permissions.gradle.NexusPermissionsExtension> {
 tasks {
     test {
         useJUnitPlatform()
+        // Runtime-contract tests inspect this exact companion artifact through an isolated loader.
+        val companionPath = providers.environmentVariable("LUMAGUILDS_JAR")
+        inputs.property("guildsRuntimePath", companionPath.orElse(""))
+        companionPath.orNull?.let { path ->
+            inputs.file(path).withPropertyName("guildsRuntimeArtifact")
+            environment("LUMAGUILDS_JAR", path)
+        }
     }
     shadowJar {
         archiveClassifier.set("")
