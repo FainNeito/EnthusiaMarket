@@ -1,5 +1,19 @@
 # Market check refinement — 2026-10-04
 
+## Production correctness continuation — 2026-10-07
+
+Fresh canonical main remains `14351db`; the existing #197 head was `b9ec897`. Continued its work in an isolated branch/worktree. See production-delivery-correctness.md for the fourteen-item release/acceptance matrix and current network pins.
+
+REQ-335 / LOCK-336: five GuildSellbackTest cases ran with two genuine pre-guard failures. The new personal/guild cases acquire a moderation reservation between quote and confirmation. The implementation injects the registered MarketMutationGate port and rejects before sellback mutations. StallRepositorySql's existing durable lock and optimistic revision fences are preserved; these mocked application regressions do not demonstrate a production SQL-fence bypass. Default constructor compatibility and the existing rejection command path remain intact.
+
+Clean Java-25 / Paper-26.2 `test shadowJar` against the checksum-verified released LumaGuilds 3.0.23 runtime passed 820 tests, zero failures/errors, seven skips. Six skips are JdbcMarketModerationMariaDbTest, and one is MarketRemoteAuthenticationTest. GuildSellbackTest's five cases and LayerRulesTest passed. Java-21 Detekt and `git diff --check` passed. A first invocation split an unquoted Gradle property in PowerShell and failed before running tasks; the quoted clean invocation above is the successful validation.
+
+The companion SHA-256 is `c2958842e976581743af510d57547d1d38542633eeff7dd27325a5b0d307eb19`; javap confirmed systemBankWithdraw/systemBankDeposit on both API and implementation. This release reference does not prove the exact installed production binary. CI's existing 3.0.17 companion remains the declared minimum profile; its hosted execution still needs fork workflow approval.
+
+Unmerged local review artifact: `build/libs/EnthusiaMarket-1.0.0-production-review.1.jar`, SHA-256 `8b2fb334a58c3a36dfda996da0d17a4fa7b8474f20b9ff990db328fc4136964e`. This is a local test artifact, not a production release, and was not uploaded.
+
+Existing-head inspection: open/mergeable #197; build and quality workflows are action_required. Codacy's summary reported zero issues. CodeRabbit's success status accompanies an explicitly skipped review, so no completed automated review is claimed. Final published-head checks must be inspected separately. Project-local EARS/state helpers remain absent; manual requirements/tasks/evidence were maintained without a validator success claim. No canonical merge, network pin mutation, JAR upload, WorldGuard resync, production data repair or restart occurred.
+
 ## Spec
 
 Preserve REQ-323, REQ-326 and REQ-329 while reducing the remaining Codacy complexity findings to the configured limit of five. Bid rejection must retain IP reservation rollback, guild edit checks must retain field-specific authorization, and creature normalization must preserve component boundaries and custom data.
@@ -65,6 +79,20 @@ Engine/architecture: add a LOWEST legacy handler and put both event adapters ahe
 Refine: all five new tests passed inside the clean full suite: 817 tests, zero failures/errors, seven skips (including six MariaDB cases). Tests cover private legacy input, callback deferral, Paper-only input, propagated cancellation without duplicate callbacks, ordinary chat and bulk quantity input. Architecture tests are included; Detekt passed on Java 21, compile/tests on Java 25/Paper 26.2 with LumaGuilds 3.0.17. Project-local EARS/state helpers remain absent. Exact published-head hosted checks and live two-player/chat-bridge acceptance remain separate gates.
 
 The shaded unmerged local review artifact `build/libs/EnthusiaMarket-1.0.0-spear-review.4.jar` built after these checks; SHA-256 `aff265473b525bae7a0740e207068827ba268359ecd85b707bb6d56d986d12a7`. No upload, activation, merge or production change was performed.
+
+## DB-337 MariaDB V030 release verification (2026-10-07)
+
+Spec: the V027 test baseline must permit the actual V028/V029/V030 upgrade, preserve existing personal auction funding and support guild funding persistence. This is testing/release infrastructure under REQ-326/311; no new runtime engine or behavioral policy is required. Project-local EARS/state tooling remains absent.
+
+Prove: the same six MariaDB test bodies executed through a temporary native loopback launcher on checksum-verified MariaDB 11.8.3; all six failed with the missing `auctions` table during setup. The original Docker annotation had hidden this failure in earlier local runs. The native launcher changed only startup/endpoint and class name, not test bodies or assertions. MariaDB archive SHA-256: `debd9643db9b3d35276fb782789564484c681b1bb264d03de0b3a2e8e739f493`, verified against the publisher's checksum file.
+
+Engine/architecture: correct only the integration fixture, include a historical personal bid before migration, expect versions 28/29/30, and add a seventh test exercising real AuctionRepositorySql save/reload, unchanged personal bid identity/amount/time, guild funding, migration rerun and return to personal funding. Production SQL and adapters are unchanged; hosted Testcontainers startup remains intact.
+
+Refine: all seven native cases pass, zero failures/errors/skips. The temporary launcher was removed from source and the isolated database was shut down. Clean canonical Java-25/Paper-26.2 `clean test shadowJar jacocoTestReport` with released LumaGuilds 3.0.23 passed: 821 cases, zero failures/errors, eight skips. Seven are the Docker MariaDB class exercised separately natively; one is remote authentication. LayerRulesTest, GuildSellbackTest and AuctionRepositorySqlTest are included. Java-21 Detekt and diff whitespace checks passed. An initial PowerShell invocation split an unquoted dotted release property into a task name; the corrected quoted canonical command above passed, with no product test failure implied.
+
+Local unmerged review artifact: `build/libs/EnthusiaMarket-1.0.0-production-review.2.jar`, SHA-256 `5daef9c86e88a17fbb0f90890115f049df65d5c6f50c59d83df93f2e8fc081c9`. It was not uploaded or activated. Local evidence is retained beside the checkout in `market-mariadb-validation-20261007` (before/after XML, launcher, full-build and Detekt logs). This evidence establishes actual MariaDB SQL behavior, not hosted Docker startup or real-server/client acceptance.
+
+Fresh network main remains `559bfabc2187ab796a3be889f032383a8041f819`, with Market `b31fc322` and Guilds `a15b244e`. Its documented combined build is `scripts/build-all.bat` / `scripts/build-all.sh`; root shadowJar packaging does not replace component tests. Post-merge steps are recorded in production-delivery-correctness.md. Current upstream permissions are read-only for Market and network, so maintainer workflow approval/review/merge remains external. No network pin or production state was changed. Exact new-head hosted findings must be inspected after publication.
 
 ## STALE-335 ticket bug-0406 — ownership investigation
 

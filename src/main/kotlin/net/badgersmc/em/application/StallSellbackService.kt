@@ -4,6 +4,7 @@ import net.badgersmc.em.config.EnthusiaMarketConfig
 import net.badgersmc.em.domain.offer.SellOfferRepository
 import net.badgersmc.em.domain.ports.EconomyProvider
 import net.badgersmc.em.domain.ports.GuildProvider
+import net.badgersmc.em.domain.ports.MarketMutationGate
 import net.badgersmc.em.domain.ports.RegionMemberSync
 import net.badgersmc.em.domain.ports.SchematicService
 import net.badgersmc.em.domain.shop.ShopRepository
@@ -28,9 +29,8 @@ import kotlin.math.ceil
  * minus the current period (today is non-refundable). All shops bound
  * to the stall are deleted as part of the wipe.
  *
- * Schematic restore (TDD-270/271) is intentionally NOT wired here —
- * once the schematic snapshot service ships, hook its `restore`
- * call after the ownership reset below.
+ * Schematic restoration is best-effort after a completed sellback.
+ * Moderation reservations block confirmation before any state or payment changes.
  *
  * Two-step protocol used by the command layer:
  * 1. [quote] — pure read, returns refund + shop count for the
@@ -50,6 +50,7 @@ class StallSellbackService(
     private val regionMembers: RegionMemberSync,
     private val schematics: SchematicService = SchematicService.Disabled,
     private val ipLimiter: IpLimiter,
+    private val mutationGate: MarketMutationGate = MarketMutationGate.Open,
 ) {
 
     private val log = Logger.getLogger(StallSellbackService::class.java.name)
@@ -92,6 +93,9 @@ class StallSellbackService(
         val stall = stalls.findById(stallId) ?: return ExecuteResult.NotFound
         if (stall.state !in OWNERSHIP_STATES) return ExecuteResult.NotOwned
         if (!stall.canManage(actor, guildProvider)) return ExecuteResult.NotAuthorised
+        if (mutationGate.isStallLocked(stallId.value)) {
+            return ExecuteResult.Rejected("This stall is temporarily unavailable")
+        }
 
         val (refund, _) = computeRefund(stall)
         val boundShops = shops.findByStall(stallId.value)
