@@ -10,6 +10,8 @@ class EnthusiaMarketConfig {
     var market: Market = Market()
     @Comment("Periodic rent charge configuration")
     var rent: Rent = Rent()
+    @Comment("Informational login warnings; rent remains manually prepaid.")
+    var rentWarnings: RentWarnings = RentWarnings()
     @Comment("Auction settings")
     var auction: Auction = Auction()
     @Comment("Sign shop trade settings")
@@ -126,6 +128,14 @@ class EnthusiaMarketConfig {
                 "so stall member build-rights override the safezone deny."
         )
         var stallPriority: Int = 20
+    }
+
+    class RentWarnings {
+        var enabled: Boolean = true
+        var warningWindowHours: Long = 24
+        var insufficientFundsEnabled: Boolean = true
+        var maxMessages: Int = 10
+        var cooldownSeconds: Long = 300
     }
 
     class Rent {
