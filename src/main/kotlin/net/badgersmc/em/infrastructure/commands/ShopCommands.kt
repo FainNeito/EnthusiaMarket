@@ -40,6 +40,7 @@ class ShopCommands(
     private val stallRepository: StallRepository,
     private val shopSearchService: ShopSearchService,
     private val playerNameResolver: PlayerNameResolver,
+    private val finderTrail: net.badgersmc.em.infrastructure.listeners.FinderTrailService? = null,
 ) {
     @Subcommand("list")
     @Permission("enthusiamarket.shop.use")
@@ -172,10 +173,18 @@ class ShopCommands(
             }
             net.badgersmc.em.interaction.gui.SearchResultsMenu(
                 results, query, lang, stallRepository, ticker,
+                navigate = finderTrail?.let { trail -> { player, shop -> trail.start(player, shop) } },
             ).open(player)
             return
         }
         player.sendMessage(lang.msg("shop.cmd.search.none", "query" to query))
+    }
+
+    @Subcommand("trail stop")
+    @Permission("enthusiamarket.shop.use")
+    fun stopTrail(@Context sender: CommandSender) {
+        val player = sender as? Player ?: return
+        finderTrail?.stop(player)
     }
 
     @Subcommand("history")

@@ -610,3 +610,11 @@ container_sign:
 guildpolicy:
   not_in_guild: "<shadow:#000000:1><red>You must be in a guild to manage trade policy.</red></shadow>"
   no_permission: "<shadow:#000000:1><red>You need the MANAGE_SHOPS guild permission for that.</red></shadow>"
+
+finder_trail:
+  click: "<aqua>Click for a private direction trail. Staff: shift-click.</aqua>"
+  started: "<aqua>Follow your private particles for up to <seconds> seconds. This points toward the shop; use safe paths around obstacles. Cancel with /shop trail stop.</aqua>"
+  stopped: "<gray>Shop direction trail stopped.</gray>"
+  disabled: "<yellow>Shop direction trails are disabled.</yellow>"
+  out_of_range: "<yellow>This shop is too far away or in another world. Use its displayed coordinates.</yellow>"
+  busy: "<yellow>Direction trails are busy. Please try again shortly.</yellow>"
