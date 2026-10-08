@@ -36,6 +36,9 @@ class SearchResultsMenuNavigationTest {
         player = server.addPlayer()
         mockkStatic(JavaPlugin::class)
         every { JavaPlugin.getProvidingPlugin(any<Class<*>>()) } returns plugin
+        com.github.stefvanschie.inventoryframework.gui.type.ChestGui(1, "fixture")
+        org.bukkit.event.HandlerList.unregisterAll(plugin)
+        server.pluginManager.registerEvents(com.github.stefvanschie.inventoryframework.gui.GuiListener(plugin), plugin)
         mockkObject(ItemStackSerializer)
         every { ItemStackSerializer.deserialize(any()) } returns ItemStack(Material.DIAMOND)
         every { stalls.findByIds(any()) } returns emptyMap()
