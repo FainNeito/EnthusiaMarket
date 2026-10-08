@@ -236,6 +236,12 @@ Reported: Netherite_Ingot (15 chars) doesn't show on sign. Custom anvil names lo
 
 ---
 
+## History filter delivery (2026-10-08)
+
+- [~] HISTORY-FILTER-356: User accepted feature request 8 only. Preserve /shop history [page]; add today/all/range paging, ISO inclusive dates, server timezone and owner-or-buyer visibility. All means retained rows.
+- [ ] HISTORY-FILTER-PROVE: Execute missing-command regression before implementation; verify SQL boundaries before paging, stable ties, privacy, DST, invalid dates and preserved next-page scope.
+- [ ] HISTORY-FILTER-REFINE: Full build/architecture, Detekt, wiki/locale validation, reviewable PR and exact-head comments/checks. Project-local EARS/state helpers are absent; manual evidence is maintained. No stall resets, export/contributor features, retention change or production action.
+
 ## Milestone M4 — Guild ownership + Bedrock UI (REQ-010, REQ-011)
 
 ### TDD tasks
@@ -1089,9 +1095,3 @@ Baseline: current `main` at `8d04bd9` (PR #194 Staff Market integration). This m
   Tag: DOC
   Description: Update operator/developer docs after implementation with the authoritative active-owner states, transfer cleanup rules, moderation boundary, reconciliation behavior, and /em rent extendall usage.
   Evidence: `docs/ownership-integrity-26.2.md; docs/implementation.md §3.11-3.12; docs/db-schema.md V029; src/main/resources/migrations/V029__ownership_integrity_reconciliation.sql; src/main/kotlin/net/badgersmc/em/infrastructure/commands/AdminCommands.kt; src/main/resources/paper-plugin.yml; src/main/resources/lang/en_US.yml`
-
-## History filter delivery (2026-10-08)
-
-- [~] HISTORY-FILTER-356: User accepted feature request 8 only. Preserve /shop history [page]; add today/all/range paging, ISO inclusive dates, server timezone and owner-or-buyer visibility. All means retained rows.
-- [ ] HISTORY-FILTER-PROVE: Execute missing-command regression before implementation; verify SQL boundaries before paging, stable ties, privacy, DST, invalid dates and preserved next-page scope.
-- [ ] HISTORY-FILTER-REFINE: Full build/architecture, Detekt, wiki/locale validation, reviewable PR and exact-head comments/checks. Project-local EARS/state helpers are absent; manual evidence is maintained. No stall resets, export/contributor features, retention change or production action.

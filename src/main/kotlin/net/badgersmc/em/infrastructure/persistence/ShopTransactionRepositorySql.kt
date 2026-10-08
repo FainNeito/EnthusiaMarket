@@ -1,11 +1,11 @@
 package net.badgersmc.em.infrastructure.persistence
 
 import net.badgersmc.em.domain.shop.PriceStats
-import net.badgersmc.em.domain.shop.ShopHistoryWindow
 import net.badgersmc.em.domain.shop.ShopTransaction
 import net.badgersmc.em.domain.shop.ShopTransactionRepository
 import net.badgersmc.em.domain.shop.SignDirection
 import net.badgersmc.nexus.annotations.Repository
+import net.badgersmc.em.domain.shop.ShopHistoryWindow
 import java.sql.ResultSet
 import java.util.UUID
 import javax.sql.DataSource

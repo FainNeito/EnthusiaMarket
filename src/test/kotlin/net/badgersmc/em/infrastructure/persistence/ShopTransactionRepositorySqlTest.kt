@@ -34,35 +34,6 @@ class ShopTransactionRepositorySqlTest {
         item = "diamond", quantity = 5, totalPrice = 100, createdAt = createdAt, notified = notified,
     )
 
-    @Test fun `record then find by owner newest-first`() {
-        val repo = ShopTransactionRepositorySql(ds)
-        val owner = UUID.randomUUID()
-        repo.record(tx(owner, createdAt = 1_000))
-        repo.record(tx(owner, createdAt = 2_000))
-        val rows = repo.findByOwner(owner, limit = 10, offset = 0)
-        assertEquals(2, rows.size)
-        assertEquals(2_000, rows.first().createdAt) // newest first
-    }
-
-    @Test fun `countUnnotified and markNotified`() {
-        val repo = ShopTransactionRepositorySql(ds)
-        val owner = UUID.randomUUID()
-        repo.record(tx(owner, createdAt = 1_000))
-        repo.record(tx(owner, createdAt = 2_000))
-        assertEquals(2, repo.countUnnotified(owner))
-        repo.markNotified(owner)
-        assertEquals(0, repo.countUnnotified(owner))
-    }
-
-    @Test fun `prune deletes only older rows`() {
-        val repo = ShopTransactionRepositorySql(ds)
-        val owner = UUID.randomUUID()
-        repo.record(tx(owner, createdAt = 1_000))
-        repo.record(tx(owner, createdAt = 5_000))
-        assertEquals(1, repo.prune(beforeMs = 2_000))
-        assertEquals(1, repo.findByOwner(owner, 10, 0).size)
-    }
-
     @Test fun `window covers owner and buyer but never outsiders or end boundary`() {
         val repo = ShopTransactionRepositorySql(ds)
         val viewer = UUID.randomUUID()
@@ -96,5 +67,34 @@ class ShopTransactionRepositorySqlTest {
         repo.prune(2000)
         assertEquals(emptyList(), repo.findByOwnerOrBuyer(viewer, 10, 0))
         assertEquals(emptyList(), repo.findByOwnerOrBuyer(viewer, 10, 0, ShopHistoryWindow(0, 2000)))
+    }
+
+    @Test fun `record then find by owner newest-first`() {
+        val repo = ShopTransactionRepositorySql(ds)
+        val owner = UUID.randomUUID()
+        repo.record(tx(owner, createdAt = 1_000))
+        repo.record(tx(owner, createdAt = 2_000))
+        val rows = repo.findByOwner(owner, limit = 10, offset = 0)
+        assertEquals(2, rows.size)
+        assertEquals(2_000, rows.first().createdAt) // newest first
+    }
+
+    @Test fun `countUnnotified and markNotified`() {
+        val repo = ShopTransactionRepositorySql(ds)
+        val owner = UUID.randomUUID()
+        repo.record(tx(owner, createdAt = 1_000))
+        repo.record(tx(owner, createdAt = 2_000))
+        assertEquals(2, repo.countUnnotified(owner))
+        repo.markNotified(owner)
+        assertEquals(0, repo.countUnnotified(owner))
+    }
+
+    @Test fun `prune deletes only older rows`() {
+        val repo = ShopTransactionRepositorySql(ds)
+        val owner = UUID.randomUUID()
+        repo.record(tx(owner, createdAt = 1_000))
+        repo.record(tx(owner, createdAt = 5_000))
+        assertEquals(1, repo.prune(beforeMs = 2_000))
+        assertEquals(1, repo.findByOwner(owner, 10, 0).size)
     }
 }
