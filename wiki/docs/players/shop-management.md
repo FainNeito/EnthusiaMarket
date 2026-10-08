@@ -90,8 +90,20 @@ Set a duration or turn it off.
 
 ## Transaction history
 
+History includes your transactions as either shop owner or buyer, ten per page.
+`today` uses the server calendar date; `range` includes both supplied dates in the
+server timezone shown in the response. For example,
+`/shop history range 2026-10-01 2026-10-08` includes all of October 8.
+Dates must use `YYYY-MM-DD`, and start must be on or before end.
+Next-page links retain the selected filter. `all` and the original history command
+show all **retained** records; pruned transactions are unavailable. Retention settings
+are unchanged. These commands do not mark sales as notified or expose other players' history.
+
 ```text
 /shop history [page]
+/shop history all [page]
+/shop history today [page]
+/shop history range YYYY-MM-DD YYYY-MM-DD [page]
 ```
 
 View your shop transaction history (paginated, 10 per page).

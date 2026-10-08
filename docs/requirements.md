@@ -9,6 +9,20 @@ Each requirement carries a stable ID. Tasks reference requirements by ID. New re
 
 ---
 
+## Accepted history filters (8 October 2026)
+
+### REQ-356 - Today and retained history
+
+**Event-driven.** WHEN a player selects today or all in shop history THE SYSTEM SHALL show only their owner-or-buyer transactions in the selected period with stable newest-first pagination and preserve the existing history page command.
+
+### REQ-357 - Inclusive calendar-date range
+
+**Event-driven.** WHEN a player supplies valid ISO start and end dates THE SYSTEM SHALL include both calendar dates in the server timezone using an inclusive start and exclusive next-day boundary before pagination.
+
+### REQ-358 - Validation and retained-data boundary
+
+**Unwanted.** IF dates are malformed or reversed THEN THE SYSTEM SHALL reject the request before querying storage and explain valid syntax without changing retention, permissions, unread notification state or other players' visibility.
+
 ## Product (what the system is for)
 
 ### REQ-001 — Stall marketplace as core product
@@ -541,6 +555,18 @@ IDs 323–344 are reserved by the pending correctness, companion and search PRs.
 
 **Unwanted.** IF notification storage fails or its bounded queue rejects work THE SYSTEM SHALL preserve unread history without performing storage work on the join caller.
 
+### REQ-348 — Completed trade thread boundary
+
+WHEN a completed shop trade reaches the history listener THE SYSTEM SHALL force an immutable local recovery record before returning and deliver SQL history on a dedicated worker without replaying game operations.
+
+### REQ-349 — Replay-safe history delivery
+
+WHEN a recovery record is retried THE SYSTEM SHALL atomically insert a durable receipt and history at most once, including retries after history pruning.
+
+### REQ-350 — Interrupted history delivery
+
+IF delivery or acknowledgement fails THE SYSTEM SHALL retain the recovery record; corrupt records SHALL be quarantined for review without blocking valid records.
+
 ## Acceptance
 
 ### REQ-340 — Guild stall read API
@@ -617,6 +643,22 @@ REQ-323 through REQ-342 are reserved by existing pending Market work, including 
 
 **Event-driven.** WHEN a player with a pending Market price or bulk-quantity prompt sends chat THE SYSTEM SHALL cancel that message before legacy chat broadcasters process it and schedule the existing input handler on the server thread. The Paper-only chat path SHALL remain supported; a legacy-cancelled message SHALL NOT schedule a duplicate callback through the Paper event. Chat without a pending prompt SHALL retain normal broadcasting behavior.
 
+## Guild-shop XP (REQ-342)
+
+See [guild-shop-xp.md](guild-shop-xp.md) for policy, payment boundary, journal states and SPEAR evidence.
+
 ### REQ-335 — Sellback moderation reservation
 
 **Unwanted.** IF a stall has an active moderation mutation lock when sellback is confirmed THEN THE SYSTEM SHALL reject sellback before ownership, refund, shop, offer, IP, region or schematic mutations.
+
+### REQ-343 — Guild stock attribution
+
+WHEN a currently authorized member manually adds provably identifiable guild-shop stock THE SYSTEM SHALL record the contributor, SHALL attribute completed SELL units FIFO, and SHALL mark existing, drifted, mixed, automated or shared same-item container stock unattributed. BUY trades SHALL NOT count as sales revenue. Taxes, rewards, ownership and payouts SHALL remain unchanged.
+
+### REQ-344 — Read-only accounting reports
+
+WHEN a current guild shop manager requests a stall report THE SYSTEM SHALL verify active guild ownership, membership and shop authority before query and disclosure, SHALL support all/today/inclusive date ranges, and SHALL label net stocked units and gross customer payment rather than profit. Reports and optional CSV SHALL explicitly use the top 100 contributor/material rows. CSV SHALL neutralize formula cells and remain server-local.
+
+### REQ-381 — Durable ordered accounting observations
+
+WHEN a captured accounting observation is appended successfully THE SYSTEM SHALL retain it through SQL delivery failure or restart, SHALL apply its immutable recording ID once in a transaction, and SHALL preserve stock lots and receipts after failed writes. Uncertain inventory provenance SHALL replace remaining attribution with unknown stock. Corrupt earlier pending records SHALL block later delivery rather than silently reorder attribution.

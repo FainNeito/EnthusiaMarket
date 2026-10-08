@@ -103,3 +103,16 @@ Prove/source: refreshed canonical main remains `14351db` (PR #195). RentCollecti
 Engine/architecture: no additional production code change is supported by this report. The historical V029 repair deliberately does not purge members from currently OWNED/GRACE stalls because the row cannot prove whether the current owner added them. Blanket clearing would remove legitimate members. A test now buys a dirty vacant stall with a former delegated member and verifies the purchase result has no inherited members, belongs to the buyer, and denies the former member management.
 
 Refine: 92 focused Stall/Buyout/Auction/Rent/Eviction tests passed with zero failures/errors/skips; Detekt passed on Java 21. This is verification of an existing canonical fix, not a claimed new red/green implementation. Hosted checks for the evidence/test follow-up remain distinct. Project-local EARS/state tooling remains absent. A future targeted repair needs exact installed source/version evidence, a read-only database/WorldGuard comparison and current-owner confirmation of intended members. No database change, WorldGuard mutation, sellback, deployment or production operation was performed.
+
+## Guild-shop XP (REQ-342)
+
+See [guild-shop-xp.md](guild-shop-xp.md) for policy, payment boundary, journal states and SPEAR evidence.
+
+## Approved guild stock accounting (8 October 2026)
+
+See [stall-accounting.md](stall-accounting.md): 895-test paired clean build passes
+with 12 unrelated optional skips; exact integer FIFO, receipt/lot rollback,
+native MariaDB retry, unknown stock, inventory interference, access denial,
+command registration and CSV escaping are covered. Java-22 Detekt passes.
+The actual Guilds JAR was frozen during compilation/testing. Hosted CI and live
+Java/Bedrock acceptance are independent gates; no production changes occurred.

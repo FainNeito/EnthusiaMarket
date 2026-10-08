@@ -34,7 +34,9 @@ open class ContainerTradeServiceHarness(
     private val mockContainer: Container? = mockk(relaxed = true),
     private val hasAtLeast: InventoryPredicate = inventoryAlwaysHas,
     private val canFit: InventoryPredicate = inventoryFitsWhenPositive,
-) : ContainerTradeService(stallRepo, economy, guildProvider, tradePolicy, shopVault) {
+    saleRewards: net.badgersmc.em.domain.ports.GuildSaleRewards? = null,
+    stallAccess: net.badgersmc.em.domain.ports.StallAccessPolicy = net.badgersmc.em.domain.ports.StallAccessPolicy.Open,
+) : ContainerTradeService(stallRepo, economy, guildProvider, tradePolicy, shopVault, saleRewards = saleRewards, stallAccess = stallAccess) {
     init {
         // Batch trades clone and resize the deserialized stack before publishing events.
         // Only MockK ItemStacks need synthetic mutable amount state; real Bukkit

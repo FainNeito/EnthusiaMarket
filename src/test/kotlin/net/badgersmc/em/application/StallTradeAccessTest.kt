@@ -1,10 +1,12 @@
 package net.badgersmc.em.application
 
+import io.mockk.Called
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import net.badgersmc.em.domain.ports.EconomyProvider
 import net.badgersmc.em.domain.ports.GuildProvider
+import net.badgersmc.em.domain.ports.GuildSaleRewards
 import net.badgersmc.em.domain.ports.StallAccessPolicy
 import net.badgersmc.em.domain.shop.Shop
 import net.badgersmc.em.domain.stall.StallCapability
@@ -19,14 +21,17 @@ class StallTradeAccessTest {
         val economy = mockk<EconomyProvider>()
         val guilds = mockk<GuildProvider>()
         val access = mockk<StallAccessPolicy>()
+        val rewards = mockk<GuildSaleRewards>()
         val actor = UUID.randomUUID()
         every { access.allows("s", actor, StallCapability.TRADE) } returns false
         val shop = Shop(1, "s", UUID.randomUUID(), "world", 1, 2, 3, "world", 1, 2, 3,
             "unused", 1, "unused", 10)
-        val service = ContainerTradeService(stalls, economy, guilds, stallAccess = access)
+        val service = ContainerTradeService(stalls, economy, guilds, stallAccess = access, saleRewards = rewards)
         assertIs<ContainerTradeResult.Failure>(service.executeBuyBatch(shop, actor, 1))
         assertIs<ContainerTradeResult.Failure>(service.executeSellBatch(shop, actor, 1))
         assertIs<ContainerTradeResult.Failure>(service.executeTrade(shop, actor))
+        verify { rewards wasNot Called }
+        verify { guilds wasNot Called }
         verify(exactly = 0) { stalls.findById(any()) }
         verify(exactly = 0) { economy.withdraw(any(), any()) }
         verify(exactly = 0) { economy.deposit(any(), any()) }

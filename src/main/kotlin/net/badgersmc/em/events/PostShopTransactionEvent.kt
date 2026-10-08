@@ -21,6 +21,10 @@ class PostShopTransactionEvent(
     val shopId: Long = 0,
     val direction: SignDirection = SignDirection.SELL,
 ) : Event() {
+    var guildId: UUID? = null
+        internal set
+    var grossPayment: Long? = null
+        internal set
     override fun getHandlers(): HandlerList = handlerList
 
     companion object {

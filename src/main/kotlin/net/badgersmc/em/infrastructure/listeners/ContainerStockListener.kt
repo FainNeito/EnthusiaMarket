@@ -35,7 +35,8 @@ import java.util.logging.Logger
 @Component
 class ContainerStockListener(
     private val shopRepository: ShopRepository,
-    private val lang: LangService
+    private val lang: LangService,
+    private val accounting: GuildStockAccounting? = null
 ) : org.bukkit.event.Listener {
 
     /** shopId → last-persisted raw stock (dedup: skip sign update if unchanged). */
@@ -55,6 +56,8 @@ class ContainerStockListener(
         val shop = shopRepository.findById(event.shopId) ?: return
         val inventory = liveContainerInventory(shop) ?: return
         val rawStock = rawStockOf(inventory, shop)
+        if (event.direction == SignDirection.SELL) accounting?.sale(shop, event, rawStock)
+        else accounting?.stock(shop, rawStock, rawStock, null)
         val trades = rawStock / shop.sellAmount.coerceAtLeast(1)
         lastRawStock[shop.id] = rawStock
         // Defer DB write — flushed in batch on the next timer tick (PERF-5).
@@ -71,6 +74,8 @@ class ContainerStockListener(
      *  DB every tick for the same data. Invalidation is triggered by cursor
      *  wrap (cycle end) so new shops are picked up within one full cycle. */
     private var cachedShops: List<Shop> = emptyList()
+
+    fun accountingCandidates(): List<Shop> = cachedShops
 
     /** Recompute stock for a batch of shops and flush on cycle completion. */
     fun refreshBatch(batchSize: Int = 50) {
@@ -113,6 +118,7 @@ class ContainerStockListener(
         // /shop search reads shop.stockCount (V019). This is the whole
         // point of the denormalized column: search results must stay
         // accurate even when the sign chunk happens to be unloaded.
+        accounting?.stock(shop, rawStock, rawStock, null)
         lastRawStock[shop.id] = rawStock
         val trades = rawStock / shop.sellAmount.coerceAtLeast(1)
         dirtyStock[shop.id] = rawStock

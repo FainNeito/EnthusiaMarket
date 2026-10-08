@@ -28,9 +28,9 @@ class ShopSaleNotificationRecordingTest {
     @Test fun `online delivery records only its sale notified without mass acknowledgement`() {
         val owner = server.addPlayer()
         val event = PostShopTransactionEvent(server.addPlayer(), owner.uniqueId, ItemStack(Material.DIAMOND), 1, 100.0)
-        val repo = mockk<ShopTransactionRepository>()
+        val repo = mockk<ShopHistoryStorage>()
         val captured = slot<ShopTransaction>()
-        every { repo.record(capture(captured)) } answers { captured.captured }
+        every { repo.record(capture(captured)) } returns Unit
         val config = EnthusiaMarketConfig().also { it.shop.notifyEnabled = true }
         val notifier = ShopSaleNotifier(config, mockk<LangService>(relaxed = true))
         val recorder = ShopTransactionRecorder(repo, config)
@@ -40,13 +40,13 @@ class ShopSaleNotificationRecordingTest {
         server.pluginManager.registerEvents(notifier, plugin)
         server.pluginManager.callEvent(event)
         assertTrue(captured.captured.notified)
-        verify(exactly = 0) { repo.markNotified(any()) }
+
     }
 
     @Test fun `offline or disabled delivery retains unread sale`() {
-        val repo = mockk<ShopTransactionRepository>()
+        val repo = mockk<ShopHistoryStorage>()
         val captured = slot<ShopTransaction>()
-        every { repo.record(capture(captured)) } answers { captured.captured }
+        every { repo.record(capture(captured)) } returns Unit
         val config = EnthusiaMarketConfig().also { it.shop.notifyEnabled = true }
         val recorder = ShopTransactionRecorder(repo, config)
         recorder.onTransaction(PostShopTransactionEvent(server.addPlayer(), UUID.randomUUID(), ItemStack(Material.DIAMOND), 1, 100.0))

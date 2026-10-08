@@ -181,7 +181,7 @@ class ShopCommands(
             }
             net.badgersmc.em.interaction.gui.SearchResultsMenu(
                 results, query, lang, stallRepository, ticker,
-                navigate = ::startTrail,
+                navigate = { finder, shop -> finderTrail?.start(finder, shop) },
             ).open(player)
             return
         }
@@ -195,54 +195,57 @@ class ShopCommands(
         finderTrail?.stop(player)
     }
 
-    private fun startTrail(player: Player, shop: net.badgersmc.em.domain.shop.Shop) { finderTrail?.start(player, shop) }
+    private val historyMessages: ShopHistoryMessages
+        get() {
+            return ShopHistoryMessages(lang, historyZone, transactions)
+        }
+
+    internal var historyClock: java.time.Clock = java.time.Clock.systemUTC()
+    internal var historyZone: java.time.ZoneId = java.time.ZoneId.systemDefault()
 
     @Subcommand("history")
     @Permission("enthusiamarket.shop.use")
     fun history(@Context sender: CommandSender, @Arg("page") page: Int = 1) {
-        val player = sender as? Player ?: run { sender.sendMessage(lang.msg("shop.cmd.players_only")); return }
-        val safePage = page.coerceIn(1, 1000)
-        val offset = (safePage - 1) * PAGE_SIZE
-        // Fetch one extra row to detect if there's a next page
-        val rows = transactions.findByOwnerOrBuyer(player.uniqueId, PAGE_SIZE + 1, offset)
-        if (rows.isEmpty()) { player.sendMessage(lang.msg("shop.history.empty")); return }
-        val hasNext = rows.size > PAGE_SIZE
-        val displayRows = if (hasNext) rows.dropLast(1) else rows
-        player.sendMessage(lang.msg("shop.history.header", "page" to safePage))
-        val fmt = java.time.format.DateTimeFormatter.ofPattern("MM-dd HH:mm")
-            .withZone(java.time.ZoneId.systemDefault())
-        for (t in displayRows) {
-            if (t.owner == player.uniqueId) {
-                val buyerName = org.bukkit.Bukkit.getOfflinePlayer(t.buyer).name ?: "Unknown"
-                player.sendMessage(lang.msg(
-                    "shop.history.sold",
-                    "when" to fmt.format(java.time.Instant.ofEpochMilli(t.createdAt)),
-                    "qty" to t.quantity, "item" to t.item, "price" to t.totalPrice, "buyer" to buyerName,
-                ))
-            } else {
-                val sellerName = org.bukkit.Bukkit.getOfflinePlayer(t.owner).name ?: "Unknown"
-                player.sendMessage(lang.msg(
-                    "shop.history.bought",
-                    "when" to fmt.format(java.time.Instant.ofEpochMilli(t.createdAt)),
-                    "qty" to t.quantity, "item" to t.item, "price" to t.totalPrice, "seller" to sellerName,
-                ))
-            }
-        }
-        if (hasNext) {
-            player.sendMessage(lang.msg("shop.history.more", "page" to (safePage + 1)))
-        }
+        historyMessages.read(sender, page, ShopHistorySelection(null, "/shop history", "all"))
     }
 
-    private fun lookAtShop(player: Player): net.badgersmc.em.domain.shop.Shop? {
-        val b = player.getTargetBlockExact(6) ?: return null
-        return lookAt.resolve(b.world.name, b.x, b.y, b.z)
+    @Subcommand("history all")
+    @Permission("enthusiamarket.shop.use")
+    fun historyAll(@Context sender: CommandSender, @Arg("page") page: Int = 1) {
+        historyMessages.read(sender, page, ShopHistorySelection(null, "/shop history all", "all"))
     }
+
+    @Subcommand("history today")
+    @Permission("enthusiamarket.shop.use")
+    fun historyToday(@Context sender: CommandSender, @Arg("page") page: Int = 1) {
+        val window = net.badgersmc.em.application.ShopHistoryDates.today(historyClock, historyZone)
+        historyMessages.read(sender, page, ShopHistorySelection(window, "/shop history today", "today"))
+    }
+
+    @Subcommand("history range")
+    @Permission("enthusiamarket.shop.use")
+    fun historyRange(
+        @Context sender: CommandSender,
+        @Arg("from") from: String,
+        @Arg("to") to: String,
+        @Arg("page") page: Int = 1,
+    ) {
+        val window = try {
+            net.badgersmc.em.application.ShopHistoryDates.range(from, to, historyZone)
+        } catch (_: java.time.DateTimeException) {
+            sender.sendMessage(lang.msg("shop.history.invalid_dates")); return
+        } catch (_: IllegalArgumentException) {
+            sender.sendMessage(lang.msg("shop.history.invalid_dates")); return
+        }
+        historyMessages.read(sender, page, ShopHistorySelection(window, "/shop history range $from $to", "$from to $to"))
+    }
+
 
     @Subcommand("admin view")
     @Permission("enthusiamarket.admin.shop")
     fun adminView(@Context sender: CommandSender) {
         val player = sender as? Player ?: run { sender.sendMessage(lang.msg("shop.cmd.players_only")); return }
-        val shop = lookAtShop(player) ?: run { player.sendMessage(lang.msg("shop.admin.no_target")); return }
+        val shop = resolveLookedAtShop(player, lookAt) ?: run { player.sendMessage(lang.msg("shop.admin.no_target")); return }
         net.badgersmc.em.interaction.gui.ShopEditMenu(shop, shopRepository, management, lang).open(player)
     }
 
@@ -250,7 +253,7 @@ class ShopCommands(
     @Permission("enthusiamarket.admin.shop")
     fun adminInfo(@Context sender: CommandSender) {
         val player = sender as? Player ?: run { sender.sendMessage(lang.msg("shop.cmd.players_only")); return }
-        val shop = lookAtShop(player) ?: run { player.sendMessage(lang.msg("shop.admin.no_target")); return }
+        val shop = resolveLookedAtShop(player, lookAt) ?: run { player.sendMessage(lang.msg("shop.admin.no_target")); return }
         val owner = org.bukkit.Bukkit.getOfflinePlayer(shop.owner).name ?: "Unknown"
         val sell = ItemStackSerializer.deserialize(shop.sellItem)?.type?.name?.lowercase() ?: "?"
         player.sendMessage(lang.msg("shop.admin.info.header", "owner" to owner))
@@ -267,7 +270,7 @@ class ShopCommands(
     @Permission("enthusiamarket.admin.shop")
     fun adminRemove(@Context sender: CommandSender) {
         val player = sender as? Player ?: run { sender.sendMessage(lang.msg("shop.cmd.players_only")); return }
-        val shop = lookAtShop(player) ?: run { player.sendMessage(lang.msg("shop.admin.no_target")); return }
+        val shop = resolveLookedAtShop(player, lookAt) ?: run { player.sendMessage(lang.msg("shop.admin.no_target")); return }
         if (management.adminDelete(shop.id)) player.sendMessage(lang.msg("shop.admin.remove.done"))
         else player.sendMessage(lang.msg("shop.admin.remove.not_found"))
     }
@@ -276,11 +279,11 @@ class ShopCommands(
     @Permission("enthusiamarket.admin.shop")
     fun adminFix(@Context sender: CommandSender) {
         val player = sender as? Player ?: run { sender.sendMessage(lang.msg("shop.cmd.players_only")); return }
-        val shop = lookAtShop(player) ?: run { player.sendMessage(lang.msg("shop.admin.no_target")); return }
+        val shop = resolveLookedAtShop(player, lookAt) ?: run { player.sendMessage(lang.msg("shop.admin.no_target")); return }
         val signState = org.bukkit.Bukkit.getWorld(shop.signWorld)
             ?.getBlockAt(shop.signX, shop.signY, shop.signZ)?.state
         if (signState !is org.bukkit.block.Sign) { player.sendMessage(lang.msg("shop.admin.fix.not_a_sign")); return }
-        reRenderShopSign(shop, signState)
+        SignRenderHelper.renderToSign(signRenderer, signState, shop)
         val containerState = org.bukkit.Bukkit.getWorld(shop.containerWorld)
             ?.getBlockAt(shop.containerX, shop.containerY, shop.containerZ)?.state
         if (containerState !is org.bukkit.block.Container) player.sendMessage(lang.msg("shop.admin.fix.container_missing"))
@@ -288,10 +291,6 @@ class ShopCommands(
     }
 
     /** Re-apply the four sign lines from stored shop data onto the live sign block. */
-    private fun reRenderShopSign(shop: net.badgersmc.em.domain.shop.Shop, sign: org.bukkit.block.Sign) {
-        SignRenderHelper.renderToSign(signRenderer, sign, shop)
-    }
-
     @Subcommand("admin fixall")
     @Permission("enthusiamarket.admin.shop")
     fun adminFixAll(@Context sender: CommandSender) {
@@ -303,7 +302,7 @@ class ShopCommands(
             if (world == null) { errors++; continue }
             val sign = world.getBlockAt(shop.signX, shop.signY, shop.signZ).state as? org.bukkit.block.Sign
             if (sign == null) { skipped++; continue }
-            reRenderShopSign(shop, sign)
+            SignRenderHelper.renderToSign(signRenderer, sign, shop)
             fixed++
         }
         player.sendMessage(lang.msg("shop.admin.fixall.result", "fixed" to fixed, "skipped" to skipped, "errors" to errors))
@@ -337,11 +336,13 @@ class ShopCommands(
     @Permission("enthusiamarket.admin.shop")
     fun adminContents(@Context sender: CommandSender) {
         val player = sender as? Player ?: run { sender.sendMessage(lang.msg("shop.cmd.players_only")); return }
-        val shop = lookAtShop(player) ?: run { player.sendMessage(lang.msg("shop.admin.no_target")); return }
+        val shop = resolveLookedAtShop(player, lookAt) ?: run { player.sendMessage(lang.msg("shop.admin.no_target")); return }
         net.badgersmc.em.interaction.gui.ShopContentsMenu(shop, lang).open(player)
     }
 
-    companion object {
-        private const val PAGE_SIZE = 10
-    }
+}
+
+private fun resolveLookedAtShop(player: Player, resolver: LookAtShopResolver): net.badgersmc.em.domain.shop.Shop? {
+    val block = player.getTargetBlockExact(6) ?: return null
+    return resolver.resolve(block.world.name, block.x, block.y, block.z)
 }

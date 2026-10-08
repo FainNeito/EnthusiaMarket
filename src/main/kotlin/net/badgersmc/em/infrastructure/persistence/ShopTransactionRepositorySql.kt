@@ -6,6 +6,7 @@ import net.badgersmc.em.domain.shop.ShopTransaction
 import net.badgersmc.em.domain.shop.ShopTransactionRepository
 import net.badgersmc.em.domain.shop.SignDirection
 import net.badgersmc.nexus.annotations.Repository
+import net.badgersmc.em.domain.shop.ShopHistoryWindow
 import java.sql.ResultSet
 import java.util.UUID
 import javax.sql.DataSource
@@ -14,7 +15,39 @@ import javax.sql.DataSource
 class ShopTransactionRepositorySql(private val ds: DataSource) : ShopTransactionRepository {
 
     override fun record(tx: ShopTransaction): ShopTransaction {
-        ds.connection.use { c ->
+        return ds.connection.use { c -> insert(c, tx) }
+    }
+
+    override fun recordOnce(recordingId: UUID, tx: ShopTransaction) {
+        ds.connection.use { connection ->
+            connection.autoCommit = false
+            try {
+                if (!hasReceipt(connection, recordingId)) {
+                    connection.prepareStatement(
+                        "INSERT INTO shop_history_receipts (recording_id, recorded_at) VALUES (?, ?)"
+                    ).use { statement ->
+                        statement.setString(1, recordingId.toString())
+                        statement.setLong(2, tx.createdAt)
+                        statement.executeUpdate()
+                    }
+                    insert(connection, tx)
+                }
+                connection.commit()
+            } catch (failure: Exception) {
+                try { connection.rollback() } catch (rollback: java.sql.SQLException) { failure.addSuppressed(rollback) }
+                // Leave ambiguous commits for replay on a fresh connection, never guess success.
+                throw failure
+            }
+        }
+    }
+
+    private fun hasReceipt(connection: java.sql.Connection, recordingId: UUID): Boolean =
+        connection.prepareStatement("SELECT recording_id FROM shop_history_receipts WHERE recording_id = ?").use {
+            it.setString(1, recordingId.toString())
+            it.executeQuery().use { rows -> rows.next() }
+        }
+
+    private fun insert(c: java.sql.Connection, tx: ShopTransaction): ShopTransaction {
             c.prepareStatement(
                 """INSERT INTO shop_transactions
                    (shop_id, owner, buyer, direction, item, quantity, total_price, created_at, notified)
@@ -37,14 +70,13 @@ class ShopTransactionRepositorySql(private val ds: DataSource) : ShopTransaction
                 }
                 return tx.copy(id = id)
             }
-        }
     }
 
     override fun findByOwner(owner: UUID, limit: Int, offset: Int): List<ShopTransaction> {
         ds.connection.use { c ->
             c.prepareStatement(
                 """SELECT * FROM shop_transactions WHERE owner = ?
-                   ORDER BY created_at DESC LIMIT ? OFFSET ?"""
+                   ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?"""
             ).use { ps ->
                 ps.setString(1, owner.toString())
                 ps.setInt(2, limit)
@@ -62,7 +94,7 @@ class ShopTransactionRepositorySql(private val ds: DataSource) : ShopTransaction
         ds.connection.use { c ->
             c.prepareStatement(
                 """SELECT * FROM shop_transactions WHERE owner = ? OR buyer = ?
-                   ORDER BY created_at DESC LIMIT ? OFFSET ?"""
+                   ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?"""
             ).use { ps ->
                 ps.setString(1, player.toString())
                 ps.setString(2, player.toString())
@@ -73,6 +105,26 @@ class ShopTransactionRepositorySql(private val ds: DataSource) : ShopTransaction
                     while (rs.next()) out += map(rs)
                     return out
                 }
+            }
+        }
+    }
+
+    override fun findByOwnerOrBuyer(
+        player: UUID, limit: Int, offset: Int, window: ShopHistoryWindow,
+    ): List<ShopTransaction> = ds.connection.use { connection ->
+        connection.prepareStatement(
+            """SELECT * FROM shop_transactions WHERE (owner = ? OR buyer = ?)
+               AND created_at >= ? AND created_at < ?
+               ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?""",
+        ).use { statement ->
+            statement.setString(1, player.toString())
+            statement.setString(2, player.toString())
+            statement.setLong(3, window.fromMs)
+            statement.setLong(4, window.toMs)
+            statement.setInt(5, limit)
+            statement.setInt(6, offset)
+            statement.executeQuery().use { rows ->
+                buildList { while (rows.next()) add(map(rows)) }
             }
         }
     }
