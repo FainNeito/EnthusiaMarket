@@ -19,6 +19,10 @@ data class PriceTicker(
 
 interface ShopTransactionRepository {
     fun record(tx: ShopTransaction): ShopTransaction
+    /** Atomically records a durable receipt and history; replay must survive history pruning. */
+    fun recordOnce(recordingId: UUID, tx: ShopTransaction) {
+        throw UnsupportedOperationException("Replay-safe history is not supported by this repository")
+    }
     /** Newest-first, paged. */
     fun findByOwner(owner: UUID, limit: Int, offset: Int): List<ShopTransaction>
     /** Transactions where player was owner OR buyer (for members). */

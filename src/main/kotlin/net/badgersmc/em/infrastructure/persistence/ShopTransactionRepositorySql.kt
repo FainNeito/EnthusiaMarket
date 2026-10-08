@@ -14,7 +14,39 @@ import javax.sql.DataSource
 class ShopTransactionRepositorySql(private val ds: DataSource) : ShopTransactionRepository {
 
     override fun record(tx: ShopTransaction): ShopTransaction {
-        ds.connection.use { c ->
+        return ds.connection.use { c -> insert(c, tx) }
+    }
+
+    override fun recordOnce(recordingId: UUID, tx: ShopTransaction) {
+        ds.connection.use { connection ->
+            connection.autoCommit = false
+            try {
+                if (!hasReceipt(connection, recordingId)) {
+                    connection.prepareStatement(
+                        "INSERT INTO shop_history_receipts (recording_id, recorded_at) VALUES (?, ?)"
+                    ).use { statement ->
+                        statement.setString(1, recordingId.toString())
+                        statement.setLong(2, tx.createdAt)
+                        statement.executeUpdate()
+                    }
+                    insert(connection, tx)
+                }
+                connection.commit()
+            } catch (failure: Exception) {
+                try { connection.rollback() } catch (rollback: java.sql.SQLException) { failure.addSuppressed(rollback) }
+                // Leave ambiguous commits for replay on a fresh connection, never guess success.
+                throw failure
+            }
+        }
+    }
+
+    private fun hasReceipt(connection: java.sql.Connection, recordingId: UUID): Boolean =
+        connection.prepareStatement("SELECT recording_id FROM shop_history_receipts WHERE recording_id = ?").use {
+            it.setString(1, recordingId.toString())
+            it.executeQuery().use { rows -> rows.next() }
+        }
+
+    private fun insert(c: java.sql.Connection, tx: ShopTransaction): ShopTransaction {
             c.prepareStatement(
                 """INSERT INTO shop_transactions
                    (shop_id, owner, buyer, direction, item, quantity, total_price, created_at, notified)
@@ -37,7 +69,6 @@ class ShopTransactionRepositorySql(private val ds: DataSource) : ShopTransaction
                 }
                 return tx.copy(id = id)
             }
-        }
     }
 
     override fun findByOwner(owner: UUID, limit: Int, offset: Int): List<ShopTransaction> {

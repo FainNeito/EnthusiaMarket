@@ -541,6 +541,18 @@ IDs 323–344 are reserved by the pending correctness, companion and search PRs.
 
 **Unwanted.** IF notification storage fails or its bounded queue rejects work THE SYSTEM SHALL preserve unread history without performing storage work on the join caller.
 
+### REQ-348 — Completed trade thread boundary
+
+WHEN a completed shop trade reaches the history listener THE SYSTEM SHALL force an immutable local recovery record before returning and deliver SQL history on a dedicated worker without replaying game operations.
+
+### REQ-349 — Replay-safe history delivery
+
+WHEN a recovery record is retried THE SYSTEM SHALL atomically insert a durable receipt and history at most once, including retries after history pruning.
+
+### REQ-350 — Interrupted history delivery
+
+IF delivery or acknowledgement fails THE SYSTEM SHALL retain the recovery record; corrupt records SHALL be quarantined for review without blocking valid records.
+
 ## Acceptance
 
 ### REQ-100 — Smoke test on MockBukkit

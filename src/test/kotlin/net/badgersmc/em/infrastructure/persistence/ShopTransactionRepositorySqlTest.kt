@@ -43,6 +43,34 @@ class ShopTransactionRepositorySqlTest {
         assertEquals(2_000, rows.first().createdAt) // newest first
     }
 
+    @Test fun `receipt prevents replay even after history pruning`() {
+        val repo = ShopTransactionRepositorySql(ds)
+        val owner = UUID.randomUUID()
+        val id = UUID.randomUUID()
+        val sale = tx(owner, 1000)
+        repo.recordOnce(id, sale)
+        repo.recordOnce(id, sale)
+        assertEquals(1, repo.findByOwner(owner, 10, 0).size)
+        repo.prune(2000)
+        repo.recordOnce(id, sale)
+        assertEquals(0, repo.findByOwner(owner, 10, 0).size)
+    }
+
+    @Test fun `failed history insert rolls back its receipt`() {
+        val repo = ShopTransactionRepositorySql(ds)
+        val id = UUID.randomUUID()
+        val owner = UUID.randomUUID()
+        ds.connection.use { connection ->
+            connection.createStatement().use {
+                it.execute("CREATE TRIGGER reject_history BEFORE INSERT ON shop_transactions BEGIN SELECT RAISE(ABORT, 'test outage'); END")
+            }
+        }
+        kotlin.test.assertFailsWith<java.sql.SQLException> { repo.recordOnce(id, tx(owner, 1000)) }
+        ds.connection.use { connection -> connection.createStatement().use { it.execute("DROP TRIGGER reject_history") } }
+        repo.recordOnce(id, tx(owner, 1000))
+        assertEquals(1, repo.findByOwner(owner, 10, 0).size)
+    }
+
     @Test fun `countUnnotified and markNotified`() {
         val repo = ShopTransactionRepositorySql(ds)
         val owner = UUID.randomUUID()

@@ -1,7 +1,6 @@
 package net.badgersmc.em.infrastructure.listeners
 
 import net.badgersmc.em.domain.shop.ShopTransaction
-import net.badgersmc.em.domain.shop.ShopTransactionRepository
 import net.badgersmc.em.events.PostShopTransactionEvent
 import net.badgersmc.nexus.annotations.Component
 import org.bukkit.event.EventHandler
@@ -14,7 +13,7 @@ import net.badgersmc.em.config.EnthusiaMarketConfig
 @net.badgersmc.nexus.paper.listeners.Listener
 @Component
 open class ShopTransactionRecorder(
-    private val transactions: ShopTransactionRepository,
+    private val transactions: ShopHistoryStorage,
     private val config: EnthusiaMarketConfig,
 ) : Listener {
 
