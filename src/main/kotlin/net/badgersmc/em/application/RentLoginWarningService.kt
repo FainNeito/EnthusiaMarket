@@ -33,13 +33,18 @@ class RentLoginWarningService(
     private fun warning(stall: Stall, actor: UUID, horizon: Instant): Warning? {
         if (stall.state !in ACTIVE_STATES || !canRenew(stall, actor)) return null
         val grace = stall.state == StallState.GRACE
-        val deadline = if (grace) RentTimingPolicy.graceEndsAt(stall, config)
-            else RentTimingPolicy.effectiveNextRentAt(stall, config)
-        if (deadline == null || (!grace && deadline.isAfter(horizon))) return null
+        val deadline = deadline(stall, horizon) ?: return null
         val amount = renewalAmount(stall)
         val guildPayer = stall.owner.type == OwnerType.GUILD
         val insufficient = insufficientFunds(stall, actor, amount, guildPayer)
         return Warning(stall.id.value, deadline, grace, amount, guildPayer, insufficient)
+    }
+
+    private fun deadline(stall: Stall, horizon: Instant): Instant? {
+        val grace = stall.state == StallState.GRACE
+        val deadline = if (grace) RentTimingPolicy.graceEndsAt(stall, config)
+            else RentTimingPolicy.effectiveNextRentAt(stall, config)
+        return deadline?.takeIf { grace || !it.isAfter(horizon) }
     }
 
     private fun renewalAmount(stall: Stall): Long {
