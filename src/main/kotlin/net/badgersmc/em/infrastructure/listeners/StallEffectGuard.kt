@@ -27,11 +27,15 @@ class StallEffectGuard(
 ) : Listener, AutoCloseable {
     private data class Held(val effect: PotionEffect, val expiresAt: Long?) {
         fun remaining(now: Long): PotionEffect? {
-            if (expiresAt != null && expiresAt <= now) return null
-            val ticks = expiresAt?.let { ((it - now) / 50).coerceAtMost(Int.MAX_VALUE.toLong()).toInt() } ?: -1
-            return if (ticks == -1 || ticks > 0) PotionEffect(
+            val ticks = duration(now) ?: return null
+            return PotionEffect(
                 effect.type, ticks, effect.amplifier, effect.isAmbient, effect.hasParticles(), effect.hasIcon(),
-            ) else null
+            )
+        }
+        private fun duration(now: Long): Int? {
+            val deadline = expiresAt ?: return -1
+            val ticks = ((deadline - now) / 50).coerceIn(0, Int.MAX_VALUE.toLong()).toInt()
+            return ticks.takeIf { it > 0 }
         }
     }
     private val held = mutableMapOf<UUID, MutableMap<PotionEffectType, Held>>()
@@ -66,11 +70,14 @@ class StallEffectGuard(
             return
         }
         val candidate = listOfNotNull(lastAllowed[player.uniqueId], player.world.spawnLocation).firstOrNull { location ->
-            location.world?.isChunkLoaded(location.blockX shr 4, location.blockZ shr 4) == true &&
-                permissions.allowed(player, location, StallCapability.ENTRY)
+            allowedDestination(player, location)
         } ?: return
         player.teleport(candidate)
     }
+
+    private fun allowedDestination(player: Player, location: org.bukkit.Location): Boolean =
+        location.world?.isChunkLoaded(location.blockX shr 4, location.blockZ shr 4) == true &&
+            permissions.allowed(player, location, StallCapability.ENTRY)
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     fun onEffect(event: EntityPotionEffectEvent) {

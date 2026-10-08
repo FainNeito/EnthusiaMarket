@@ -23,11 +23,15 @@ class ShopAccessPolicy(
         if (stallAccess.blacklistDenies(shop.stallId, actor)) return false
         val stall = stalls.findById(net.badgersmc.em.domain.stall.StallId(shop.stallId))
         if (stall?.owner?.type == OwnerType.GUILD) {
-            if (!stallAccess.allows(shop.stallId, actor, capability)) return false
-            return allowsGuild(stall, actor, permission) || stallAccess.alliedAllows(shop.stallId, actor, capability)
+            return guildOrAllyAllows(stall, actor, permission, capability)
         }
         return shop.owner == actor || actor in shop.trusted
     }
+
+    private fun guildOrAllyAllows(stall: net.badgersmc.em.domain.stall.Stall, actor: UUID,
+        permission: GuildProvider.GuildPermission, capability: net.badgersmc.em.domain.stall.StallCapability): Boolean =
+        stallAccess.allows(stall.id.value, actor, capability) &&
+            (allowsGuild(stall, actor, permission) || stallAccess.alliedAllows(stall.id.value, actor, capability))
 
     fun memberAllows(shop: Shop, actor: UUID, permission: GuildProvider.GuildPermission): Boolean {
         val stall = stalls.findById(net.badgersmc.em.domain.stall.StallId(shop.stallId)) ?: return false

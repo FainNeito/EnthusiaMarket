@@ -115,12 +115,16 @@ class StallAccessSettingsTest {
         val guarded = StallAccessSettingsService(stalls, failing, guilds, gate)
         assertFails { guarded.edit(owner, "s1") { it.copy(blacklist = setOf(visitor)) } }
         stalls.save(stall())
-        assertFalse(guarded.allows("s1", owner, StallCapability.ENTRY))
-        assertFalse(guarded.mayManage(stall(), owner))
+        assertUncertainDenial(guarded)
         readsFail = false
         guarded.refreshIfUncertain("s1")
         assertTrue(guarded.mayManage(stall(), owner))
         assertFalse(guarded.allows("s1", visitor, StallCapability.ITEM_PICKUP))
         assertEquals(setOf(visitor), guarded.current(stall()).blacklist)
+    }
+
+    private fun assertUncertainDenial(guarded: StallAccessSettingsService) {
+        assertFalse(guarded.allows("s1", owner, StallCapability.ENTRY))
+        assertFalse(guarded.mayManage(stall(), owner))
     }
 }

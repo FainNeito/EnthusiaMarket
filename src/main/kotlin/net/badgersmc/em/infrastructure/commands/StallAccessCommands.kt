@@ -35,8 +35,12 @@ class StallAccessCommands(
         if (!service.mayManage(stall, actor.uniqueId)) { actor.sendMessage("You cannot manage this stall."); return }
         val value = blocked.toBooleanStrictOrNull() ?: run { actor.sendMessage("Use true or false."); return }
         val target = names.resolve(name) ?: run { actor.sendMessage("Player not found."); return }
+        persistBlacklist(actor, id, target.uniqueId, value)
+    }
+
+    private fun persistBlacklist(actor: Player, id: String, target: java.util.UUID, value: Boolean) {
         runCatching { service.edit(actor.uniqueId, id) {
-            it.copy(blacklist = if (value) it.blacklist + target.uniqueId else it.blacklist - target.uniqueId)
+            it.copy(blacklist = if (value) it.blacklist + target else it.blacklist - target)
         } }.onSuccess { actor.sendMessage("Stall blacklist updated.") }
             .onFailure { actor.sendMessage("Could not confirm stall setting: ${it.message}") }
     }

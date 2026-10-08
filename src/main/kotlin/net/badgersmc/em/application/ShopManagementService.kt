@@ -43,12 +43,15 @@ class ShopManagementService(
 
     private fun maySaveEdits(actor: UUID, current: Shop, draft: Shop): Boolean {
         if (access?.isGuildShop(current) != true) return canEdit(current, actor)
-        if (!mayChangePrice(actor, current, draft)) return false
-        if (!mayChangeStock(actor, current, draft)) return false
-        if (controlsChanged(current, draft) && !canDelete(current, actor)) return false
-        return canEdit(current, actor) || access.allows(current, actor,
-            net.badgersmc.em.domain.ports.GuildProvider.GuildPermission.EDIT_SHOP_STOCK)
+        return mayChangePrice(actor, current, draft) && mayChangeStock(actor, current, draft) &&
+            mayChangeControls(actor, current, draft) && mayEditAny(actor, current)
     }
+
+    private fun mayChangeControls(actor: UUID, current: Shop, draft: Shop): Boolean =
+        !controlsChanged(current, draft) || canDelete(current, actor)
+
+    private fun mayEditAny(actor: UUID, current: Shop): Boolean = canEdit(current, actor) ||
+        access?.allows(current, actor, net.badgersmc.em.domain.ports.GuildProvider.GuildPermission.EDIT_SHOP_STOCK) == true
 
     private fun mayChangePrice(actor: UUID, current: Shop, draft: Shop): Boolean =
         !priceChanged(current, draft) || canEdit(current, actor)
@@ -56,16 +59,6 @@ class ShopManagementService(
     private fun mayChangeStock(actor: UUID, current: Shop, draft: Shop): Boolean =
         !stockChanged(current, draft) || access?.allows(current, actor,
             net.badgersmc.em.domain.ports.GuildProvider.GuildPermission.EDIT_SHOP_STOCK) == true
-
-    private fun priceChanged(current: Shop, draft: Shop): Boolean =
-        current.costAmount != draft.costAmount || current.costItem != draft.costItem
-
-    private fun stockChanged(current: Shop, draft: Shop): Boolean =
-        current.sellItem != draft.sellItem || current.sellAmount != draft.sellAmount
-
-    private fun controlsChanged(current: Shop, draft: Shop): Boolean =
-            current.hopperAllowIn != draft.hopperAllowIn || current.hopperAllowOut != draft.hopperAllowOut ||
-            current.frozen != draft.frozen || current.searchEnabled != draft.searchEnabled
 
     /** Trust [target] on each of [shopIds] the [actor] actually owns. Returns count changed. */
     fun trust(actor: UUID, target: UUID, shopIds: List<Long>): Int =
@@ -155,3 +148,14 @@ class ShopManagementService(
         return changed
     }
 }
+
+private fun priceChanged(current: Shop, draft: Shop): Boolean =
+    current.costAmount != draft.costAmount || current.costItem != draft.costItem
+
+private fun stockChanged(current: Shop, draft: Shop): Boolean =
+    current.sellItem != draft.sellItem || current.sellAmount != draft.sellAmount
+
+private fun controlsChanged(current: Shop, draft: Shop): Boolean =
+        current.hopperAllowIn != draft.hopperAllowIn || current.hopperAllowOut != draft.hopperAllowOut ||
+        current.frozen != draft.frozen || current.searchEnabled != draft.searchEnabled
+

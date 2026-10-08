@@ -48,15 +48,20 @@ open class GuildStallProtectionListener(
 
     private fun allowed(player: Player, locations: List<Location>, permission: GuildProvider.GuildPermission, allies: Boolean = true): Boolean {
         if (player.hasPermission("enthusiamarket.admin")) return true
-        return locations.flatMap(::at).all {
+        return locations.flatMap(::at).all { stall -> permitted(stall, player, permission, allies) }
+    }
+
+    private fun permitted(stall: Stall, player: Player, permission: GuildProvider.GuildPermission, allies: Boolean): Boolean {
             val capability = if (permission == GuildProvider.GuildPermission.ACCESS_SHOP_CHESTS)
                 net.badgersmc.em.domain.stall.StallCapability.CHESTS else net.badgersmc.em.domain.stall.StallCapability.STOCK
-            val member = it.isActiveGuildStall() && guilds.isMember(player.uniqueId, it.owner.id) &&
-                guilds.hasShopPermission(player.uniqueId, it.owner.id, permission)
-            policy.allows(it.id.value, player.uniqueId, capability) &&
-                (member || (allies && policy.alliedAllows(it.id.value, player.uniqueId, capability)))
-        }
+            val member = memberAllowed(stall, player, permission)
+            return policy.allows(stall.id.value, player.uniqueId, capability) &&
+                (member || (allies && policy.alliedAllows(stall.id.value, player.uniqueId, capability)))
     }
+
+    private fun memberAllowed(stall: Stall, player: Player, permission: GuildProvider.GuildPermission): Boolean =
+        stall.isActiveGuildStall() && guilds.isMember(player.uniqueId, stall.owner.id) &&
+            guilds.hasShopPermission(player.uniqueId, stall.owner.id, permission)
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     fun onOpen(event: InventoryOpenEvent) {

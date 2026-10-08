@@ -64,10 +64,14 @@ class StallAccessSettingsService(
         val stall = index.cached(stallId) ?: return false
         if (stallId in uncertain || !index.isFresh(stallId)) return false
         if (stall.state !in ACTIVE_STATES) return capability !in StallAccessSettings.PRIVILEGED
+        return activeAllows(stall, actor, capability)
+    }
+
+    private fun activeAllows(stall: Stall, actor: UUID, capability: StallCapability): Boolean {
         val policy = current(stall)
         if (actor in policy.blacklist) return false
-        if (memberAllows(stall, actor, capability)) return true
-        return policy.visitorAllows(capability) || alliedAllows(stallId, actor, capability)
+        return memberAllows(stall, actor, capability) || policy.visitorAllows(capability) ||
+            alliedAllows(stall.id.value, actor, capability)
     }
 
     override fun blacklistDenies(stallId: String, actor: UUID): Boolean = index.cached(stallId)?.let {
@@ -76,16 +80,25 @@ class StallAccessSettingsService(
 
     private fun memberAllows(stall: Stall, actor: UUID, capability: StallCapability): Boolean {
         if (!index.isFresh(stall.id.value) || gate.isStallLocked(stall.id.value)) return false
-        if (stall.owner.type == OwnerType.SOLO) return stall.owner.id == actor.toString() || actor in stall.members
-        if (stall.owner.type != OwnerType.GUILD || !guilds.isMember(actor, stall.owner.id)) return false
-        val permission = when (capability) {
+        return when (stall.owner.type) {
+            OwnerType.SOLO -> stall.owner.id == actor.toString() || actor in stall.members
+            OwnerType.GUILD -> guildMemberAllows(stall, actor, capability)
+            OwnerType.NONE -> false
+        }
+    }
+
+    private fun guildMemberAllows(stall: Stall, actor: UUID, capability: StallCapability): Boolean {
+        if (!guilds.isMember(actor, stall.owner.id)) return false
+        val permission = permission(capability) ?: return true
+        return guilds.hasShopPermission(actor, stall.owner.id, permission)
+    }
+
+    private fun permission(capability: StallCapability): GuildProvider.GuildPermission? = when (capability) {
             StallCapability.CHESTS -> GuildProvider.GuildPermission.ACCESS_SHOP_CHESTS
             StallCapability.STOCK -> GuildProvider.GuildPermission.EDIT_SHOP_STOCK
             StallCapability.PRICES -> GuildProvider.GuildPermission.MODIFY_SHOP_PRICES
-            else -> return true
+            else -> null
         }
-        return guilds.hasShopPermission(actor, stall.owner.id, permission)
-    }
 
     override fun alliedAllows(stallId: String, actor: UUID, capability: StallCapability): Boolean {
         val stall = index.cached(stallId) ?: return false

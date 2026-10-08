@@ -19,7 +19,11 @@ import java.util.logging.Logger
  * See spec §3 Workstream F.
  */
 @Component
-class WorldGuardRegionProvisioner : RegionProvisioner {
+class WorldGuardRegionProvisioner(
+    private val accessIndex: net.badgersmc.em.application.StallAccessIndex? = null,
+    private val accessSettings: net.badgersmc.em.application.StallAccessSettingsService? = null,
+    private val accessProjection: net.badgersmc.em.infrastructure.listeners.StallAccessProjection? = null,
+) : RegionProvisioner {
 
     private val log = Logger.getLogger(javaClass.name)
 
@@ -41,12 +45,19 @@ class WorldGuardRegionProvisioner : RegionProvisioner {
             return false
         }
         applyFlags(region, priority)
+        restoreAccessFlags(world, regionId, region)
         try {
             regionManager.save()
         } catch (e: com.sk89q.worldguard.protection.managers.storage.StorageException) {
             log.warning("RegionProvisioner: flags applied in-memory but save failed for $regionId: ${e.message}")
         }
         return true
+    }
+
+    private fun restoreAccessFlags(world: String, regionId: String, region: ProtectedRegion) {
+        val stall = accessIndex?.cached(world, regionId) ?: return
+        val settings = accessSettings?.current(stall) ?: return
+        accessProjection?.stamp(region, settings)
     }
 
     private fun applyFlags(region: ProtectedRegion, priority: Int) {

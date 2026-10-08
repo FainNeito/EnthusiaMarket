@@ -56,7 +56,7 @@ open class StallVisitorProtectionListener(
     fun onReadLectern(event: org.bukkit.event.player.PlayerInteractEvent) {
         if (!isMainHandBookRead(event)) return
         val lectern = event.clickedBlock?.state as? Lectern ?: return
-        if (accessListener?.allowed(event.player, lectern.location, net.badgersmc.em.domain.stall.StallCapability.LECTERN) == false) return
+        if (!mayRead(event.player, lectern.location)) return
         if (mayModify(event.player, lectern.location)) return
         // Open a copy of a written book; no lectern inventory is exposed to visitors.
         val book = writtenBook(lectern) ?: return
@@ -64,6 +64,9 @@ open class StallVisitorProtectionListener(
         event.setUseItemInHand(org.bukkit.event.Event.Result.DENY)
         event.player.openBook(book.clone())
     }
+
+    private fun mayRead(player: Player, location: Location): Boolean =
+        accessListener?.allowed(player, location, net.badgersmc.em.domain.stall.StallCapability.LECTERN) != false
 
     private fun isMainHandBookRead(event: org.bukkit.event.player.PlayerInteractEvent): Boolean =
         event.action == org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK && event.hand == org.bukkit.inventory.EquipmentSlot.HAND
