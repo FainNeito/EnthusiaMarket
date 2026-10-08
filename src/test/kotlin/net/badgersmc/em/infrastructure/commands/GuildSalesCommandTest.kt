@@ -56,6 +56,24 @@ internal class GuildSalesCommandTest {
     }
 
 
+    @Test fun invalidCalendarDatesAreRejectedBeforeQuery() {
+        val repository = mockk<StallAccountingRepository>()
+        val stalls = mockk<StallRepository>()
+        every { stalls.findById(any()) } returns activeStall("guild")
+        val provider = mockk<GuildProvider>(relaxed = true)
+        every { provider.isMember(any(), any()) } returns true
+        every { provider.hasShopPermission(any(), any(), any()) } returns true
+        val lang = mockk<LangService>()
+        every { lang.msg("accounting.usage") } returns Component.text("Usage")
+        val player = mockk<Player>(relaxed = true)
+        val service = GuildSalesCommand(repository, stalls, provider, lang, mockk<Plugin>())
+        service.rangeReport(player, "stall", "2026-02-30", "2026-03-01")
+        service.exportRange(player, "stall", "invalid", "2026-03-01")
+        service.rangeReport(player, "stall", "2026-03-02", "2026-03-01")
+        verify(exactly = 0) { repository.report(any(), any(), any()) }
+        verify(exactly = 3) { player.sendMessage(Component.text("Usage")) }
+    }
+
     private fun activeStall(guild: String): net.badgersmc.em.domain.stall.Stall = mockk {
         every { owner } returns net.badgersmc.em.domain.stall.OwnerRef(net.badgersmc.em.domain.stall.OwnerType.GUILD, guild)
         every { isActiveGuildStall() } returns true

@@ -52,10 +52,14 @@ class GuildSalesCommand(private val repository: StallAccountingRepository, priva
         when (request.period.lowercase()) {
             "all" -> ShopHistoryWindow(0, Long.MAX_VALUE)
             "today" -> ShopHistoryDates.today(Clock.systemUTC(), ZoneId.systemDefault())
-            "range" -> ShopHistoryDates.range(request.from, request.to, ZoneId.systemDefault())
+            "range" -> rangeWindow(request)
             else -> null
         }
     } catch (failure: IllegalArgumentException) { null }
+
+    private fun rangeWindow(request: Request): ShopHistoryWindow? = try {
+        ShopHistoryDates.range(request.from, request.to, ZoneId.systemDefault())
+    } catch (failure: java.time.DateTimeException) { null }
 
     private fun query(player: Player, query: Query) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {

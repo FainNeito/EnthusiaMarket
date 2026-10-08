@@ -63,7 +63,7 @@ production migration, build upload, role deletion, merge or activation occurred.
 ### Local verification, 8 October 2026
 
 `clean test shadowJar` on Java 25 / Paper 26.2 with a frozen actual Guilds
-community artifact: **894 tests, zero failures/errors, 12 unrelated skips**.
+community artifact: **895 tests, zero failures/errors, 12 unrelated skips**.
 The new MariaDB accounting and existing loopback XP contracts ran with zero
 skips; the 12 skips are Docker-only historical/moderation profiles and one remote
 authentication test. Detekt passed under supported analyzer Java 22; production
@@ -80,8 +80,14 @@ MariaDB test requires `MARKET_ACCOUNTING_TEST_MARIA_USER` and
 `MARKET_ACCOUNTING_TEST_MARIA_PASSWORD` alongside the disposable port; no empty
 credential default is permitted for this profile. Its schema grant is restricted
 to the random accounting-test schema prefix on loopback.
-The final refinement clean full build passes 894 tests with the same 12 unrelated
+The final refinement clean full build passes 895 tests with the same 12 unrelated
 skips; native accounting runs authenticated with zero skips. Detekt passes;
 wiki lint passes. Legacy root documentation has pre-existing lint findings outside
 the wiki CI profile; none are described as passing validation. Exact-head hosted
 Codacy and maintainer-approved fork workflows remain independent gates.
+
+Invalid calendar dates were reproduced through the registered report handler: the
+new regression failed before the fix and passes afterward. Invalid and reversed
+date windows now return usage without querying the database. The final clean
+895-test suite and Java-22 Detekt pass after the remaining capture complexity
+refinements. Hosted workflow approval and client acceptance remain separate.

@@ -23,10 +23,12 @@ open class GuildStockAccounting(private val stalls: StallRepository, private val
 
     fun sale(shop: Shop, event: net.badgersmc.em.events.PostShopTransactionEvent, after: Int) {
         val guild = event.guildId ?: return
-        if (shop.adminShop || event.quantity <= 0) return
+        if (!saleEligible(shop, event.quantity)) return
         val captured = observation(shop, guild.toString(), Math.addExact(after, event.quantity), after) ?: return
         write(captured.copy(saleQuantity = event.quantity, grossRevenue = event.grossPayment ?: event.pricePaid.toLong()))
     }
+
+    private fun saleEligible(shop: Shop, quantity: Int): Boolean = !shop.adminShop && quantity > 0
 
     private fun observation(shop: Shop, guild: String, before: Int, after: Int): StallAccountingObservation? {
         val item = ItemStackSerializer.deserialize(shop.sellItem) ?: return null

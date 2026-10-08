@@ -94,11 +94,12 @@ open class StallStockContributorListener(private val stock: ContainerStockListen
     private fun units(stack: org.bukkit.inventory.ItemStack?, item: org.bukkit.inventory.ItemStack): Int =
         if (stack != null && ItemStackMatch.isSimilarIgnoringDamageNullZero(stack, item)) stack.amount else 0
 
-    private fun room(inventory: Inventory, item: org.bukkit.inventory.ItemStack): Int = inventory.storageContents.sumOf { slot ->
+    private fun room(inventory: Inventory, item: ItemStack): Int = inventory.storageContents.sumOf { slot -> space(slot, item) }
+
+    private fun space(slot: ItemStack?, item: ItemStack): Int =
         if (slot == null || slot.type.isAir) item.maxStackSize
         else if (ItemStackMatch.isSimilarIgnoringDamageNullZero(slot, item)) (item.maxStackSize - slot.amount).coerceAtLeast(0)
         else 0
-    }
 
     private fun expectedClick(shop: Shop, event: InventoryClickEvent): Int? {
         val item = ItemStackSerializer.deserialize(shop.sellItem) ?: return null
