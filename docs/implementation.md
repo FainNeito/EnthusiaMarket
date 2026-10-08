@@ -1,5 +1,14 @@
 # Implementation — EnthusiaMarket
 
+## Search stock feedback (REQ-380)
+
+SearchResultsMenu.open applies its existing stock filter before constructing a
+GUI or looking up stall names. An empty visible set sends query-specific,
+localized not-in-stock feedback; an empty raw set retains no-results feedback.
+The early return preserves any existing inventory. Both /finditem and /shop
+search already use this shared presentation adapter. BUY/admin availability,
+explicit out-of-stock display, sorting and pagination remain unchanged.
+
 **Date:** 2026-05-24
 **Status:** Bootstrap (emitted by `/spear:init`; extend as components land)
 **Owner:** BadgersMC

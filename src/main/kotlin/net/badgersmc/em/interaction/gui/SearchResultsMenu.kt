@@ -44,6 +44,15 @@ class SearchResultsMenu(
 
     override fun open(player: Player) {
         val visible = sort(filter(results, includeOutOfStock, mode), sort)
+        if (visible.isEmpty()) {
+            val message = if (filter(results, true, mode).isEmpty()) {
+                "shop.cmd.search.none"
+            } else {
+                "shop.cmd.search.out_of_stock"
+            }
+            player.sendMessage(lang.msg(message, "query" to query))
+            return
+        }
         val totalPages = ((visible.size + PER_PAGE - 1) / PER_PAGE).coerceAtLeast(1)
         val current = page.coerceIn(1, totalPages)
         val pageItems = visible.drop((current - 1) * PER_PAGE).take(PER_PAGE)

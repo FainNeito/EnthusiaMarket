@@ -636,3 +636,7 @@ REQ-323 through REQ-342 are reserved by existing pending Market work, including 
 **Event-driven.** WHEN a player completes either Market search command THE SYSTEM SHALL suggest category and explicit selector forms alongside ordinary item materials. Both entrypoints SHALL share matching/ticker interpretation and search-result direction-guide behavior.
 
 Detailed taxonomy, proof and delivery boundaries: expanded-search-verification.md.
+
+### REQ-380 — Search stock feedback
+
+**Event-driven.** WHEN a Market item search has matching shops but no entries visible under the default stock filter THE SYSTEM SHALL send localized feedback naming the query as not in stock without opening or replacing the player's inventory.
