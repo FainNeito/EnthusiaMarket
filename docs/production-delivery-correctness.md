@@ -32,6 +32,25 @@ Review date: 2026-10-07. This is source review and release preparation, not prod
 
 No production checkbox is closed by this source review. Missing pristine reset schematics remain separately tracked in the console-log backlog.
 
+## DB-337 MariaDB release-check review
+
+Spec: the V027 upgrade fixture must include the historical auctions table before V030 alters it, apply migrations 28 through 30, and preserve the funding identity and amount of existing personal bids. A guild bid must round-trip through the actual MariaDB repository and a repeated migration run must apply nothing. These are release evidence for REQ-326/311, not a new player behavior.
+
+Source finding: the six Docker-only moderation cases create stalls and shops but omit auctions, and still expect only migrations 28 and 29. Local runs previously skipped them without Docker. Reproduce against a disposable loopback-only MariaDB 11.8.3, then repair the fixture; keep hosted Docker startup unchanged. No production database is involved.
+
+Prove: a temporary native launcher ran the same six test bodies against checksum-verified MariaDB 11.8.3 on 127.0.0.1. All six failed in setup with `Table 'enthusia_market_test.auctions' doesn't exist`. The launcher only replaced the container endpoint/startup and renamed the test class; it did not change assertions or production code. It was removed from the source tree after execution.
+
+Engine/architecture: include the pre-V030 auctions schema and an existing personal bid in the V027 fixture, drop auctions before stalls on reset, and expect migrations 28/29/30. Add a real-database regression for personal funding/amount preservation, guild bid save/reload, a second migration run applying nothing, and restoration to personal funding. No runtime, migration SQL, companion API, or hosted Docker policy changes.
+
+Refine: all seven native MariaDB cases passed with zero failures/errors/skips after the fixture correction, including concurrency, durable fences and ownership restoration. This proves actual MariaDB SQL execution, not Docker startup or hosted Actions success. Before/after XML, logs and the native launcher are retained in the local `market-mariadb-validation-20261007` evidence directory beside the checkout. The published suite retains Testcontainers and must also pass the existing hosted no-skips gate.
+
+## Post-merge network release procedure
+
+1. A maintainer approves the build/quality workflows on the final PR head, checks the MariaDB no-skips step, and reviews/merges #197. CodeRabbit success with a skipped review is not human review. The connected account has upstream read-only permission and cannot approve those workflows or merge.
+2. Refresh network main and create its pin-update branch from that base. Change only `plugins/enthusia-market` to the exact canonical merged Market commit after verifying its ancestry. Current network main is `559bfabc2187ab796a3be889f032383a8041f819`; preserve `plugins/luma-guilds` at `a15b244e8a294bf18e6dedf722462edf9faa40ae` or its then-current newer pin. No pre-merge Market pin PR is prepared against an unmerged head.
+3. Use the network's documented `scripts/build-all.bat` on Windows or `scripts/build-all.sh` on Linux, plus required component checks. Root `buildAll` packages Market/Guilds via `shadowJar`; packaging alone does not execute their complete test suites. Verify Market against the actual pinned Guilds build, its public bank API, and the combined artifacts before the network PR is reviewable.
+4. After the network PR merges, build from a fresh clean checkout of that exact network commit. Record submodule commits, artifact versions and SHA-256, local/hosted results, and installed companion provenance. A deployment or restart requires its own explicit authorization. On authorized staging/live acceptance, exercise guild accounting/refunds, Java/Bedrock permission revocation and menus, migration/restart recovery, sign redraw, private chat and region/item-transfer boundaries before closing production gates.
+
 ## SPEAR refinement: sellback moderation lock
 
 Spec: REQ-335 rejects confirmation while an active moderation mutation reservation exists, before money or ownership/projection changes. Quote remains a pure read; confirmation rechecks the current lock.
