@@ -15,7 +15,7 @@ SPEAR base: current authoritative main 14351db; isolated branch integrates appro
 - [x] Implement shared catalog/query/completion and both adapters.
 - [x] Prove category inclusions/exclusions, aliases, overlaps, containers and lookup boundaries.
 - [x] Complete canonical build, architecture, Detekt and interactive preview.
-- [ ] Publish source PR and inspect exact-head hosted review/approval state.
+- [x] Publish source PR and inspect exact-head hosted review/approval state.
 
 Rare crafted variants and new materials require deliberate family definitions; arbitrary item display names do not determine category membership. Strict category searches deliberately avoid legacy prefix accidents. Bare legacy aliases keep their old prefix coverage in addition to expanded curated membership.
 
@@ -28,3 +28,5 @@ Final canonical Java-25/Paper-26.2 clean test/shadowJar/JaCoCo passed 906 cases,
 Interactive preview uses the exported runtime membership, with all 25 categories and individual exact/prefix lookups. Local interaction verification exercised each category, exact/prefix/namespace/unknown selector behavior, pagination and both command choices. It reports matching materials rather than inventing live shop listings. EARS/state tooling remains unavailable.
 
 Review artifact SHA-256: 65043d796df0210115eb414520e49b0a24e86289062103164b85e3aaa038c8dc. Final standalone scanner fixture/actual command execution checks pass after registering the new argument type independently. All runtime source was exercised by the clean full suite; later fixture and delivery-record refinements do not change runtime behavior.
+
+Delivery: Market #214 follows #213. Tested runtime source bd07ad0941558d35075ae315597ecb6c46e3d5a4 is mergeable with no unresolved current review threads or changes-requested findings. Hosted build/quality/wiki and Codacy concluded action_required at that head; maintainer approval is required and no hosted Market build/static pass is claimed. Delivery-record-only commits do not change tested runtime source. Canonical merge, any network pin/build reconciliation, separately authorized staging and real Java/Bedrock acceptance remain external gates.
