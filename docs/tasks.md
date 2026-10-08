@@ -6,7 +6,7 @@
 - [x] NOTIFY-345 — REQ-345/346/347: reproduce unavailable join storage; isolate SQL on bounded worker, deliver on server thread, acknowledge snapshot watermark, retain unread rows across failure/rejection/disconnect/disable.
 - [x] NOTIFY-REVIEW — PR #201 published; exact-head Codacy passed, no human review findings returned. Hosted workflows require maintainer approval; production/client acceptance remains separate.
 - [x] HISTORY-DURABILITY — REQ-348/349/350: inline SQL regression reproduced; forced local records, bounded background delivery, transactional receipts and retention/retry/quarantine/shutdown proof implemented. Clean full suite: 848 cases, zero failures/errors, eleven external-resource skips; ten corresponding MariaDB cases passed on isolated native 11.8.3. Detekt and architecture checks passed. Game/economy/XP events are never replayed.
-- [ ] HISTORY-REVIEW — Publish source, inspect exact-head checks/comments and address findings. Dependencies #197/#201 and production/client acceptance remain separate.
+- [x] HISTORY-REVIEW — #202 published; its Codacy complexity finding was resolved, focused recovery/SQL tests and Detekt passed, and refined head passed Codacy with zero annotations. No human/inline findings returned. Hosted workflows need maintainer approval; dependencies #197/#201 and production/client acceptance remain separate.
 
 **Date:** 2026-05-24
 **Status:** Bootstrap (emitted by `/spear:init`; extend via `/spear:spec`)
