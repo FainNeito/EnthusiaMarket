@@ -60,46 +60,16 @@ class ShopSearchService {
     }
 
     private fun matchesQuery(material: Material, query: String): Boolean = when (query) {
-        "STONE", "STONES" -> isStoneBuildingMaterial(material.name)
-        "FLOWER", "FLOWERS" -> material.name in FLOWER_MATERIALS
+        "STONE", "STONES" -> SearchBuildingCategories.isStone(material.name)
+        "FLOWER", "FLOWERS" -> SearchBuildingCategories.isFlower(material.name)
         else -> material.name == query || material.name.startsWith(query) ||
             CATEGORY_MATCHERS[query]?.invoke(material) == true
-    }
-
-    private fun isStoneBuildingMaterial(name: String): Boolean {
-        val stone = name.removePrefix("INFESTED_")
-        return stone in STONE_FAMILIES || STONE_VARIANTS.any { suffix ->
-            stone.endsWith(suffix) && stone.removeSuffix(suffix) in STONE_FAMILIES
-        }
     }
 
     companion object {
         private const val MIN_QUERY_LENGTH = 2
         private const val MAX_CONTAINER_DEPTH = 4
         private const val MAX_ITEMS_SCANNED = 1024
-
-        private val STONE_FAMILIES = setOf(
-            "STONE", "SMOOTH_STONE", "COBBLESTONE", "MOSSY_COBBLESTONE",
-            "STONE_BRICK", "STONE_BRICKS", "MOSSY_STONE_BRICK", "MOSSY_STONE_BRICKS",
-            "CHISELED_STONE_BRICKS", "CRACKED_STONE_BRICKS", "GRANITE", "POLISHED_GRANITE",
-            "DIORITE", "POLISHED_DIORITE", "ANDESITE", "POLISHED_ANDESITE", "DEEPSLATE",
-            "COBBLED_DEEPSLATE", "POLISHED_DEEPSLATE", "CHISELED_DEEPSLATE",
-            "DEEPSLATE_BRICK", "DEEPSLATE_BRICKS", "CRACKED_DEEPSLATE_BRICKS",
-            "DEEPSLATE_TILE", "DEEPSLATE_TILES", "CRACKED_DEEPSLATE_TILES", "REINFORCED_DEEPSLATE",
-            "TUFF", "POLISHED_TUFF", "CHISELED_TUFF", "TUFF_BRICK", "TUFF_BRICKS", "CHISELED_TUFF_BRICKS",
-            "BLACKSTONE", "GILDED_BLACKSTONE", "POLISHED_BLACKSTONE", "CHISELED_POLISHED_BLACKSTONE",
-            "POLISHED_BLACKSTONE_BRICK", "POLISHED_BLACKSTONE_BRICKS", "CRACKED_POLISHED_BLACKSTONE_BRICKS",
-            "BASALT", "POLISHED_BASALT", "SMOOTH_BASALT", "CALCITE", "DRIPSTONE_BLOCK",
-            "END_STONE", "END_STONE_BRICK", "END_STONE_BRICKS",
-        )
-        private val STONE_VARIANTS = setOf("_SLAB", "_STAIRS", "_WALL", "_BUTTON", "_PRESSURE_PLATE")
-        private val FLOWER_MATERIALS = setOf(
-            "DANDELION", "POPPY", "BLUE_ORCHID", "ALLIUM", "AZURE_BLUET", "RED_TULIP",
-            "ORANGE_TULIP", "WHITE_TULIP", "PINK_TULIP", "OXEYE_DAISY", "CORNFLOWER",
-            "LILY_OF_THE_VALLEY", "WITHER_ROSE", "SUNFLOWER", "LILAC", "ROSE_BUSH", "PEONY",
-            "TORCHFLOWER", "PITCHER_PLANT", "PINK_PETALS", "OPEN_EYEBLOSSOM", "CLOSED_EYEBLOSSOM",
-            "WILDFLOWERS", "CACTUS_FLOWER", "SPORE_BLOSSOM", "FLOWERING_AZALEA",
-        )
 
         private val CATEGORY_MATCHERS: Map<String, (Material) -> Boolean> = mapOf(
             "ARMOR" to { it.name.endsWith("_HELMET") || it.name.endsWith("_CHESTPLATE") ||
