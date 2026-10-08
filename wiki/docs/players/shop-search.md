@@ -42,6 +42,17 @@ Add a mode after your query:
 /shop search ender_pearl any — all directions (default)
 ```
 
+## Stone and flower categories
+
+Search `stone` or `stones` for stone building blocks and their slabs, stairs, walls and other building variants. This includes cobblestone, granite, diorite, andesite, deepslate, tuff, blackstone, basalt, calcite, dripstone blocks and end stone. Stone tools, stonecutters, ores, redstone and glowstone are excluded. Use `stone_sword` or another material name to search those items directly.
+
+Search `flower` or `flowers` for flower items, including tall flowers, petals, eyeblossoms, wildflowers, cactus flowers, spore blossoms and flowering azalea. Seeds, dyes, flower pots and leaves are excluded. Both categories also find matching contents inside supported shulker boxes and bundles, while respecting shop search opt-outs.
+
+```text
+/shop search stone
+/finditem flowers
+```
+
 ## Pagination
 
 If there are many results, specify a page number:
