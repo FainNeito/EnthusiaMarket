@@ -178,7 +178,10 @@ class ShopCommands(
         player.sendMessage(lang.msg("shop.cmd.search.none", "query" to query))
     }
 
-    private val historyMessages get() = ShopHistoryMessages(lang, historyZone, transactions)
+    private val historyMessages: ShopHistoryMessages
+        get() {
+            return ShopHistoryMessages(lang, historyZone, transactions)
+        }
 
     internal var historyClock: java.time.Clock = java.time.Clock.systemUTC()
     internal var historyZone: java.time.ZoneId = java.time.ZoneId.systemDefault()
@@ -186,20 +189,20 @@ class ShopCommands(
     @Subcommand("history")
     @Permission("enthusiamarket.shop.use")
     fun history(@Context sender: CommandSender, @Arg("page") page: Int = 1) {
-        historyMessages.read(sender, page, null, "/shop history", "all")
+        historyMessages.read(sender, page, ShopHistorySelection(null, "/shop history", "all"))
     }
 
     @Subcommand("history all")
     @Permission("enthusiamarket.shop.use")
     fun historyAll(@Context sender: CommandSender, @Arg("page") page: Int = 1) {
-        historyMessages.read(sender, page, null, "/shop history all", "all")
+        historyMessages.read(sender, page, ShopHistorySelection(null, "/shop history all", "all"))
     }
 
     @Subcommand("history today")
     @Permission("enthusiamarket.shop.use")
     fun historyToday(@Context sender: CommandSender, @Arg("page") page: Int = 1) {
         val window = net.badgersmc.em.application.ShopHistoryDates.today(historyClock, historyZone)
-        historyMessages.read(sender, page, window, "/shop history today", "today")
+        historyMessages.read(sender, page, ShopHistorySelection(window, "/shop history today", "today"))
     }
 
     @Subcommand("history range")
@@ -217,7 +220,7 @@ class ShopCommands(
         } catch (_: IllegalArgumentException) {
             sender.sendMessage(lang.msg("shop.history.invalid_dates")); return
         }
-        historyMessages.read(sender, page, window, "/shop history range $from $to", "$from to $to")
+        historyMessages.read(sender, page, ShopHistorySelection(window, "/shop history range $from $to", "$from to $to"))
     }
 
     private fun lookAtShop(player: Player): net.badgersmc.em.domain.shop.Shop? {

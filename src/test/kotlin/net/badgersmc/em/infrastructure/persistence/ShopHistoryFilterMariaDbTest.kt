@@ -21,37 +21,49 @@ class ShopHistoryFilterMariaDbTest {
             username = database.username
             password = database.password
         }).use { ds ->
-            ds.connection.use { connection ->
-                connection.createStatement().use { sql ->
-                    sql.executeUpdate("DROP TABLE IF EXISTS shop_transactions")
-                    sql.executeUpdate("""CREATE TABLE shop_transactions (
-                        id BIGINT PRIMARY KEY AUTO_INCREMENT, shop_id BIGINT NOT NULL,
-                        owner VARCHAR(36) NOT NULL, buyer VARCHAR(36) NOT NULL,
-                        direction VARCHAR(10) NOT NULL, item TEXT NOT NULL, quantity INT NOT NULL,
-                        total_price BIGINT NOT NULL, created_at BIGINT NOT NULL, notified INT NOT NULL DEFAULT 0
-                    )""")
-                }
-            }
-            val repo = ShopTransactionRepositorySql(ds)
-            val viewer = UUID.randomUUID()
-            val other = UUID.randomUUID()
-            fun sale(owner: UUID, buyer: UUID, time: Long) = repo.record(
-                ShopTransaction(0, 1, owner, buyer, SignDirection.SELL, "diamond", 1, 10, time),
-            )
-            sale(viewer, other, 999)
-            val start = sale(viewer, other, 1000)
-            val firstTie = sale(other, viewer, 1500)
-            val secondTie = sale(viewer, other, 1500)
-            sale(other, UUID.randomUUID(), 1600)
-            repeat(12) { sale(viewer, other, 2000) }
-            val window = ShopHistoryWindow(1000, 2000)
-            val first = repo.findByOwnerOrBuyer(viewer, 2, 0, window)
-            val second = repo.findByOwnerOrBuyer(viewer, 2, 2, window)
-            assertEquals(listOf(secondTie.id, firstTie.id, start.id), (first + second).map { it.id })
-            assertEquals(emptyList(), repo.findByOwnerOrBuyer(viewer, 2, 4, window))
-            assertEquals(15, repo.countUnnotified(viewer))
+            prepareTable(ds)
+            verifyWindow(ShopTransactionRepositorySql(ds))
         }
     }
+
+    private fun prepareTable(ds: javax.sql.DataSource) {
+        ds.connection.use { connection ->
+            connection.createStatement().use { sql ->
+                sql.executeUpdate("DROP TABLE IF EXISTS shop_transactions")
+                sql.executeUpdate("""CREATE TABLE shop_transactions (
+                    id BIGINT PRIMARY KEY AUTO_INCREMENT, shop_id BIGINT NOT NULL,
+                    owner VARCHAR(36) NOT NULL, buyer VARCHAR(36) NOT NULL,
+                    direction VARCHAR(10) NOT NULL, item TEXT NOT NULL, quantity INT NOT NULL,
+                    total_price BIGINT NOT NULL, created_at BIGINT NOT NULL, notified INT NOT NULL DEFAULT 0
+                )""")
+            }
+        }
+    }
+
+    private fun verifyWindow(repo: ShopTransactionRepositorySql) {
+        val viewer = UUID.randomUUID()
+        val expected = seedSales(repo, viewer)
+        val window = ShopHistoryWindow(1000, 2000)
+        val first = repo.findByOwnerOrBuyer(viewer, 2, 0, window)
+        val second = repo.findByOwnerOrBuyer(viewer, 2, 2, window)
+        assertEquals(expected, (first + second).map { it.id })
+        assertEquals(emptyList(), repo.findByOwnerOrBuyer(viewer, 2, 4, window))
+        assertEquals(15, repo.countUnnotified(viewer))
+    }
+
+    private fun seedSales(repo: ShopTransactionRepositorySql, viewer: UUID): List<Long> {
+        val other = UUID.randomUUID()
+        sale(repo, viewer, other, 999)
+        val start = sale(repo, viewer, other, 1000)
+        val firstTie = sale(repo, other, viewer, 1500)
+        val secondTie = sale(repo, viewer, other, 1500)
+        sale(repo, other, UUID.randomUUID(), 1600)
+        repeat(12) { sale(repo, viewer, other, 2000) }
+        return listOf(secondTie.id, firstTie.id, start.id)
+    }
+
+    private fun sale(repo: ShopTransactionRepositorySql, owner: UUID, buyer: UUID, time: Long) =
+        repo.record(ShopTransaction(0, 1, owner, buyer, SignDirection.SELL, "diamond", 1, 10, time))
 
     companion object {
         @Container @JvmStatic

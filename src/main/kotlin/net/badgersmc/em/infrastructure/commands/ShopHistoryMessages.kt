@@ -11,20 +11,23 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+internal data class ShopHistorySelection(val window: ShopHistoryWindow?, val command: String, val label: String)
+
 internal class ShopHistoryMessages(
     private val lang: LangService, private val zone: ZoneId, private val transactions: ShopTransactionRepository,
 ) {
-    fun read(sender: CommandSender, page: Int, window: ShopHistoryWindow?, command: String, filter: String) {
+    fun read(sender: CommandSender, page: Int, selection: ShopHistorySelection) {
         val player = sender as? Player ?: run { sender.sendMessage(lang.msg("shop.cmd.players_only")); return }
         val safePage = page.coerceIn(1, MAX_PAGE)
         val offset = (safePage - 1) * PAGE_SIZE
+        val window = selection.window
         val rows = if (window == null) transactions.findByOwnerOrBuyer(player.uniqueId, PAGE_SIZE + 1, offset)
             else transactions.findByOwnerOrBuyer(player.uniqueId, PAGE_SIZE + 1, offset, window)
-        show(player, rows, safePage, command, filter)
+        show(player, rows, safePage, selection)
     }
 
-    fun show(player: Player, rows: List<ShopTransaction>, page: Int, command: String, filter: String) {
-        player.sendMessage(lang.msg("shop.history.selection", "filter" to filter, "zone" to zone.id))
+    private fun show(player: Player, rows: List<ShopTransaction>, page: Int, selection: ShopHistorySelection) {
+        player.sendMessage(lang.msg("shop.history.selection", "filter" to selection.label, "zone" to zone.id))
         if (rows.isEmpty()) {
             player.sendMessage(lang.msg("shop.history.empty_filtered"))
             return
@@ -32,7 +35,7 @@ internal class ShopHistoryMessages(
         player.sendMessage(lang.msg("shop.history.header", "page" to page))
         rows.take(PAGE_SIZE).forEach { showRow(player, it) }
         if (rows.size > PAGE_SIZE && page < MAX_PAGE) {
-            player.sendMessage(lang.msg("shop.history.filtered_more", "command" to "$command ${page + 1}"))
+            player.sendMessage(lang.msg("shop.history.filtered_more", "command" to "${selection.command} ${page + 1}"))
         }
     }
 
