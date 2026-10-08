@@ -169,6 +169,18 @@ Each requirement carries a stable ID. Tasks reference requirements by ID. New re
 
 ---
 
+### REQ-353 — Shop sign read boundary
+
+WHEN a shop sign is clicked THE SYSTEM SHALL resolve its indexed shop without executing SQL on the server thread.
+
+### REQ-354 — Persisted cache reconciliation
+
+WHEN shop metadata, stock, freeze state, locations or deletion are successfully persisted THE SYSTEM SHALL reconcile both coordinate indices before returning from the mutation.
+
+### REQ-355 — Immediate cached moderation fences
+
+WHEN a stall is reserved by moderation THE SYSTEM SHALL project its live lock onto cached sign results without a SQL lookup or permanently changing the indexed shop.
+
 ## Non-functional
 
 ### REQ-040 — Atomic economy operations
@@ -518,18 +530,6 @@ return the stall to UNOWNED.
 **Event-driven.** WHEN an authorized administrator executes `/em rent extendall <duration>` THE SYSTEM SHALL add a positive duration to every actively held `OWNED` or `GRACE` stall without charging owners, SHALL leave unowned, auction, and moderation states unchanged, and SHALL report updated, recovered-from-grace, skipped, and failed counts.
 
 ---
-
-### REQ-353 — Shop sign read boundary
-
-WHEN a shop sign is clicked THE SYSTEM SHALL resolve its indexed shop without executing SQL on the server thread.
-
-### REQ-354 — Persisted cache reconciliation
-
-WHEN shop metadata, stock, freeze state, locations or deletion are successfully persisted THE SYSTEM SHALL reconcile both coordinate indices before returning from the mutation.
-
-### REQ-355 — Immediate cached moderation fences
-
-WHEN a stall is reserved by moderation THE SYSTEM SHALL project its live lock onto cached sign results without a SQL lookup or permanently changing the indexed shop.
 
 ## Acceptance
 
