@@ -536,3 +536,14 @@ return the stall to UNOWNED.
 1. Every REQ has a single ID, a heading, and exactly one EARS-formatted sentence under a **pattern label** (Ubiquitous / Event-driven / State-driven / Unwanted / Optional).
 2. Use `/spear:spec` to add or revise REQ entries — it runs the EARS validator (`plugins/spear/hooks/lib/ears.mjs`) and assigns the next free ID.
 3. Never reuse an ID. When a requirement is obsolete, strike it through and note the deprecation date; do not renumber.
+
+## Accepted history filters (8 October 2026)
+
+### REQ-356 - Today and retained history
+**Event-driven.** WHEN a player selects today or all in shop history THE SYSTEM SHALL show only their owner-or-buyer transactions in the selected period with stable newest-first pagination and preserve the existing history page command.
+
+### REQ-357 - Inclusive calendar-date range
+**Event-driven.** WHEN a player supplies valid ISO start and end dates THE SYSTEM SHALL include both calendar dates in the server timezone using an inclusive start and exclusive next-day boundary before pagination.
+
+### REQ-358 - Validation and retained-data boundary
+**Unwanted.** IF dates are malformed or reversed THEN THE SYSTEM SHALL reject the request before querying storage and explain valid syntax without changing retention, permissions, unread notification state or other players' visibility.

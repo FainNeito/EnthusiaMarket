@@ -284,6 +284,10 @@ shop:
     line3: "<shadow:#000000:1><gray>Price: <gold><price></shadow>"
     line4: "<shadow:#000000:1><gray>Owner: <yellow><owner></yellow>  <dark_gray>|  <gray>Stock: <aqua><stock></shadow>"
   history:
+    selection: "<gray>Showing <white><filter></white> retained transactions. Dates use <white><zone></white>."
+    empty_filtered: "<gray>No retained transactions match this period/page."
+    invalid_dates: "<red>Use /shop history range YYYY-MM-DD YYYY-MM-DD [page]. Start must be on or before end."
+    filtered_more: "<gray>More: <click:run_command:'<command>'><aqua><command></aqua></click>"
     header: "<shadow:#000000:1><gold>Your shop history <gray>(page <page>)</shadow>"
     sold: "<shadow:#000000:1><gray>- <white><when></white> <dark_gray>| <green>sold <qty>x <item></green> <dark_gray>for <gold><price></gold> <dark_gray>to <yellow><buyer></shadow>"
     bought: "<shadow:#000000:1><gray>- <white><when></white> <dark_gray>| <green>bought <qty>x <item></green> <dark_gray>for <gold><price></gold> <dark_gray>from <yellow><seller></shadow>"

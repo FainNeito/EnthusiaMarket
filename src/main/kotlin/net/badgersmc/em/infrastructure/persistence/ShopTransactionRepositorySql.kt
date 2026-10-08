@@ -1,6 +1,7 @@
 package net.badgersmc.em.infrastructure.persistence
 
 import net.badgersmc.em.domain.shop.PriceStats
+import net.badgersmc.em.domain.shop.ShopHistoryWindow
 import net.badgersmc.em.domain.shop.ShopTransaction
 import net.badgersmc.em.domain.shop.ShopTransactionRepository
 import net.badgersmc.em.domain.shop.SignDirection
@@ -43,7 +44,7 @@ class ShopTransactionRepositorySql(private val ds: DataSource) : ShopTransaction
         ds.connection.use { c ->
             c.prepareStatement(
                 """SELECT * FROM shop_transactions WHERE owner = ?
-                   ORDER BY created_at DESC LIMIT ? OFFSET ?"""
+                   ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?"""
             ).use { ps ->
                 ps.setString(1, owner.toString())
                 ps.setInt(2, limit)
@@ -61,7 +62,7 @@ class ShopTransactionRepositorySql(private val ds: DataSource) : ShopTransaction
         ds.connection.use { c ->
             c.prepareStatement(
                 """SELECT * FROM shop_transactions WHERE owner = ? OR buyer = ?
-                   ORDER BY created_at DESC LIMIT ? OFFSET ?"""
+                   ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?"""
             ).use { ps ->
                 ps.setString(1, player.toString())
                 ps.setString(2, player.toString())
@@ -72,6 +73,26 @@ class ShopTransactionRepositorySql(private val ds: DataSource) : ShopTransaction
                     while (rs.next()) out += map(rs)
                     return out
                 }
+            }
+        }
+    }
+
+    override fun findByOwnerOrBuyer(
+        player: UUID, limit: Int, offset: Int, window: ShopHistoryWindow,
+    ): List<ShopTransaction> = ds.connection.use { connection ->
+        connection.prepareStatement(
+            """SELECT * FROM shop_transactions WHERE (owner = ? OR buyer = ?)
+               AND created_at >= ? AND created_at < ?
+               ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?""",
+        ).use { statement ->
+            statement.setString(1, player.toString())
+            statement.setString(2, player.toString())
+            statement.setLong(3, window.fromMs)
+            statement.setLong(4, window.toMs)
+            statement.setInt(5, limit)
+            statement.setInt(6, offset)
+            statement.executeQuery().use { rows ->
+                buildList { while (rows.next()) add(map(rows)) }
             }
         }
     }

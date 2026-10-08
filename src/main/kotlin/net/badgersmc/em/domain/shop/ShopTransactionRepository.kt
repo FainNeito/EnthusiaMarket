@@ -20,6 +20,9 @@ interface ShopTransactionRepository {
     fun findByOwner(owner: UUID, limit: Int, offset: Int): List<ShopTransaction>
     /** Transactions where player was owner OR buyer (for members). */
     fun findByOwnerOrBuyer(player: UUID, limit: Int, offset: Int): List<ShopTransaction>
+    /** Same visibility; apply [window] before newest-first paging. Legacy adapters reject unsupported filters. */
+    fun findByOwnerOrBuyer(player: UUID, limit: Int, offset: Int, window: ShopHistoryWindow): List<ShopTransaction> =
+        throw UnsupportedOperationException("History date filters are not supported by this adapter")
     fun countUnnotified(owner: UUID): Int
     fun markNotified(owner: UUID)
     /** Delete rows older than [beforeMs]; returns rows removed. */

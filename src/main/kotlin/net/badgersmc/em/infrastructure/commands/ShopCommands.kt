@@ -178,40 +178,46 @@ class ShopCommands(
         player.sendMessage(lang.msg("shop.cmd.search.none", "query" to query))
     }
 
+    private val historyMessages get() = ShopHistoryMessages(lang, historyZone, transactions)
+
+    internal var historyClock: java.time.Clock = java.time.Clock.systemUTC()
+    internal var historyZone: java.time.ZoneId = java.time.ZoneId.systemDefault()
+
     @Subcommand("history")
     @Permission("enthusiamarket.shop.use")
     fun history(@Context sender: CommandSender, @Arg("page") page: Int = 1) {
-        val player = sender as? Player ?: run { sender.sendMessage(lang.msg("shop.cmd.players_only")); return }
-        val safePage = page.coerceIn(1, 1000)
-        val offset = (safePage - 1) * PAGE_SIZE
-        // Fetch one extra row to detect if there's a next page
-        val rows = transactions.findByOwnerOrBuyer(player.uniqueId, PAGE_SIZE + 1, offset)
-        if (rows.isEmpty()) { player.sendMessage(lang.msg("shop.history.empty")); return }
-        val hasNext = rows.size > PAGE_SIZE
-        val displayRows = if (hasNext) rows.dropLast(1) else rows
-        player.sendMessage(lang.msg("shop.history.header", "page" to safePage))
-        val fmt = java.time.format.DateTimeFormatter.ofPattern("MM-dd HH:mm")
-            .withZone(java.time.ZoneId.systemDefault())
-        for (t in displayRows) {
-            if (t.owner == player.uniqueId) {
-                val buyerName = org.bukkit.Bukkit.getOfflinePlayer(t.buyer).name ?: "Unknown"
-                player.sendMessage(lang.msg(
-                    "shop.history.sold",
-                    "when" to fmt.format(java.time.Instant.ofEpochMilli(t.createdAt)),
-                    "qty" to t.quantity, "item" to t.item, "price" to t.totalPrice, "buyer" to buyerName,
-                ))
-            } else {
-                val sellerName = org.bukkit.Bukkit.getOfflinePlayer(t.owner).name ?: "Unknown"
-                player.sendMessage(lang.msg(
-                    "shop.history.bought",
-                    "when" to fmt.format(java.time.Instant.ofEpochMilli(t.createdAt)),
-                    "qty" to t.quantity, "item" to t.item, "price" to t.totalPrice, "seller" to sellerName,
-                ))
-            }
+        historyMessages.read(sender, page, null, "/shop history", "all")
+    }
+
+    @Subcommand("history all")
+    @Permission("enthusiamarket.shop.use")
+    fun historyAll(@Context sender: CommandSender, @Arg("page") page: Int = 1) {
+        historyMessages.read(sender, page, null, "/shop history all", "all")
+    }
+
+    @Subcommand("history today")
+    @Permission("enthusiamarket.shop.use")
+    fun historyToday(@Context sender: CommandSender, @Arg("page") page: Int = 1) {
+        val window = net.badgersmc.em.application.ShopHistoryDates.today(historyClock, historyZone)
+        historyMessages.read(sender, page, window, "/shop history today", "today")
+    }
+
+    @Subcommand("history range")
+    @Permission("enthusiamarket.shop.use")
+    fun historyRange(
+        @Context sender: CommandSender,
+        @Arg("from") from: String,
+        @Arg("to") to: String,
+        @Arg("page") page: Int = 1,
+    ) {
+        val window = try {
+            net.badgersmc.em.application.ShopHistoryDates.range(from, to, historyZone)
+        } catch (_: java.time.DateTimeException) {
+            sender.sendMessage(lang.msg("shop.history.invalid_dates")); return
+        } catch (_: IllegalArgumentException) {
+            sender.sendMessage(lang.msg("shop.history.invalid_dates")); return
         }
-        if (hasNext) {
-            player.sendMessage(lang.msg("shop.history.more", "page" to (safePage + 1)))
-        }
+        historyMessages.read(sender, page, window, "/shop history range $from $to", "$from to $to")
     }
 
     private fun lookAtShop(player: Player): net.badgersmc.em.domain.shop.Shop? {
@@ -322,7 +328,4 @@ class ShopCommands(
         net.badgersmc.em.interaction.gui.ShopContentsMenu(shop, lang).open(player)
     }
 
-    companion object {
-        private const val PAGE_SIZE = 10
-    }
 }
