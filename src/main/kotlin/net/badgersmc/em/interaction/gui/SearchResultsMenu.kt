@@ -35,6 +35,7 @@ class SearchResultsMenu(
     private val includeOutOfStock: Boolean = false,
     private val sort: Sort = Sort.PRICE_LOW,
     private val mode: SearchMode = SearchMode.ANY,
+    private val navigate: ((Player, Shop) -> Unit)? = null,
 ) : Menu {
 
     data class Result(val shop: Shop, val matchedMaterial: Material, val nested: Boolean)
@@ -88,6 +89,7 @@ class SearchResultsMenu(
             )
             if (result.nested) lore += lang.msg("gui.shop.search.contains", "item" to pretty(result.matchedMaterial))
             lore += Component.empty()
+            if (navigate != null) lore += lang.msg("finder_trail.click")
             lore += lang.msg(if (player.hasPermission(ADMIN_PERMISSION)) {
                 "gui.shop.search.click_teleport"
             } else {
@@ -96,19 +98,27 @@ class SearchResultsMenu(
             meta.lore(lore.map(::plainStyle))
             icon.itemMeta = meta
             pane.addItem(GuiItem(icon) { event ->
-                event.isCancelled = true
-                player.closeInventory()
-                val world = if (player.hasPermission(ADMIN_PERMISSION)) Bukkit.getWorld(shop.signWorld) else null
-                if (world != null) {
-                    player.teleport(Location(world, shop.signX + 0.5, shop.signY.toDouble(), shop.signZ + 0.5,
-                        player.location.yaw, player.location.pitch))
-                    player.sendMessage(lang.msg("gui.shop.search.teleported", "world" to shop.signWorld,
-                        "x" to shop.signX, "y" to shop.signY, "z" to shop.signZ))
-                } else {
-                    player.sendMessage(lang.msg("gui.shop.search.clicked", "world" to shop.signWorld,
-                        "x" to shop.signX, "y" to shop.signY, "z" to shop.signZ))
-                }
+                selectResult(player, shop, event)
             }, index % 9, RESULTS_START_ROW + index / 9)
+        }
+    }
+
+    private fun selectResult(player: Player, shop: Shop, event: org.bukkit.event.inventory.InventoryClickEvent) {
+        event.isCancelled = true
+        player.closeInventory()
+        if (navigate != null && (!player.hasPermission(ADMIN_PERMISSION) || event.isShiftClick)) {
+            navigate.invoke(player, shop)
+        }
+        val teleport = player.hasPermission(ADMIN_PERMISSION) && (navigate == null || !event.isShiftClick)
+        val world = if (teleport) Bukkit.getWorld(shop.signWorld) else null
+        if (world != null) {
+            player.teleport(Location(world, shop.signX + 0.5, shop.signY.toDouble(), shop.signZ + 0.5,
+                player.location.yaw, player.location.pitch))
+            player.sendMessage(lang.msg("gui.shop.search.teleported", "world" to shop.signWorld,
+                "x" to shop.signX, "y" to shop.signY, "z" to shop.signZ))
+        } else {
+            player.sendMessage(lang.msg("gui.shop.search.clicked", "world" to shop.signWorld,
+                "x" to shop.signX, "y" to shop.signY, "z" to shop.signZ))
         }
     }
 
@@ -164,7 +174,7 @@ class SearchResultsMenu(
         includeOutOfStock: Boolean = this.includeOutOfStock,
         sort: Sort = this.sort,
         mode: SearchMode = this.mode,
-    ) = SearchResultsMenu(results, query, lang, stallRepository, ticker, page, includeOutOfStock, sort, mode)
+    ) = SearchResultsMenu(results, query, lang, stallRepository, ticker, page, includeOutOfStock, sort, mode, navigate)
 
     private fun tickerIcon(shops: List<Shop>): ItemStack {
         val lore = mutableListOf<Component>()

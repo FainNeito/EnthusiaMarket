@@ -41,6 +41,7 @@ class ShopCommands(
     private val shopSearchService: ShopSearchService,
     private val playerNameResolver: PlayerNameResolver,
     private val menuFactory: net.badgersmc.em.interaction.MenuFactory? = null,
+    private val finderTrail: net.badgersmc.em.infrastructure.listeners.FinderTrailService? = null,
 ) {
     @Subcommand("list")
     @Permission("enthusiamarket.shop.use")
@@ -170,17 +171,31 @@ class ShopCommands(
                 net.badgersmc.em.interaction.gui.SearchResultsMenu.Result(shop, it.material, it.nested)
             }
         }
+        showSearchResults(player, query, results)
+    }
+
+    private fun showSearchResults(player: Player, query: String, results: List<net.badgersmc.em.interaction.gui.SearchResultsMenu.Result>) {
         if (results.isNotEmpty()) {
             val ticker = org.bukkit.Material.matchMaterial(query)?.let {
                 net.badgersmc.em.application.PriceTickerService.compute(it.name, transactions)
             }
             net.badgersmc.em.interaction.gui.SearchResultsMenu(
                 results, query, lang, stallRepository, ticker,
+                navigate = ::startTrail,
             ).open(player)
             return
         }
         player.sendMessage(lang.msg("shop.cmd.search.none", "query" to query))
     }
+
+    @Subcommand("trail stop")
+    @Permission("enthusiamarket.shop.use")
+    fun stopTrail(@Context sender: CommandSender) {
+        val player = sender as? Player ?: return
+        finderTrail?.stop(player)
+    }
+
+    private fun startTrail(player: Player, shop: net.badgersmc.em.domain.shop.Shop) { finderTrail?.start(player, shop) }
 
     @Subcommand("history")
     @Permission("enthusiamarket.shop.use")

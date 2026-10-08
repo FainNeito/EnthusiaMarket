@@ -39,6 +39,7 @@ open class EnthusiaMarket : JavaPlugin() {
     private var floodgateSkinCapture: net.badgersmc.em.websync.heads.FloodgateSkinCaptureService? = null
     private var headUploadClientCache: net.badgersmc.em.websync.HeadUploadClientCache? = null
     private var moderationProvider: net.badgersmc.em.infrastructure.moderation.MarketModerationProvider? = null
+    private var finderTrail: net.badgersmc.em.infrastructure.listeners.FinderTrailService? = null
 
     @Suppress("LongMethod", "TooGenericExceptionThrown")
     override fun onEnable() {
@@ -99,6 +100,7 @@ open class EnthusiaMarket : JavaPlugin() {
         // i18n service — wired manually since LangService lives outside the EM scan package.
         val lang = LangService(this, Locale(cfg.lang.locale), EnthusiaMarketLang::class.java)
         ctx.registerBean("langService", LangService::class, lang)
+        finderTrail = ctx.getBean<net.badgersmc.em.infrastructure.listeners.FinderTrailService>()
 
         // Database via nexus-persistence
         val dbSpec = when (cfg.database.type) {
@@ -525,6 +527,7 @@ open class EnthusiaMarket : JavaPlugin() {
     override fun onDisable() {
         shopNotifications?.close()
         rentWarnings?.close()
+        finderTrail?.close()
         server.servicesManager.unregisterAll(this)
         runCatching { moderationProvider?.close() }
         runCatching { geyserHeadIntegration?.close() }

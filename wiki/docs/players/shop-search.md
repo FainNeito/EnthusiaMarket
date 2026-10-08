@@ -68,6 +68,8 @@ New shops are **searchable by default**. Shop owners can toggle this in the edit
 
 ## Tips
 
+Click a search result for a private particle direction guide to the shop. It lasts up to 60 seconds by default and stops when you arrive. Cancel it with `/shop trail stop`; selecting another shop replaces it. Guides are limited to nearby shops in your current world. They point toward the destination rather than finding a safe route around walls, so use normal paths. Staff retain normal-click teleport; shift-click starts a guide.
+
 - **Sell search** means you're looking to BUY from shops that SELL. You're the customer.
 - **Buy search** means you're looking to SELL to shops that BUY. You're the supplier.
 - Results use the recorded matching stock count. Refreshing the search captures newer shop data; the trade checks current availability.

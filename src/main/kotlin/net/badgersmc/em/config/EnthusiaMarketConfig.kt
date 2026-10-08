@@ -32,6 +32,8 @@ class EnthusiaMarketConfig {
     var schematics: Schematics = Schematics()
     @Comment("Stall boundary particle outline rendering (REQ-220 region kinds)")
     var particles: Particles = Particles()
+    @Comment("Private direction trails from shop search results.")
+    var finderTrail: FinderTrail = FinderTrail()
     @Comment("Guild tariff/embargo player notifications")
     var guildPolicy: GuildPolicy = GuildPolicy()
     @Comment("Periodic shop audit/repair sweeper (IS2-7/8, REQ-294)")
@@ -51,6 +53,14 @@ class EnthusiaMarketConfig {
                 "Caps render cost on busy servers; excess is deferred to later ticks."
         )
         var maxPerTick: Int = 200
+    }
+
+    class FinderTrail {
+        var enabled: Boolean = true
+        var durationSeconds: Long = 60
+        var maxRange: Double = 256.0
+        var maxActive: Int = 64
+        var maxParticlesPerRender: Int = 200
     }
 
     class GuildPolicy {
