@@ -47,14 +47,6 @@ class FinderTrailTracker {
 
     private fun order(players: List<UUID>): List<UUID> = players.drop(offset % players.size) + players.take(offset % players.size)
 
-    private fun points(from: Point, target: Point, count: Int, distance: Double): List<Point> {
-        return (1..count).map { step ->
-            val ratio = step / distance
-            Point(from.x + (target.x - from.x) * ratio,
-                from.y + (target.y - from.y) * ratio, from.z + (target.z - from.z) * ratio)
-        }
-    }
-
     private fun origin(
         player: UUID, trail: Trail, now: Instant, maxRange: Double,
         location: Pair<String, Point>?,
@@ -69,6 +61,14 @@ class FinderTrailTracker {
             return null
         }
         return location.second
+    }
+
+    private fun points(from: Point, target: Point, count: Int, distance: Double): List<Point> {
+        return (1..count).map { step ->
+            val ratio = step / distance
+            Point(from.x + (target.x - from.x) * ratio,
+                from.y + (target.y - from.y) * ratio, from.z + (target.z - from.z) * ratio)
+        }
     }
 
     companion object {
