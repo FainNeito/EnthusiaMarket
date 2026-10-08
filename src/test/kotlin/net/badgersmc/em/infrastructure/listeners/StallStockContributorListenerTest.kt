@@ -37,6 +37,27 @@ internal class StallStockContributorListenerTest {
         verify { fixture.accounting.stock(fixture.shop.copy(id = 2), 0, 3, null) }
     }
 
+    @Test fun shiftAdditionUsesOnlyMatchingAndEmptySlotCapacity() {
+        val fixture = Fixture()
+        fixture.contents.fill(ItemStack(Material.STONE, 64))
+        fixture.contents[0] = ItemStack(Material.DIAMOND, 62)
+        fixture.contents[1] = ItemStack(Material.AIR)
+        fixture.contents[2] = null
+        val event = mockk<InventoryClickEvent>(relaxed = true)
+        every { event.inventory } returns fixture.inventory
+        every { event.clickedInventory } returns mockk<Inventory>()
+        every { event.whoClicked } returns fixture.player
+        every { event.isShiftClick } returns true
+        every { event.action } returns InventoryAction.MOVE_TO_OTHER_INVENTORY
+        every { event.currentItem } returns ItemStack(Material.DIAMOND, 150)
+        fixture.listener.onClick(event)
+        fixture.contents[0] = ItemStack(Material.DIAMOND, 64)
+        fixture.contents[1] = ItemStack(Material.DIAMOND, 64)
+        fixture.contents[2] = ItemStack(Material.DIAMOND, 64)
+        fixture.server.scheduler.performOneTick()
+        verify { fixture.accounting.stock(fixture.shop, 62, 192, fixture.player.uniqueId) }
+    }
+
     private class Fixture {
         val server = MockBukkit.mock()
         val plugin = MockBukkit.createMockPlugin()

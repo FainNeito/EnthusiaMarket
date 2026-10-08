@@ -94,7 +94,11 @@ open class StallStockContributorListener(private val stock: ContainerStockListen
     private fun units(stack: org.bukkit.inventory.ItemStack?, item: org.bukkit.inventory.ItemStack): Int =
         if (stack != null && ItemStackMatch.isSimilarIgnoringDamageNullZero(stack, item)) stack.amount else 0
 
-    private fun room(inventory: Inventory, item: ItemStack): Int = inventory.storageContents.sumOf { slot -> space(slot, item) }
+    private fun room(inventory: Inventory, item: ItemStack): Int {
+        var capacity = 0
+        for (slot in inventory.storageContents) capacity += space(slot, item)
+        return capacity
+    }
 
     private fun space(slot: ItemStack?, item: ItemStack): Int =
         if (slot == null || slot.type.isAir) item.maxStackSize

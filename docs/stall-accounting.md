@@ -91,3 +91,17 @@ new regression failed before the fix and passes afterward. Invalid and reversed
 date windows now return usage without querying the database. The final clean
 895-test suite and Java-22 Detekt pass after the remaining capture complexity
 refinements. Hosted workflow approval and client acceptance remain separate.
+
+### Final Codacy capacity refinement
+
+The exact PR head `526f37d` reported one remaining anonymous-method complexity
+notice at the stock-capacity summation. Replace its inline lambda with an explicit
+bounded loop; preserve matching-stack, air and empty-slot capacity. The focused
+shift-click contract exercises this boundary. No persistence or economy behavior
+changes. Guilds Codacy remains pending without annotations at this observation.
+
+Capacity refinement validation: all four focused inventory contracts pass. The
+clean Java-25 build passes 896 tests with zero failures/errors and 14 external
+skips (native database profiles were not repeated for this loop-only change).
+Detekt passes separately on Java 22; the first combined build attempt exposed
+its known Java-25 analyzer incompatibility, so the supported split was used.
