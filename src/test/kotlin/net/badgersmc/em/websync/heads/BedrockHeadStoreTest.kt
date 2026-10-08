@@ -276,25 +276,33 @@ class BedrockHeadStoreTest {
         val first = UUID.randomUUID()
         val second = UUID.randomUUID()
         val store = store(upload = { calls.incrementAndGet(); DeliveryOutcome.Retry() }, clock = { now })
-        store.capture(first, validSkin())
-        // The upload callback increments before deferHash reads the clock and persists.
-        // Wait for that durable transition before advancing fake time.
-        await { calls.get() == 1 && pendingSchedules().values.toSet() == setOf("1:10000") }
+        try {
+            store.capture(first, validSkin())
+            awaitWorker(store)
+            assertEquals(1, calls.get())
+            assertEquals(setOf("1:10000"), pendingSchedules().values.toSet())
+            now = 1_000L
+            store.capture(second, validSkin())
+            awaitWorker(store)
+            assertEquals(2, store.status().pending)
+            assertEquals(setOf("1:10000"), pendingSchedules().values.toSet())
+            now = 9_999L
+            store.retryPending()
+            awaitWorker(store)
+            assertEquals(1, calls.get())
+            now = 10_000L
+            store.retryPending()
+            awaitWorker(store)
+            assertEquals(2, calls.get())
+            assertEquals(setOf("2:30000"), pendingSchedules().values.toSet())
+        } finally { store.close() }
+    }
 
-        now = 1_000L
-        store.capture(second, validSkin())
-        await { store.status().pending == 2 }
-        assertEquals(setOf("1:10000"), pendingSchedules().values.toSet())
-        now = 9_999L
-        store.retryPending()
-        Thread.sleep(50)
-        assertEquals(1, calls.get())
-
-        now = 10_000L
-        store.retryPending()
-        await { calls.get() == 2 && pendingSchedules().values.toSet() == setOf("2:30000") }
-        assertEquals(setOf("2:30000"), pendingSchedules().values.toSet())
-        store.close()
+    /** A queued fence waits for the complete mutation/persist step, not just the uploader callback. */
+    private fun awaitWorker(store: BedrockHeadStore) {
+        val worker = BedrockHeadStore::class.java.getDeclaredField("executor").apply { isAccessible = true }
+            .get(store) as java.util.concurrent.ExecutorService
+        worker.submit {}.get(5, java.util.concurrent.TimeUnit.SECONDS)
     }
 
     @Test
