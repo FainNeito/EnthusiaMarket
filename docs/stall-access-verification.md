@@ -18,8 +18,8 @@ User authorized owners/managers to blacklist and edit flags through guild menus;
 - [x] Implement ownership-bound policy storage, cached enforcement and authorized UI/commands.
 - [x] Implement selected-effect suppression with duration/lifecycle conservation.
 - [x] Add opt-in per-ally capability configuration and optional current-alliance companion API.
-- [ ] Prove permissions, blacklists, ownership transfer, stale saves, persistence rollback, effects and actual GUI/transaction paths.
-- [ ] Complete supported builds/architecture/hosted reviews and pending-stack rehearsal.
+- [x] Prove permissions, blacklists, ownership transfer, stale saves, persistence rollback, effects and actual GUI/transaction paths.
+- [x] Complete supported local builds/architecture, inspect hosted reviews and prove pending-stack compatibility.
 
 Local proof: five initial persisted policy cases plus existing listener/management contracts passed. Existing invisibility suppression/restoration and expiry tests passed against MockBukkit. The initial full Java 25/Paper 26.2 suite passed 828 cases with eight environment skips. The expanded full suite exposed a trustAll fixture/contract regression; retaining its existing no-refetch behavior while filtering current deletion authority corrected it. Expanded focused policy, rollback/uncertain-commit, trade, allied-management, effect and existing management cases pass. Final combined source rehearsal follows before handoff.
 
@@ -28,3 +28,5 @@ Settings use a separate portable SQLite/MariaDB table (V034; V031-033 reserved b
 Use `/stallaccess settings <stall>` or the Guilds detail shortcut (#216). Add a blacklist with `/stallaccess blacklist <stall> <player> true`; the menu removes existing entries. Managers select flags, blocked effects and per-guild capability grants. Invisibility blocks include already active effects; incoming splash/lingering potions remain off by default. Entry denial evicts toward a loaded, allowed prior location or world spawn; if neither is allowed/loaded, trading/pickup remain denied and the player can leave normally. No terrain or items are deleted.
 
 Selected effects are restored on exit, quit and plugin disable only for unexpired remaining duration; death discards the held effect. Abrupt process termination cannot run restoration callbacks and is not claimed as tested. Trail/search/warning work and this access work remain unmerged local review artifacts; no production change or stall reset.
+
+Final delivery: reconciled Market #213 passed the clean 890-case suite with zero failures/errors and eight external skips, shadowJar/JaCoCo, architecture and Java-21 Detekt. Broader pending-stack rehearsal passed 972 cases, zero failures/errors, 14 skips. Current review threads are resolved/absent; Market hosted workflow approval is pending, while Guilds #216 hosted checks pass. See approved-features-delivery.md for tested commits and final artifact evidence. These task checks establish source implementation and local proof, not hosted build approval or production/client acceptance.
