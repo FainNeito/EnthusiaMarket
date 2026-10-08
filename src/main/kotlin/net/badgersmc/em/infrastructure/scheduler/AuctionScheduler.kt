@@ -18,8 +18,9 @@ import net.badgersmc.nexus.annotations.PostConstruct
  * Repeatedly settles expired auctions on a fixed schedule and sends
  * time-remaining reminders to active bidders.
  *
- * Runs every 20 seconds (400 ticks) asynchronously to avoid blocking the
- * main server thread for database and economy operations.
+ * Runs every 20 seconds (400 ticks) on the server thread. Settlement includes
+ * economy and world projections that require this thread; repository calls in
+ * the lifecycle and reminders are synchronous and remain a profiling boundary.
  *
  * While a maintenance freeze is active ([MaintenanceFreezeService.isFrozen]) the
  * tick is skipped entirely — no auction settles and no reminders fire during the
