@@ -30,12 +30,7 @@ class ShopHistoryFilterMariaDbTest {
         ds.connection.use { connection ->
             connection.createStatement().use { sql ->
                 sql.executeUpdate("DROP TABLE IF EXISTS shop_transactions")
-                sql.executeUpdate("""CREATE TABLE shop_transactions (
-                    id BIGINT PRIMARY KEY AUTO_INCREMENT, shop_id BIGINT NOT NULL,
-                    owner VARCHAR(36) NOT NULL, buyer VARCHAR(36) NOT NULL,
-                    direction VARCHAR(10) NOT NULL, item TEXT NOT NULL, quantity INT NOT NULL,
-                    total_price BIGINT NOT NULL, created_at BIGINT NOT NULL, notified INT NOT NULL DEFAULT 0
-                )""")
+                sql.executeUpdate(CREATE_HISTORY_TABLE)
             }
         }
     }
@@ -66,6 +61,13 @@ class ShopHistoryFilterMariaDbTest {
         repo.record(ShopTransaction(0, 1, owner, buyer, SignDirection.SELL, "diamond", 1, 10, time))
 
     companion object {
+        private const val CREATE_HISTORY_TABLE = """CREATE TABLE shop_transactions (
+                    id BIGINT PRIMARY KEY AUTO_INCREMENT, shop_id BIGINT NOT NULL,
+                    owner VARCHAR(36) NOT NULL, buyer VARCHAR(36) NOT NULL,
+                    direction VARCHAR(10) NOT NULL, item TEXT NOT NULL, quantity INT NOT NULL,
+                    total_price BIGINT NOT NULL, created_at BIGINT NOT NULL, notified INT NOT NULL DEFAULT 0
+                )"""
+
         @Container @JvmStatic
         private val database = FilterMariaDbContainer("mariadb:11.8.3")
             .withDatabaseName("history_filter_test").withUsername("market_test").withPassword("market_test")
