@@ -70,7 +70,7 @@ class LumaGuildsListenerRegistrationTest {
 
         registration(plugin, config).registerConfiguredListeners()
 
-        verify(exactly = 3) {
+        verify(exactly = 5) {
             manager.registerEvent(any(), any(), EventPriority.MONITOR, any(), plugin, true)
         }
     }

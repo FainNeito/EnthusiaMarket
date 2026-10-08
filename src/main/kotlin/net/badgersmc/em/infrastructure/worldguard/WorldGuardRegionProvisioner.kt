@@ -70,7 +70,8 @@ class WorldGuardRegionProvisioner : RegionProvisioner {
         region.setFlag(Flags.ITEM_FRAME_ROTATE, StateFlag.State.ALLOW)
         region.setFlag(Flags.ITEM_FRAME_ROTATE.regionGroupFlag, RegionGroup.MEMBERS)
         region.setFlag(Flags.INTERACT, StateFlag.State.ALLOW)
-        region.setFlag(Flags.INTERACT.regionGroupFlag, RegionGroup.MEMBERS)
+        // Public anvils and lectern reading; entity/book mutations remain guarded by Market.
+        region.setFlag(Flags.INTERACT.regionGroupFlag, RegionGroup.ALL)
         // Water flow — allow members to place water buckets (default: denied globally)
         region.setFlag(Flags.WATER_FLOW, StateFlag.State.ALLOW)
         region.setFlag(Flags.WATER_FLOW.regionGroupFlag, RegionGroup.MEMBERS)

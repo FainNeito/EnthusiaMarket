@@ -11,8 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NEXUS_REF: 057836befb9e35aa252cf90104030ec86f28b33f
-      LUMAGUILDS_VERSION: 3.0.0
-      LUMAGUILDS_JAR: ${{ github.workspace }}/libs/LumaGuilds-3.0.0.jar
+      LUMAGUILDS_VERSION: 3.0.17 # merged bank API; source 6c9f5a521cca783fbe518f5ad2d749f6e2d211c7
+      LUMAGUILDS_SHA256: de18a4672ac37f456ed72742706ae0ea7ff96dfd0f6878bc6a1d5511b9efb34a
+      LUMAGUILDS_JAR: ${{ github.workspace }}/libs/LumaGuilds-3.0.17.jar
     steps:
       - uses: actions/checkout@v4
 
@@ -36,16 +37,16 @@ jobs:
           chmod +x gradlew
           ./gradlew publishToMavenLocal --no-daemon --console=plain
 
-      # Market consumes LumaGuilds as an API/runtime dependency. Do not rebuild the
-      # RoseChat -> LumaGuilds graph here; use the released LumaGuilds artifact.
-      - name: Download LumaGuilds 3 compile dependency
+      # Compile and test against the actual released companion runtime containing
+      # the merged guild-bank API, including its Bukkit events and implementation.
+      - name: Download merged LumaGuilds runtime
         run: |
           mkdir -p libs
           curl --fail --location --silent --show-error \
             -o "$LUMAGUILDS_JAR" \
             "https://github.com/BadgersMC/LumaGuilds/releases/download/v${LUMAGUILDS_VERSION}/LumaGuilds-${LUMAGUILDS_VERSION}.jar"
           test -s "$LUMAGUILDS_JAR"
-          ls -lh "$LUMAGUILDS_JAR"
+          printf '%s  %s\n' "$LUMAGUILDS_SHA256" "$LUMAGUILDS_JAR" | sha256sum --check
 
       # detekt 1.23.8 does not support running on JDK 25. Keep the production
       # build green on the required 26.2 toolchain; migrate detekt to 2.x separately.
@@ -71,6 +72,17 @@ jobs:
           print("MariaDB moderation tests:", counts)
           if counts["tests"] < 1 or any(counts[name] for name in ("skipped", "failures", "errors")):
               raise SystemExit("MariaDB moderation tests did not execute cleanly")
+          PY
+
+      - name: Report companion XP integration gate
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from xml.etree import ElementTree
+          report = Path("build/test-results/test/TEST-net.badgersmc.em.infrastructure.guild.GuildShopXpRuntimeContractTest.xml")
+          suite = ElementTree.parse(report).getroot()
+          if int(suite.attrib.get("skipped", "0")):
+              print("::warning::Guild-shop XP runtime contract did not run: the pinned Guilds release lacks the new API. Merge/release the companion PR and update the runtime version/hash before approving production integration.")
           PY
 
       - name: Upload coverage to Codacy

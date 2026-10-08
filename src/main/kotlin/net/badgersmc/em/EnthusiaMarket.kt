@@ -29,6 +29,8 @@ import javax.sql.DataSource
 open class EnthusiaMarket : JavaPlugin() {
 
     private var nexus: NexusContext? = null
+    private var shopNotifications: net.badgersmc.em.infrastructure.listeners.ShopNotificationStorage? = null
+    private var shopHistory: net.badgersmc.em.infrastructure.listeners.ShopHistoryStorage? = null
     private var scheduler: NexusScheduler? = null
     private var websiteSync: net.badgersmc.em.websync.WebsiteSyncService? = null
     private var bedrockHeadStore: net.badgersmc.em.websync.heads.BedrockHeadStore? = null
@@ -112,6 +114,8 @@ open class EnthusiaMarket : JavaPlugin() {
         val ds = DatabaseFactory.open(dbSpec)
         MigrationRunner(ds, resourcePrefix = "migrations", classLoader = this::class.java.classLoader).runAll()
         ctx.registerBean("dataSource", DataSource::class, ds as DataSource)
+        shopNotifications = ctx.getBean<net.badgersmc.em.infrastructure.listeners.ShopNotificationStorage>()
+        shopHistory = ctx.getBean<net.badgersmc.em.infrastructure.listeners.ShopHistoryStorage>()
 
         // Stable Staff integration. Register the policy before Nexus constructs any
         // purchase or auction services so every acquisition shares the durable fence.
@@ -156,6 +160,28 @@ open class EnthusiaMarket : JavaPlugin() {
         val stallRepository: net.badgersmc.em.domain.stall.StallRepository =
             net.badgersmc.em.websync.DirtyTrackingStallRepository(stallSqlRepo, websiteDirtyRelay, dirtyFailures)
         ctx.registerBean("stallRepository", net.badgersmc.em.domain.stall.StallRepository::class, stallRepository)
+
+        server.servicesManager.register(
+            net.enthusia.market.api.guild.GuildStallReadApi::class.java,
+            net.badgersmc.em.infrastructure.guild.GuildStallReadProvider(
+                net.badgersmc.em.application.GuildStallQueryService(
+                    stallRepository, ctx.getBean(net.badgersmc.em.domain.ports.GuildProvider::class), cfg,
+                ),
+                ctx.getBean(net.badgersmc.em.domain.ports.RegionProvider::class),
+                java.util.concurrent.Executor { server.scheduler.runTaskAsynchronously(this, it) },
+                java.util.concurrent.Executor { server.scheduler.runTask(this, it) },
+            ),
+            this,
+            org.bukkit.plugin.ServicePriority.Normal,
+        )
+
+        val saleRewards = net.badgersmc.em.application.GuildSaleRewardService(
+            net.badgersmc.em.infrastructure.persistence.GuildSaleJournalSql(ds),
+            net.badgersmc.em.infrastructure.guild.BukkitGuildShopXpGateway(),
+            { id, error -> logger.warning("Guild-shop XP delivery needs retry/investigation for sale $id: ${error.javaClass.simpleName}") },
+        )
+        ctx.registerBean("guildSaleRewards", net.badgersmc.em.domain.ports.GuildSaleRewards::class, saleRewards)
+        server.scheduler.runTaskTimerAsynchronously(this, Runnable { saleRewards.replay() }, 20L, 200L)
 
         // Shop repository + in-memory container index (REQ-281/282, PERF-4). The hopper-control
         // hot path (InventoryMoveItemEvent) must resolve shop status without a DB query, so we wrap
@@ -505,6 +531,8 @@ open class EnthusiaMarket : JavaPlugin() {
     }
 
     override fun onDisable() {
+        shopHistory?.close()
+        shopNotifications?.close()
         server.servicesManager.unregisterAll(this)
         runCatching { moderationProvider?.close() }
         runCatching { geyserHeadIntegration?.close() }

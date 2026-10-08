@@ -18,6 +18,7 @@ class LumaGuildsListenerRegistration(
     private val config: EnthusiaMarketConfig,
     private val disbanded: GuildDisbandedEventListener,
     private val visualChanges: GuildVisualChangeListener,
+    private val accessSync: net.badgersmc.em.application.GuildStallAccessSync? = null,
 ) : Listener {
 
     @PostConstruct
@@ -38,6 +39,13 @@ class LumaGuildsListenerRegistration(
         registerEvent(pluginManager, classLoader, DISBANDED_EVENT, disbanded::onGuildDisbanded)
         registerEvent(pluginManager, classLoader, BANNER_CHANGED_EVENT, visualChanges::onGuildVisualChanged)
         registerEvent(pluginManager, classLoader, OWNERSHIP_TRANSFER_EVENT, visualChanges::onGuildVisualChanged)
+        for (event in listOf("GuildMemberJoinEvent", "GuildMemberRemovedEvent")) {
+            registerEvent(pluginManager, classLoader, event) { changed ->
+                val guildId = LumaGuildsEventAccess.guildId(changed) ?: return@registerEvent
+                // Events may be emitted from asynchronous membership work. Project on the server thread.
+                plugin.server.scheduler.runTask(plugin, Runnable { accessSync?.refresh(guildId.toString()) })
+            }
+        }
     }
 
     private fun registerEvent(

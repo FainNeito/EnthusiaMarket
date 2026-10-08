@@ -35,6 +35,7 @@ class BedrockCreateShopForm(
     logger: Logger,
     lang: LangService,
     private val signRenderer: ShopSignRenderer,
+    private val authorised: (Player) -> Boolean = { true },
 ) : BedrockMenuBase(player, logger, lang) {
 
     override fun buildForm(): CustomForm {
@@ -50,6 +51,10 @@ class BedrockCreateShopForm(
 
     @Suppress("ReturnCount", "ComplexCondition", "ThrowsCount")
     private fun handleCreate(response: CustomFormResponse) {
+        if (!authorised(player)) {
+            player.sendMessage(lang.legacy("shop.create.no_authority"))
+            return
+        }
         val direction = directionFrom(response.asDropdown(1) ?: 0)
         val priceText = response.asInput(2) ?: ""
         val amountText = response.asInput(3) ?: "1"
@@ -88,7 +93,7 @@ class BedrockCreateShopForm(
             containerX = containerLoc.blockX, containerY = containerLoc.blockY, containerZ = containerLoc.blockZ,
             sellItemBase64 = sellItemBase64, sellAmount = amount, price = price,
             direction = direction,
-            costItemBase64 = costItemBase64, costAmountOverride = costAmount,
+            costItemBase64 = costItemBase64, costAmountOverride = if (direction == SignDirection.TRADE) costAmount else null,
             searchEnabled = true,
         )
         shopRepository.upsert(shop)

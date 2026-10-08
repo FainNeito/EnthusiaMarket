@@ -11,6 +11,26 @@ import java.util.UUID
 import kotlin.test.Test
 
 class HopperControlListenerTest {
+    @Test fun `hopper minecart cannot extract shop stock from opposite chest half`() {
+        val repo = mockk<ShopRepository>(relaxed = true)
+        val shop = Shop(1, "s1", UUID.randomUUID(), "world", 1, 64, 1, "world", 11, 64, 20,
+            "item", 1, "cost", 10, hopperAllowOut = false)
+        fun loc(x: Int) = mockk<Location>(relaxed = true).also {
+            every { it.world?.name } returns "world"
+            every { it.blockX } returns x
+            every { it.blockY } returns 64
+            every { it.blockZ } returns 20
+        }
+        val source = mockk<org.bukkit.inventory.DoubleChestInventory>(relaxed = true)
+        every { source.leftSide.location } returns loc(10)
+        every { source.rightSide.location } returns loc(11)
+        every { repo.findByContainer("world", 10, 64, 20) } returns emptyList()
+        every { repo.findByContainer("world", 11, 64, 20) } returns listOf(shop)
+        val destination = mockk<Inventory>(relaxed = true)
+        val event = InventoryMoveItemEvent(source, mockk<ItemStack>(relaxed = true), destination, true)
+        HopperControlListener(repo).onHopperMove(event)
+        kotlin.test.assertTrue(event.isCancelled)
+    }
 
     @Test
     fun `hopper extracts from container with hopperAllowOut false is cancelled`() {

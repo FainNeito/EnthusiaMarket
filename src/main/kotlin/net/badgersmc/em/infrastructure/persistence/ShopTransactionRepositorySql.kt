@@ -1,6 +1,7 @@
 package net.badgersmc.em.infrastructure.persistence
 
 import net.badgersmc.em.domain.shop.PriceStats
+import net.badgersmc.em.domain.shop.PendingShopSales
 import net.badgersmc.em.domain.shop.ShopTransaction
 import net.badgersmc.em.domain.shop.ShopTransactionRepository
 import net.badgersmc.em.domain.shop.SignDirection
@@ -14,7 +15,39 @@ import javax.sql.DataSource
 class ShopTransactionRepositorySql(private val ds: DataSource) : ShopTransactionRepository {
 
     override fun record(tx: ShopTransaction): ShopTransaction {
-        ds.connection.use { c ->
+        return ds.connection.use { c -> insert(c, tx) }
+    }
+
+    override fun recordOnce(recordingId: UUID, tx: ShopTransaction) {
+        ds.connection.use { connection ->
+            connection.autoCommit = false
+            try {
+                if (!hasReceipt(connection, recordingId)) {
+                    connection.prepareStatement(
+                        "INSERT INTO shop_history_receipts (recording_id, recorded_at) VALUES (?, ?)"
+                    ).use { statement ->
+                        statement.setString(1, recordingId.toString())
+                        statement.setLong(2, tx.createdAt)
+                        statement.executeUpdate()
+                    }
+                    insert(connection, tx)
+                }
+                connection.commit()
+            } catch (failure: Exception) {
+                try { connection.rollback() } catch (rollback: java.sql.SQLException) { failure.addSuppressed(rollback) }
+                // Leave ambiguous commits for replay on a fresh connection, never guess success.
+                throw failure
+            }
+        }
+    }
+
+    private fun hasReceipt(connection: java.sql.Connection, recordingId: UUID): Boolean =
+        connection.prepareStatement("SELECT recording_id FROM shop_history_receipts WHERE recording_id = ?").use {
+            it.setString(1, recordingId.toString())
+            it.executeQuery().use { rows -> rows.next() }
+        }
+
+    private fun insert(c: java.sql.Connection, tx: ShopTransaction): ShopTransaction {
             c.prepareStatement(
                 """INSERT INTO shop_transactions
                    (shop_id, owner, buyer, direction, item, quantity, total_price, created_at, notified)
@@ -37,7 +70,6 @@ class ShopTransactionRepositorySql(private val ds: DataSource) : ShopTransaction
                 }
                 return tx.copy(id = id)
             }
-        }
     }
 
     override fun findByOwner(owner: UUID, limit: Int, offset: Int): List<ShopTransaction> {
@@ -111,6 +143,30 @@ class ShopTransactionRepositorySql(private val ds: DataSource) : ShopTransaction
             c.prepareStatement("UPDATE shop_transactions SET notified = 1 WHERE owner = ? AND notified = 0").use { ps ->
                 ps.setString(1, owner.toString())
                 ps.executeUpdate()
+            }
+        }
+    }
+
+    override fun pendingSales(owner: UUID): PendingShopSales = ds.connection.use { connection ->
+        connection.prepareStatement(
+            "SELECT COUNT(*), COALESCE(MAX(id), 0) FROM shop_transactions WHERE owner = ? AND notified = 0"
+        ).use { statement ->
+            statement.setString(1, owner.toString())
+            statement.executeQuery().use { rows ->
+                rows.next()
+                PendingShopSales(rows.getInt(1), rows.getLong(2))
+            }
+        }
+    }
+
+    override fun markNotifiedThrough(owner: UUID, lastId: Long) {
+        ds.connection.use { connection ->
+            connection.prepareStatement(
+                "UPDATE shop_transactions SET notified = 1 WHERE owner = ? AND notified = 0 AND id <= ?"
+            ).use { statement ->
+                statement.setString(1, owner.toString())
+                statement.setLong(2, lastId)
+                statement.executeUpdate()
             }
         }
     }

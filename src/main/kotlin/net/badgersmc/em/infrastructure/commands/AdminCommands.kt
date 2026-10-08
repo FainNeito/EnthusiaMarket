@@ -298,6 +298,37 @@ class AdminCommands(
         sender.sendMessage(component)
     }
 
+    @Subcommand("bidguild")
+    @Permission("enthusiamarket.auction.bid")
+    fun bidGuild(
+        @Context sender: CommandSender,
+        @Arg("auction") auction: String,
+        @Arg("amount") amount: Long,
+        @Arg("guild") guild: String? = null,
+    ) {
+        val player = sender as? Player ?: return
+        val eligible = auctionService.eligibleGuilds(player.uniqueId)
+        val selected = selectBidGuild(eligible, guild)
+        if (selected == null) {
+            sender.sendMessage(lang.msg("admin.bid.failure", "reason" to "Choose an eligible guild by name or ID: ${eligible.joinToString { it.name }}"))
+            return
+        }
+        val result = auctionService.placeBid(AuctionId(auction), net.badgersmc.em.application.AuctionLifecycleService.BidRequest(player.uniqueId, amount,
+            player.address?.address?.hostAddress ?: "unknown", selected.id))
+        sendGuildBidResult(sender, result, amount)
+    }
+
+    private fun selectBidGuild(eligible: List<net.badgersmc.em.domain.ports.GuildProvider.GuildRef>, name: String?) =
+        if (name == null) eligible.singleOrNull() else eligible.firstOrNull { it.id == name || it.name.equals(name, true) }
+
+    private fun sendGuildBidResult(sender: CommandSender, result: AuctionResult, amount: Long) {
+        sender.sendMessage(when (result) {
+            is AuctionResult.Success -> lang.msg("admin.bid.success", "amount" to amount, "stall" to result.auction.stallId.value)
+            is AuctionResult.Failure -> lang.msg("admin.bid.failure", "reason" to result.reason)
+            AuctionResult.NotFound -> lang.msg("admin.bid.not_found")
+        })
+    }
+
     @Subcommand("auction startall")
     @Permission("enthusiamarket.admin")
     fun auctionStartAll(

@@ -124,12 +124,13 @@ class StallTest {
         val guildProvider = mockk<GuildProvider>()
 
         every { guildProvider.isMember(playerUuid, guildId) } returns true
+        every { guildProvider.hasShopPermission(playerUuid, guildId, GuildProvider.GuildPermission.MANAGE_SHOPS) } returns true
 
         val result = stall.canManage(playerUuid, guildProvider)
 
         assertTrue(result)
         verify { guildProvider.isMember(playerUuid, guildId) }
-        verify(exactly = 0) { guildProvider.hasShopPermission(any(), any(), any()) }
+        verify { guildProvider.hasShopPermission(playerUuid, guildId, GuildProvider.GuildPermission.MANAGE_SHOPS) }
     }
 
     @Test fun `non-member cannot manage guild stall`() {

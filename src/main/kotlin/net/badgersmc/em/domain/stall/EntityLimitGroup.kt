@@ -13,6 +13,9 @@ data class EntityLimitGroup(
     /** Per-type cap for [type] (lower-case EntityType name); -1 if unlisted/unlimited. */
     fun capFor(type: String): Int = perType[type] ?: -1
 
+    /** Unlimited frames bypass the shared total for their placement (REQ-332). */
+    fun appliesTotalTo(type: String): Boolean = type !in FRAME_TYPES || capFor(type) >= 0
+
     /** True when [currentCount] of [type] is at or above its cap (unlimited never over). */
     fun isOverTypeCap(type: String, currentCount: Int): Boolean {
         val cap = capFor(type)
@@ -39,5 +42,9 @@ data class EntityLimitGroup(
             }
         }
         return EntityLimitGroup(mergedTotal, mergedPerType)
+    }
+
+    companion object {
+        private val FRAME_TYPES = setOf("item_frame", "glow_item_frame")
     }
 }

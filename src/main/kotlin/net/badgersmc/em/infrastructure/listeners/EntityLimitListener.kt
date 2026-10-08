@@ -34,7 +34,7 @@ class EntityLimitListener(
     private val plugin: org.bukkit.plugin.Plugin,
 ) : Listener {
 
-    // Loaded once on construction; reload via /em reload re-creates beans.
+    // Loaded once on construction; entitylimits.yml changes require a restart.
     private val groups: Map<String, EntityLimitGroup> =
         EntityLimitConfig.load(File(plugin.dataFolder, "entitylimits.yml"))
 
@@ -62,7 +62,7 @@ class EntityLimitListener(
             rescan: (String) -> Map<String, Int>,
         ): Boolean {
             if (counter.wouldExceedTypeCap(stallId, type, group.capFor(type), rescan)) return true
-            if (counter.wouldExceedTotal(stallId, group.total, rescan)) return true
+            if (group.appliesTotalTo(type) && counter.wouldExceedTotal(stallId, group.total, rescan)) return true
             counter.increment(stallId, type)
             return false
         }

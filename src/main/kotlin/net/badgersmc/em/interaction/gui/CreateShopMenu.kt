@@ -47,6 +47,7 @@ class CreateShopMenu(
     private val initialCostItemB64: String? = null,
     private val initialCostAmount: Int? = null,
     private val signRenderer: ShopSignRenderer = ShopSignRenderer(),
+    private val authorised: (Player) -> Boolean = { true },
 ) : Menu {
 
     private var direction: SignDirection = initialDirection
@@ -114,6 +115,11 @@ class CreateShopMenu(
         // Row 3: confirm + cancel
         pane.addItem(GuiItem(decorated(Material.LIME_STAINED_GLASS_PANE, lang.msg("gui.shop.create.confirm"))) { event ->
             event.isCancelled = true
+            if (!authorised(player)) {
+                player.closeInventory()
+                player.sendMessage(lang.msg("shop.create.no_authority"))
+                return@GuiItem
+            }
             val shop = ShopFactory.build(
                 stallId = stallId, owner = stallOwner,
                 signWorld = signLoc.world?.name ?: "world",

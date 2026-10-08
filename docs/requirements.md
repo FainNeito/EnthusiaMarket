@@ -261,6 +261,12 @@ Reference: study of `advanced-region-market` (ARM) plugin. Eight features select
 
 **Unwanted.** IF a mob/entity spawn or item-frame placement inside a stall would exceed the active entity limit group's per-type or total cap THE SYSTEM SHALL cancel the event.
 
+#### REQ-332 — Configurable unlimited item frames
+
+**Ubiquitous.** THE SYSTEM SHALL default `item_frame` and `glow_item_frame` to `-1` (unlimited) in every bundled entity limit group.
+
+**Optional.** WHERE an item-frame type has an effective negative cap THE SYSTEM SHALL permit its placement without applying the shared `_total` cap. WHERE its effective cap is nonnegative THE SYSTEM SHALL enforce both its per-type cap and the shared total cap, including zero prohibiting placement. Other entity types SHALL retain their existing limits and counting semantics. Existing operator configuration SHALL be preserved.
+
 #### REQ-222 — Per-stall entity-limit override
 
 **Optional.** THE SYSTEM SHALL allow admins to grant individual stalls extra entity allowance (`extraEntities[<type>]`, `extraTotal`) via `/em stall entitylimit set`.
@@ -533,7 +539,43 @@ return the stall to UNOWNED.
 
 ---
 
+## Storage notification resilience
+
+IDs 323–344 are reserved by the pending correctness, companion and search PRs.
+
+### REQ-345 — Join notification thread boundary
+
+**Event-driven.** WHEN a player joins THE SYSTEM SHALL read missed-sale history outside the server thread and deliver the summary only to the same still-connected player session.
+
+### REQ-346 — Snapshot acknowledgement
+
+**Event-driven.** WHEN a missed-sale summary is delivered THE SYSTEM SHALL acknowledge only records up to its captured row watermark while preserving later unread sales.
+
+### REQ-347 — Recoverable notification failures
+
+**Unwanted.** IF notification storage fails or its bounded queue rejects work THE SYSTEM SHALL preserve unread history without performing storage work on the join caller.
+
+### REQ-348 — Completed trade thread boundary
+
+WHEN a completed shop trade reaches the history listener THE SYSTEM SHALL force an immutable local recovery record before returning and deliver SQL history on a dedicated worker without replaying game operations.
+
+### REQ-349 — Replay-safe history delivery
+
+WHEN a recovery record is retried THE SYSTEM SHALL atomically insert a durable receipt and history at most once, including retries after history pruning.
+
+### REQ-350 — Interrupted history delivery
+
+IF delivery or acknowledgement fails THE SYSTEM SHALL retain the recovery record; corrupt records SHALL be quarantined for review without blocking valid records.
+
 ## Acceptance
+
+### REQ-340 — Guild stall read API
+
+**Event-driven.** WHEN a current guild member requests their guild stalls through the versioned read API THE SYSTEM SHALL return current guild-owned stall state, stored rent terms, rent/grace deadlines and current member shop capabilities using the same authority as shop protection, SHALL reject non-member or unavailable membership reads, and SHALL perform no ownership, balance, region or permission mutations.
+
+### REQ-341 — Safe asynchronous stall presentation
+
+**Ubiquitous.** THE SYSTEM SHALL perform stall persistence reads outside the server thread, SHALL resolve region coordinates on the server thread, and SHALL return failed reads as unavailable rather than report that a guild has no stalls.
 
 ### REQ-100 — Smoke test on MockBukkit
 
@@ -550,3 +592,49 @@ return the stall to UNOWNED.
 1. Every REQ has a single ID, a heading, and exactly one EARS-formatted sentence under a **pattern label** (Ubiquitous / Event-driven / State-driven / Unwanted / Optional).
 2. Use `/spear:spec` to add or revise REQ entries — it runs the EARS validator (`plugins/spear/hooks/lib/ears.mjs`) and assigns the next free ID.
 3. Never reuse an ID. When a requirement is obsolete, strike it through and note the deprecation date; do not renumber.
+
+## Discord Market and guild-stall audit (2026-10-03)
+
+### REQ-323 — Current guild authority
+
+**State-driven.** WHILE a shop belongs to an active guild stall THE SYSTEM SHALL check current membership and the field-specific rank permission for every chest read, stock change, price edit, creation and deletion without granting a creator bypass.
+
+### REQ-324 — Guild roster projection
+
+**Event-driven.** WHEN guild membership changes THE SYSTEM SHALL replace the active guild stalls' WorldGuard rosters including empty rosters and offline members.
+
+### REQ-325 — Guild sellback
+
+**Event-driven.** WHEN an authorised member sells back a guild stall THE SYSTEM SHALL refund the owning guild bank and preserve ownership and projections when payment fails.
+
+### REQ-326 — Guild auction provenance
+
+**Event-driven.** WHEN a member bids for a guild THE SYSTEM SHALL persist its funding target, debit and refund that guild, revalidate membership and authority before settlement, and award the stall to that guild.
+
+### REQ-327 — Submitted edit authority and signs
+
+**Event-driven.** WHEN a Java or Bedrock shop edit is submitted THE SYSTEM SHALL recheck current field-specific authority and refresh all displayed sign fields even when stock is unchanged.
+
+### REQ-328 — Spear creation
+
+**Event-driven.** WHEN a sneaking player holding a spear emits a left-click air interaction aimed at an unregistered shop sign THE SYSTEM SHALL resolve the first target within six blocks and apply normal creation checks.
+
+### REQ-329 — Creature container stock
+
+**Ubiquitous.** THE SYSTEM SHALL ignore incidental creature identity and residence timers when matching bucketed animals and occupied hives while preserving variants, occupancy, custom metadata and actual delivered inventory items.
+
+### REQ-330 — Visitor and hopper boundaries
+
+**Ubiquitous.** THE SYSTEM SHALL permit public workstation use and written lectern-book reading while guarding book removal, decoration mutations, shop inventories and both halves of hopper-connected double chests.
+
+### REQ-334 — Private custom-price chat input
+
+**Event-driven.** WHEN a player with a pending Market price or bulk-quantity prompt sends chat THE SYSTEM SHALL cancel that message before legacy chat broadcasters process it and schedule the existing input handler on the server thread. The Paper-only chat path SHALL remain supported; a legacy-cancelled message SHALL NOT schedule a duplicate callback through the Paper event. Chat without a pending prompt SHALL retain normal broadcasting behavior.
+
+## Guild-shop XP (REQ-342)
+
+See [guild-shop-xp.md](guild-shop-xp.md) for policy, payment boundary, journal states and SPEAR evidence.
+
+### REQ-335 — Sellback moderation reservation
+
+**Unwanted.** IF a stall has an active moderation mutation lock when sellback is confirmed THEN THE SYSTEM SHALL reject sellback before ownership, refund, shop, offer, IP, region or schematic mutations.

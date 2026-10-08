@@ -44,7 +44,7 @@ class BlockProtectionListener(
                 when {
                     // Owner breaks their own sign -> delete the shop and let the break proceed,
                     // so a broken sign never leaves an orphan row blocking the spot (REQ-015).
-                    shop.owner == player.uniqueId -> {
+                    management.canDelete(shop, player.uniqueId) -> {
                         management.delete(player.uniqueId, shop.id)
                         player.sendMessage(lang.msg("shop.protect.sign_broken_deleted"))
                         event.isCancelled = false  // ensure break proceeds
@@ -97,7 +97,7 @@ class BlockProtectionListener(
 
     private fun handleContainerBreak(event: BlockBreakEvent, block: org.bukkit.block.Block, shops: List<Shop>) {
         val player = event.player
-        val isOwner = shops.all { it.owner == player.uniqueId } || player.hasPermission("enthusiamarket.admin")
+        val isOwner = shops.all { management.canDelete(it, player.uniqueId) } || player.hasPermission("enthusiamarket.admin")
         if (!isOwner) {
             event.isCancelled = true
             player.sendMessage(lang.msg("shop.protect.container_has_shops"))

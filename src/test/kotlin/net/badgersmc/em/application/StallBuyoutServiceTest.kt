@@ -82,6 +82,19 @@ class StallBuyoutServiceTest {
     }
 
     @Test
+    fun `rebuying a vacant expired stall does not inherit former delegated access`() {
+        val formerMember = UUID.randomUUID()
+        val dirtyVacant = unownedStall().copy(members = setOf(formerMember))
+        val (service, _) = buildService(stall = dirtyVacant)
+        val result = assertIs<StallBuyoutService.Result.Purchased>(
+            service.buy(stallId, player, 100L, "1.2.3.4"),
+        )
+        assertTrue(result.stall.members.isEmpty())
+        kotlin.test.assertFalse(result.stall.canManage(formerMember, mockk(relaxed = true)))
+        assertEquals(OwnerRef.solo(player), result.stall.owner)
+    }
+
+    @Test
     fun `buy rejects when player at total cap and never charges`() {
         val (svc, economy) = buildService(
             claimDecision = LimitResolutionService.ClaimDecision.Rejected.TotalCapReached(3),

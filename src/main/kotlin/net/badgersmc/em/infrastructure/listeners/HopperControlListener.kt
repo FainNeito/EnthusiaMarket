@@ -44,6 +44,11 @@ class HopperControlListener(
     }
 
     private fun getShopsForInventory(inv: Inventory): List<Shop>? {
+        if (inv is org.bukkit.inventory.DoubleChestInventory) {
+            return listOfNotNull(inv.leftSide.location, inv.rightSide.location).flatMap { loc ->
+                shopRepository.findByContainer(loc.world?.name ?: "world", loc.blockX, loc.blockY, loc.blockZ)
+            }.distinctBy { it.id }.ifEmpty { null }
+        }
         // Use Paper's Inventory.getLocation() to avoid the expensive
         // Inventory.getHolder() → BlockEntityState snapshot path that
         // triggers NBT deserialization on every hopper tick (7%+ CPU).

@@ -2,12 +2,15 @@ package net.badgersmc.em.infrastructure.moderation
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import net.badgersmc.em.domain.auction.AuctionId
+import net.badgersmc.em.domain.auction.Bid
 import net.badgersmc.em.domain.ports.MarketAcquisitionBlockedException
 import net.badgersmc.em.domain.stall.OwnerRef
 import net.badgersmc.em.domain.stall.RentTerms
 import net.badgersmc.em.domain.stall.Stall
 import net.badgersmc.em.domain.stall.StallId
 import net.badgersmc.em.domain.stall.StallState
+import net.badgersmc.em.infrastructure.persistence.AuctionRepositorySql
 import net.badgersmc.em.infrastructure.persistence.StallRepositorySql
 import net.badgersmc.nexus.persistence.MigrationRunner
 import net.enthusia.market.api.moderation.MarketBlacklistRequest
@@ -31,6 +34,8 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @Testcontainers(disabledWithoutDocker = true)
@@ -49,13 +54,35 @@ class JdbcMarketModerationMariaDbTest {
         })
         createV27UpgradeBaseline()
         val applied = MigrationRunner(dataSource, "migrations", javaClass.classLoader).runAll()
-        assertEquals(listOf(28, 29), applied.map { it.version })
+        assertEquals(listOf(28, 29, 30, 31, 32), applied.map { it.version })
         createStallAndShop()
     }
 
     @AfterTest
     fun tearDown() {
         dataSource.close()
+    }
+
+    @Test
+    fun `mariadb upgrade preserves personal bids and persists guild funding`() {
+        val repository = AuctionRepositorySql(dataSource)
+        val auctionId = AuctionId("auction-legacy")
+        val original = assertNotNull(repository.findById(auctionId))
+        val personalBid = assertNotNull(original.highBid)
+        assertNull(personalBid.guildId)
+        assertEquals(ownerId, personalBid.bidder)
+        assertEquals(4_000L, personalBid.amount)
+        assertEquals(now, personalBid.placedAt)
+
+        val guildId = UUID.randomUUID().toString()
+        val guildBid = Bid(ownerId, 5_000L, now.plusSeconds(1), guildId)
+        repository.save(original.copy(highBid = guildBid))
+        assertEquals(guildBid, AuctionRepositorySql(dataSource).findById(auctionId)?.highBid)
+        assertTrue(MigrationRunner(dataSource, "migrations", javaClass.classLoader).runAll().isEmpty())
+        assertEquals(guildBid, repository.findById(auctionId)?.highBid)
+
+        repository.save(original)
+        assertEquals(personalBid, repository.findById(auctionId)?.highBid)
     }
 
     @Test
@@ -283,11 +310,13 @@ class JdbcMarketModerationMariaDbTest {
                 "market_player_fences",
                 "shop_transactions",
                 "shop_items",
+                "auctions",
                 "stalls",
-                "schema_migration",
+                "guild_sale_xp_journal", "schema_migration",
             ).forEach { table -> connection.prepareStatement("DROP TABLE IF EXISTS $table").use { it.executeUpdate() } }
             createStallsBaseline(connection)
             createShopsBaseline(connection)
+            createAuctionsBaseline(connection)
             createMigrationBaseline(connection)
         }
     }
@@ -347,6 +376,45 @@ class JdbcMarketModerationMariaDbTest {
                    FOREIGN KEY (stall_id) REFERENCES stalls(id)
                 )""",
         ).use { it.executeUpdate() }
+    }
+
+    private fun createAuctionsBaseline(connection: java.sql.Connection) {
+        connection.prepareStatement(
+            """CREATE TABLE auctions (
+                   id VARCHAR(128) PRIMARY KEY,
+                   stall_id VARCHAR(128) NOT NULL,
+                   state VARCHAR(32) NOT NULL,
+                   start_at BIGINT NOT NULL,
+                   end_at BIGINT NOT NULL,
+                   starting_bid BIGINT NOT NULL,
+                   high_bid_amount BIGINT,
+                   high_bidder VARCHAR(36),
+                   high_placed_at BIGINT,
+                   anti_snipe_sec INTEGER NOT NULL,
+                   anti_snipe_extend_sec INTEGER NOT NULL DEFAULT 30,
+                   auction_duration_sec INTEGER NOT NULL DEFAULT 0,
+                   FOREIGN KEY (stall_id) REFERENCES stalls(id)
+                )""",
+        ).use { it.executeUpdate() }
+        connection.prepareStatement(
+            """INSERT INTO stalls
+               (id, region_id, world, state, owner_type, owner_id,
+                rent_mode, members, extra_entities)
+               VALUES ('stall-legacy', 'market-stall-legacy', 'market',
+                       'AUCTIONING', 'NONE', '', 'FORMULA', '', '')""",
+        ).use { it.executeUpdate() }
+        connection.prepareStatement(
+            """INSERT INTO auctions
+               (id, stall_id, state, start_at, end_at, starting_bid,
+                high_bid_amount, high_bidder, high_placed_at, anti_snipe_sec)
+               VALUES ('auction-legacy', 'stall-legacy', 'OPEN', ?, ?, 1000, 4000, ?, ?, 30)""",
+        ).use { statement ->
+            statement.setLong(1, now.minusSeconds(DAY_SECONDS).toEpochMilli())
+            statement.setLong(2, now.plusSeconds(DAY_SECONDS).toEpochMilli())
+            statement.setString(3, ownerId.toString())
+            statement.setLong(4, now.toEpochMilli())
+            assertEquals(1, statement.executeUpdate())
+        }
     }
 
     private fun createMigrationBaseline(connection: java.sql.Connection) {

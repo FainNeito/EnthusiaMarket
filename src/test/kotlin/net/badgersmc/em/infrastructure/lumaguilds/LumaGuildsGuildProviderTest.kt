@@ -199,13 +199,13 @@ class LumaGuildsGuildProviderTest {
 
     @Test
     fun `bankWithdraw returns true on success`() {
-        every { lookup.bankWithdraw(guildId, any(), 1000, any()) } returns true
+        every { lookup.systemBankWithdraw(guildId, 1000, any()) } returns true
         assertTrue(provider.bankWithdraw(guildId.toString(), 1000L))
     }
 
     @Test
     fun `bankWithdraw returns false on failure`() {
-        every { lookup.bankWithdraw(guildId, any(), 1000, any()) } returns false
+        every { lookup.systemBankWithdraw(guildId, 1000, any()) } returns false
         assertFalse(provider.bankWithdraw(guildId.toString(), 1000L))
     }
 
@@ -216,13 +216,13 @@ class LumaGuildsGuildProviderTest {
 
     @Test
     fun `bankDeposit returns true on success`() {
-        every { lookup.bankDeposit(guildId, any(), 500, any()) } returns true
+        every { lookup.systemBankDeposit(guildId, 500, any()) } returns true
         assertTrue(provider.bankDeposit(guildId.toString(), 500L))
     }
 
     @Test
     fun `bankDeposit returns false on failure`() {
-        every { lookup.bankDeposit(guildId, any(), 500, any()) } returns false
+        every { lookup.systemBankDeposit(guildId, 500, any()) } returns false
         assertFalse(provider.bankDeposit(guildId.toString(), 500L))
     }
 

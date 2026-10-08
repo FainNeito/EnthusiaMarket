@@ -1,20 +1,23 @@
 package net.badgersmc.em.infrastructure.listeners
 
 import net.badgersmc.em.domain.shop.ShopTransaction
-import net.badgersmc.em.domain.shop.ShopTransactionRepository
 import net.badgersmc.em.events.PostShopTransactionEvent
 import net.badgersmc.nexus.annotations.Component
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
+import org.bukkit.event.EventPriority
+import org.bukkit.Bukkit
+import net.badgersmc.em.config.EnthusiaMarketConfig
 
 /** Persists every completed shop trade to the transaction log (ItemShops parity SP6). */
 @net.badgersmc.nexus.paper.listeners.Listener
 @Component
 open class ShopTransactionRecorder(
-    private val transactions: ShopTransactionRepository,
+    private val transactions: ShopHistoryStorage,
+    private val config: EnthusiaMarketConfig,
 ) : Listener {
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR)
     @Suppress("TooGenericExceptionCaught")
     fun onTransaction(event: PostShopTransactionEvent) {
         try {
@@ -28,7 +31,7 @@ open class ShopTransactionRecorder(
                     quantity = event.quantity,
                     totalPrice = event.pricePaid.toLong(),
                     createdAt = System.currentTimeMillis(),
-                    notified = false,
+                    notified = config.shop.notifyEnabled && Bukkit.getPlayer(event.landlordId)?.isOnline == true,
                 )
             )
         } catch (e: Exception) {

@@ -40,32 +40,10 @@ open class ShopCreateListener(
 
     @EventHandler
     fun onSignInteract(event: PlayerInteractEvent) {
-        // Must be left-click while sneaking
-        if (event.action != Action.LEFT_CLICK_BLOCK) return
-        if (!event.player.isSneaking) return
-
-        val block = event.clickedBlock ?: return
-        val state = block.state
-
-        // Must be a wall sign
-        if (state !is Sign || block.blockData !is WallSign) return
-
-        // Must not already be a registered shop
+        val target = creationTarget(event) ?: return
+        val block = target.first
+        val attachedBlock = target.second
         val loc = block.location
-        if (shopRepository.findBySign(loc.world?.name ?: "world", loc.blockX, loc.blockY, loc.blockZ) != null) {
-            event.player.sendMessage(lang.msg("shop.create.already_shop"))
-            return
-        }
-
-        // Find attached container via the sign's attached block face
-        val wallSignData = block.blockData as WallSign
-        val facing = wallSignData.facing
-        val attachedBlock = block.getRelative(facing.oppositeFace)
-
-        if (attachedBlock.state !is Container) {
-            event.player.sendMessage(lang.msg("shop.create.needs_container"))
-            return
-        }
 
         // Check the sign is inside an owned stall
         val stall = findStallAt(loc) ?: run {
@@ -91,18 +69,66 @@ open class ShopCreateListener(
         val signLoc = block.location
         val containerLoc = attachedBlock.location
         val player = event.player
+        val authorised: (Player) -> Boolean = { actor ->
+            val current = stallRepository.findById(stall.id)
+            current != null && current.state in setOf(net.badgersmc.em.domain.stall.StallState.OWNED, net.badgersmc.em.domain.stall.StallState.GRACE) && canManageStall(current, actor)
+        }
         if (menuFactory.shouldUseBedrockMenus(player)) {
             net.badgersmc.em.interaction.bedrock.BedrockCreateShopForm(
                 player, player.uniqueId, stall.id.value, signLoc, containerLoc,
                 sellItemB64, shopRepository, logger, lang, shopSignRenderer,
+                authorised,
             ).open(player)
         } else {
             net.badgersmc.em.interaction.gui.CreateShopMenu(
                 stall.id.value, player.uniqueId, signLoc, containerLoc,
                 sellItemB64, shopRepository, lang,
+                authorised = authorised,
             ).open(player)
         }
     }
+
+    private fun interactionBlock(event: PlayerInteractEvent): org.bukkit.block.Block? {
+        if (event.hand != org.bukkit.inventory.EquipmentSlot.HAND) return null
+        if (!event.player.isSneaking) return null
+        return when (event.action) {
+            Action.LEFT_CLICK_BLOCK -> event.clickedBlock
+            Action.LEFT_CLICK_AIR -> spearTarget(event.player)
+            else -> null
+        }
+    }
+
+    private fun spearTarget(player: Player): org.bukkit.block.Block? =
+        if (player.inventory.itemInMainHand.type.name.endsWith("_SPEAR")) player.getTargetBlockExact(6) else null
+
+    private fun creationTarget(event: PlayerInteractEvent): Pair<org.bukkit.block.Block, org.bukkit.block.Block>? {
+        val block = interactionBlock(event) ?: return null
+        val wallSignData = wallSign(block) ?: return null
+
+        // Must not already be a registered shop
+        val loc = block.location
+        if (registeredShopAt(loc)) {
+            event.player.sendMessage(lang.msg("shop.create.already_shop"))
+            return null
+        }
+
+        // Find attached container via the sign's attached block face
+        val facing = wallSignData.facing
+        val attachedBlock = block.getRelative(facing.oppositeFace)
+
+        if (attachedBlock.state !is Container) {
+            event.player.sendMessage(lang.msg("shop.create.needs_container"))
+            return null
+        }
+
+        return block to attachedBlock
+    }
+
+    private fun wallSign(block: org.bukkit.block.Block): WallSign? =
+        if (block.state is Sign) block.blockData as? WallSign else null
+
+    private fun registeredShopAt(loc: Location): Boolean =
+        shopRepository.findBySign(loc.world?.name ?: "world", loc.blockX, loc.blockY, loc.blockZ) != null
 
     companion object {
         /**
