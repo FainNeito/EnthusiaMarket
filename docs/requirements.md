@@ -519,6 +519,22 @@ return the stall to UNOWNED.
 
 ---
 
+## Storage notification resilience
+
+IDs 323–344 are reserved by the pending correctness, companion and search PRs.
+
+### REQ-345 — Join notification thread boundary
+
+**Event-driven.** WHEN a player joins THE SYSTEM SHALL read missed-sale history outside the server thread and deliver the summary only to the same still-connected player session.
+
+### REQ-346 — Snapshot acknowledgement
+
+**Event-driven.** WHEN a missed-sale summary is delivered THE SYSTEM SHALL acknowledge only records up to its captured row watermark while preserving later unread sales.
+
+### REQ-347 — Recoverable notification failures
+
+**Unwanted.** IF notification storage fails or its bounded queue rejects work THE SYSTEM SHALL preserve unread history without performing storage work on the join caller.
+
 ## Acceptance
 
 ### REQ-100 — Smoke test on MockBukkit

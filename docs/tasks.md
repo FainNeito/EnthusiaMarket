@@ -1,6 +1,12 @@
 
 # Tasks — EnthusiaMarket
 
+## Storage maintenance (2026-10-07)
+
+- [x] NOTIFY-345 — REQ-345/346/347: reproduce unavailable join storage; isolate SQL on bounded worker, deliver on server thread, acknowledge snapshot watermark, retain unread rows across failure/rejection/disconnect/disable.
+- [ ] NOTIFY-REVIEW — Publish source PR and inspect exact-head comments/checks. Production and Java/Bedrock acceptance remain separate.
+- [ ] HISTORY-DURABILITY — Separate completed-trade journal implementation; compose with pending guild-XP journal and retain crash/ambiguous settlement boundaries.
+
 **Date:** 2026-05-24
 **Status:** Bootstrap (emitted by `/spear:init`; extend via `/spear:spec`)
 
