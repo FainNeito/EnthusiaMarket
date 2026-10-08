@@ -30,6 +30,7 @@ open class EnthusiaMarket : JavaPlugin() {
 
     private var nexus: NexusContext? = null
     private var shopNotifications: net.badgersmc.em.infrastructure.listeners.ShopNotificationStorage? = null
+    private var rentWarnings: net.badgersmc.em.infrastructure.listeners.RentLoginWarningListener? = null
     private var scheduler: NexusScheduler? = null
     private var websiteSync: net.badgersmc.em.websync.WebsiteSyncService? = null
     private var bedrockHeadStore: net.badgersmc.em.websync.heads.BedrockHeadStore? = null
@@ -158,6 +159,7 @@ open class EnthusiaMarket : JavaPlugin() {
         val stallRepository: net.badgersmc.em.domain.stall.StallRepository =
             net.badgersmc.em.websync.DirtyTrackingStallRepository(stallSqlRepo, websiteDirtyRelay, dirtyFailures)
         ctx.registerBean("stallRepository", net.badgersmc.em.domain.stall.StallRepository::class, stallRepository)
+        rentWarnings = ctx.getBean<net.badgersmc.em.infrastructure.listeners.RentLoginWarningListener>()
 
         server.servicesManager.register(
             net.enthusia.market.api.guild.GuildStallReadApi::class.java,
@@ -522,6 +524,7 @@ open class EnthusiaMarket : JavaPlugin() {
 
     override fun onDisable() {
         shopNotifications?.close()
+        rentWarnings?.close()
         server.servicesManager.unregisterAll(this)
         runCatching { moderationProvider?.close() }
         runCatching { geyserHeadIntegration?.close() }
