@@ -240,7 +240,7 @@ Reported: Netherite_Ingot (15 chars) doesn't show on sign. Custom anvil names lo
 
 - [x] HISTORY-FILTER-356: User accepted feature request 8 only. Preserve /shop history [page]; add today/all/range paging, ISO inclusive dates, server timezone and owner-or-buyer visibility. All means retained rows.
 - [x] HISTORY-FILTER-PROVE: Execute missing-command regression before implementation; verify SQL boundaries before paging, stable ties, privacy, DST, invalid dates and preserved next-page scope.
-- [~] HISTORY-FILTER-REFINE: Clean full suite 788 cases, zero failures/errors, eight external skips; new MariaDB case executed natively without skips. Detekt, architecture and wiki/locale checks passed. PR publication and exact-head review pending. Project-local EARS/state helpers are absent; manual evidence is maintained. No stall resets, export/contributor features, retention change or production action.
+- [x] HISTORY-FILTER-REFINE: Clean full suite 788 cases, zero failures/errors, eight external skips; new MariaDB case executed natively without skips. Detekt, architecture and wiki/locale checks passed. Published #205; combined maintenance rehearsal passed 899 cases without failures/errors and merges cleanly. Exact-head review/hosted workflow gates are recorded separately in the PR description. Project-local EARS/state helpers are absent; manual evidence is maintained. No stall resets, export/contributor features, retention change or production action.
 
 ## Milestone M4 — Guild ownership + Bedrock UI (REQ-010, REQ-011)
 
