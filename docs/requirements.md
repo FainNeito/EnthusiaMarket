@@ -640,3 +640,11 @@ Detailed taxonomy, proof and delivery boundaries: expanded-search-verification.m
 ### REQ-380 — Search stock feedback
 
 **Event-driven.** WHEN a Market item search has shops matching the selected direction but no entries visible under the default stock filter THE SYSTEM SHALL send localized feedback naming the query as not in stock without opening or replacing the player's inventory.
+
+### REQ-381 — Private destination outline
+
+WHEN a player selects a shop search result THE SYSTEM SHALL retain its existing private direction guide and highlight only that destination stall within a configurable distance, using its actual cuboid or polygon footprint and a bounded shop-height outline. The highlight SHALL be private, replace the prior destination and never load terrain or alter blocks/permissions. Missing or unsupported geometry SHALL preserve the direction guide without inventing a region boundary.
+
+### REQ-382 — Configurable arrival and rendering
+
+WHEN a player arrives THE SYSTEM SHALL stop direction particles and retain the private outline for a configurable bounded arrival period (default ten seconds). Cancellation, expiry, disconnect, death, world change and shutdown SHALL clear both. Operators SHALL configure outline enablement, distance, height, spacing, per-player particle limit, color, size and shop marker; existing global finder budgets and limits SHALL apply. Invalid settings SHALL be normalized safely; disabled outlines SHALL retain existing finder behavior.

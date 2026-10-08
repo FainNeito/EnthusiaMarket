@@ -3,6 +3,7 @@ package net.badgersmc.em.infrastructure.listeners
 import net.badgersmc.em.application.FinderTrailTracker
 import net.badgersmc.em.config.EnthusiaMarketConfig
 import net.badgersmc.em.domain.shop.Shop
+import net.badgersmc.em.domain.ports.RegionProvider
 import net.badgersmc.nexus.annotations.Component
 import net.badgersmc.nexus.i18n.LangService
 import org.bukkit.Bukkit
@@ -24,6 +25,7 @@ class FinderTrailService(
     private val config: EnthusiaMarketConfig,
     private val lang: LangService,
     private val plugin: Plugin,
+    private val regions: RegionProvider,
 ) : Listener, AutoCloseable {
     private val tracker = FinderTrailTracker()
     private var task: BukkitTask? = null
@@ -37,7 +39,8 @@ class FinderTrailService(
             player.sendMessage(lang.msg("finder_trail.out_of_range")); return
         }
         val trail = FinderTrailTracker.Trail(shop.signWorld, target,
-            Instant.now().plusSeconds(config.finderTrail.durationSeconds.coerceIn(1, MAX_DURATION)))
+            Instant.now().plusSeconds(config.finderTrail.durationSeconds.coerceIn(1, MAX_DURATION)),
+            if (config.finderTrail.outline.enabled) regions.footprint(shop.signWorld, shop.stallId) else null)
         if (!tracker.start(player.uniqueId, trail, config.finderTrail.maxActive.coerceIn(1, MAX_ACTIVE))) {
             player.sendMessage(lang.msg("finder_trail.busy")); return
         }
@@ -56,18 +59,25 @@ class FinderTrailService(
 
     internal fun render() {
         if (!config.finderTrail.enabled) tracker.clear()
-        val plans = tracker.render(Instant.now(), config.finderTrail.maxParticlesPerRender.coerceIn(0, MAX_BUDGET), range()) { id ->
-            val player = Bukkit.getPlayer(id)?.takeIf { it.isOnline && !it.isDead } ?: return@render null
+        val plans = tracker.renderFrames(Instant.now(), config.finderTrail.maxParticlesPerRender.coerceIn(0, MAX_BUDGET),
+            range(), FinderOutlineStyle.options(config.finderTrail.outline)) { id ->
+            val player = Bukkit.getPlayer(id)?.takeIf { it.isOnline && !it.isDead } ?: return@renderFrames null
             val point = player.location
             player.world.name to FinderTrailTracker.Point(point.x, point.y + 0.5, point.z)
         }
-        plans.forEach { (id, points) ->
+        val dust = FinderOutlineStyle.dust(config.finderTrail.outline)
+        plans.forEach { (id, frame) ->
             val player = Bukkit.getPlayer(id) ?: return@forEach
-            points.filter { player.world.isChunkLoaded(floor(it.x).toInt() shr 4, floor(it.z).toInt() shr 4) }
+            frame.direction.filter { loaded(player, it) }
                 .forEach { player.spawnParticle(Particle.END_ROD, it.x, it.y, it.z, 1, 0.0, 0.0, 0.0, 0.0) }
+            frame.outline.filter { loaded(player, it) }
+                .forEach { player.spawnParticle(Particle.DUST, it.x, it.y, it.z, 1, 0.0, 0.0, 0.0, 0.0, dust) }
         }
         if (tracker.count() == 0) { task?.cancel(); task = null }
     }
+
+    private fun loaded(player: Player, point: FinderTrailTracker.Point): Boolean =
+        player.world.isChunkLoaded(floor(point.x).toInt() shr 4, floor(point.z).toInt() shr 4)
 
     private fun range(): Double = config.finderTrail.maxRange.takeIf { it.isFinite() && it > 0 }
         ?.coerceAtMost(MAX_RANGE) ?: DEFAULT_RANGE

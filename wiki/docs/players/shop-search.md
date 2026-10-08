@@ -95,6 +95,8 @@ New shops are **searchable by default**. Shop owners can toggle this in the edit
 
 Click a search result for a private particle direction guide to the shop. It lasts up to 60 seconds by default and stops when you arrive. Cancel it with `/shop trail stop`; selecting another shop replaces it. Guides are limited to nearby shops in your current world. They point toward the destination rather than finding a safe route around walls, so use normal paths. Staff retain normal-click teleport; shift-click starts a guide.
 
+With destination outlines enabled, the selected stall gains a private gold particle perimeter when you are within 24 blocks of the shop, plus a marker above the selected shop. Direction particles stop on arrival; the outline stays for ten seconds by default. Operators can change color, size, distance, height, density, timing, marker and caps or disable the outline. It is a particle boundary, not a continuous glow through walls. Missing region geometry leaves the direction guide working. Cancellation stops both; nearby players cannot see your private highlight.
+
 - **Sell search** means you're looking to BUY from shops that SELL. You're the customer.
 - **Buy search** means you're looking to SELL to shops that BUY. You're the supplier.
 - Results use the recorded matching stock count. Refreshing the search captures newer shop data; the trade checks current availability.

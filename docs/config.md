@@ -95,3 +95,40 @@ Defines every config key the plugin reads, its type, default, source REQ, and wh
 - `lumaguilds.enabled == false` ⇒ guild-owned stalls cannot be created (REQ-010 inactive)
 
 Invalid config ⇒ disable plugin + log explicit error (parallels REQ-041).
+
+## Private finder outline — REQ-381/382
+
+Edit `plugins/EnthusiaMarket/enthusiamarket.yaml`, preserving existing keys. These keys use their actual camelCase Nexus property names. `/em reload` reloads the existing configuration object; appearance/limits are consumed on each render, while region geometry is captured on selection. Reselect a shop after enabling an outline that was disabled at selection. Disabling the finder clears the destination; disabling only the outline preserves direction behavior and ends an active arrival phase.
+
+```yaml
+finderTrail:
+  enabled: true
+  durationSeconds: 60
+  maxRange: 256.0
+  maxActive: 64
+  maxParticlesPerRender: 200
+  outline:
+    enabled: true
+    revealDistance: 24.0
+    arrivalSeconds: 10
+    height: 3.0
+    spacing: 1.0
+    maxParticlesPerPlayer: 64
+    color: "#FFC857"
+    particleSize: 1.0
+    showShopMarker: true
+```
+
+| Outline key | Default | Effective bounds / behavior |
+| --- | --- | --- |
+| `enabled` | true | False retains the existing direction-only finder |
+| `revealDistance` | 24 | 3–256 blocks from the selected shop; finder range still applies |
+| `arrivalSeconds` | 10 | 0–60 seconds; zero disables arrival retention |
+| `height` | 3 | 0.5–16 blocks, clipped to the region's vertical span near the shop |
+| `spacing` | 1 | 0.25–8 blocks; widened automatically to meet particle caps |
+| `maxParticlesPerPlayer` | 64 | 0–128 outline particles per render; also constrained by the shared finder budget |
+| `color` | #FFC857 | Six-digit RGB hex with leading #; malformed values use gold |
+| `particleSize` | 1 | 0.25–4; non-finite values use 1 |
+| `showShopMarker` | true | Prioritizes four particles above the selected shop |
+
+Non-finite geometry/configuration is rejected or normalized without an unbounded planner. Non-finite distance, height and spacing use their defaults. One destination remains active per player, including arrival. Direction expiry is still 60 seconds by default; arriving before expiry permits up to ten additional seconds of outline, without restarting that arrival timer. Disablement/cancel/world change/death/disconnect/shutdown clears the applicable phase. No outline entities or blocks are created; particles are sent only to the finding player and only in loaded chunks.

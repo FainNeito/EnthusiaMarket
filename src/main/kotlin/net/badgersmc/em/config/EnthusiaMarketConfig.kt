@@ -61,6 +61,21 @@ class EnthusiaMarketConfig {
         var maxRange: Double = 256.0
         var maxActive: Int = 64
         var maxParticlesPerRender: Int = 200
+        @Comment("Private destination outline; independent of general stall-border particles.")
+        var outline: FinderOutline = FinderOutline()
+    }
+
+    class FinderOutline {
+        var enabled: Boolean = true
+        var revealDistance: Double = 24.0
+        var arrivalSeconds: Long = 10
+        var height: Double = 3.0
+        var spacing: Double = 1.0
+        var maxParticlesPerPlayer: Int = 64
+        @Comment("RGB hex color; invalid values fall back to gold. Particle renderer, not entity glow.")
+        var color: String = "#FFC857"
+        var particleSize: Double = 1.0
+        var showShopMarker: Boolean = true
     }
 
     class GuildPolicy {

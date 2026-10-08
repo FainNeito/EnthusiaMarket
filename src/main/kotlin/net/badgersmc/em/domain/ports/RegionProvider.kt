@@ -35,4 +35,10 @@ interface RegionProvider {
 
     /** Region bounding box for [id] in [world], or null if not found. */
     fun bounds(world: String, id: String): RegionBounds?
+
+    data class Vertex(val x: Double, val z: Double)
+    data class Footprint(val vertices: List<Vertex>, val minY: Double, val maxY: Double)
+
+    /** Actual boundary vertices; Y bounds are continuous outer limits. Unsupported shapes return null. */
+    fun footprint(world: String, id: String): Footprint? = null
 }
