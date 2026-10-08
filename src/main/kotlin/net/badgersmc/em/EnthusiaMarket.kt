@@ -115,7 +115,6 @@ open class EnthusiaMarket : JavaPlugin() {
         MigrationRunner(ds, resourcePrefix = "migrations", classLoader = this::class.java.classLoader).runAll()
         ctx.registerBean("dataSource", DataSource::class, ds as DataSource)
         shopNotifications = ctx.getBean<net.badgersmc.em.infrastructure.listeners.ShopNotificationStorage>()
-        rentWarnings = ctx.getBean<net.badgersmc.em.infrastructure.listeners.RentLoginWarningListener>()
 
         // Stable Staff integration. Register the policy before Nexus constructs any
         // purchase or auction services so every acquisition shares the durable fence.
@@ -160,6 +159,7 @@ open class EnthusiaMarket : JavaPlugin() {
         val stallRepository: net.badgersmc.em.domain.stall.StallRepository =
             net.badgersmc.em.websync.DirtyTrackingStallRepository(stallSqlRepo, websiteDirtyRelay, dirtyFailures)
         ctx.registerBean("stallRepository", net.badgersmc.em.domain.stall.StallRepository::class, stallRepository)
+        rentWarnings = ctx.getBean<net.badgersmc.em.infrastructure.listeners.RentLoginWarningListener>()
 
         // Shop repository + in-memory container index (REQ-281/282, PERF-4). The hopper-control
         // hot path (InventoryMoveItemEvent) must resolve shop status without a DB query, so we wrap

@@ -1,5 +1,7 @@
 # Login rent warnings
 
+Integration refinement: warning listener construction now follows manual StallRepository registration. The source-order contract and ten policy/worker cases pass after moving the eager request. Earlier ordering could fail startup before any join event. This is source-derived failure evidence; no historical red build is claimed.
+
 ## Spec and scope
 
 REQ-367: WHEN an owner or authorized rent-renewing member joins THE SYSTEM SHALL show relevant renewal/grace deadlines within a configurable warning window (default 24 hours) and explain manual purchase-sign renewal.
