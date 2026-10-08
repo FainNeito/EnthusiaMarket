@@ -45,8 +45,7 @@ internal class ShopHistoryOutbox(
         val bytes = ByteBuffer.wrap(payload + digest(payload))
         val temporary = directory.resolve("$id.tmp")
         FileChannel.open(temporary, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE).use { channel ->
-            while (bytes.hasRemaining()) channel.write(bytes)
-            channel.force(true)
+            writeForced(channel, bytes)
         }
         Files.move(temporary, directory.resolve("$id.pending"), StandardCopyOption.ATOMIC_MOVE)
         return id
@@ -56,17 +55,24 @@ internal class ShopHistoryOutbox(
         val records = Files.list(directory).use { paths ->
             paths.filter { it.fileName.toString().endsWith(".pending") }.limit(limit.toLong()).toList()
         }
-        records.forEach { path ->
-            val record = try { read(path) }
-            catch (failure: IllegalArgumentException) { quarantine(path, failure) }
-            catch (failure: java.io.EOFException) { quarantine(path, failure) }
-            catch (failure: java.io.UTFDataFormatException) { quarantine(path, failure) }
-            if (record == null) return@forEach
-            val (id, tx) = record
-            repository.recordOnce(id, tx)
-            acknowledge(path)
-        }
+        records.forEach(::deliver)
     }
+
+    private fun writeForced(channel: FileChannel, bytes: ByteBuffer) {
+        while (bytes.hasRemaining()) channel.write(bytes)
+        channel.force(true)
+    }
+
+    private fun deliver(path: Path) {
+        val (id, tx) = readPending(path) ?: return
+        repository.recordOnce(id, tx)
+        acknowledge(path)
+    }
+
+    private fun readPending(path: Path): Pair<UUID, ShopTransaction>? = try { read(path) }
+        catch (failure: IllegalArgumentException) { quarantine(path, failure) }
+        catch (failure: java.io.EOFException) { quarantine(path, failure) }
+        catch (failure: java.io.UTFDataFormatException) { quarantine(path, failure) }
 
     private fun quarantine(path: Path, failure: Exception): Pair<UUID, ShopTransaction>? {
         // Keep immutable bytes without letting a poisoned record starve later sales.
