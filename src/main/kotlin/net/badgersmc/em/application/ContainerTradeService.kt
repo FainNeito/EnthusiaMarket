@@ -54,6 +54,7 @@ open class ContainerTradeService(
     private val guildProvider: GuildProvider?,
     private val tradePolicy: GuildTradePolicyService? = null,
     private val shopVault: ShopVaultService? = null,
+    private val stallAccess: net.badgersmc.em.domain.ports.StallAccessPolicy = net.badgersmc.em.domain.ports.StallAccessPolicy.Open,
 ) {
     private val log = Logger.getLogger(ContainerTradeService::class.java.name)
     private val compensationAlerts = CompensationAlertService()
@@ -68,6 +69,7 @@ open class ContainerTradeService(
     fun executeBuyBatch(shop: Shop, playerUuid: UUID, quantity: Int): ContainerTradeResult {
         if (quantity <= 0) return logFail(playerUuid, shop.id, "buy", "invalid quantity")
         if (shop.frozen) return logFail(playerUuid, shop.id, "buy", "frozen")
+        if (!shop.adminShop && !stallAccess.allows(shop.stallId, playerUuid, net.badgersmc.em.domain.stall.StallCapability.TRADE)) return logFail(playerUuid, shop.id, "trade", "Stall trading access denied")
         if (shop.sellAmount <= 0 || shop.costAmount <= 0) return logFail(playerUuid, shop.id, "buy", "invalid amounts")
         val preconditions = buyPreconditions(shop, playerUuid)
         if (preconditions.result != null) return logFail(playerUuid, shop.id, "buy", preconditions.result!!.reason)
@@ -167,6 +169,7 @@ open class ContainerTradeService(
     fun executeSellBatch(shop: Shop, playerUuid: UUID, quantity: Int): ContainerTradeResult {
         if (quantity <= 0) return logFail(playerUuid, shop.id, "sell", "invalid quantity")
         if (shop.frozen) return logFail(playerUuid, shop.id, "sell", "frozen")
+        if (!shop.adminShop && !stallAccess.allows(shop.stallId, playerUuid, net.badgersmc.em.domain.stall.StallCapability.TRADE)) return logFail(playerUuid, shop.id, "trade", "Stall trading access denied")
         if (shop.sellAmount <= 0 || shop.costAmount <= 0) return logFail(playerUuid, shop.id, "sell", "invalid amounts")
         val preconditions = sellPreconditions(shop, playerUuid)
         if (preconditions.result != null) return logFail(playerUuid, shop.id, "sell", preconditions.result!!.reason)
@@ -180,6 +183,7 @@ open class ContainerTradeService(
      */
     fun executeTrade(shop: Shop, playerUuid: UUID): ContainerTradeResult {
         if (shop.frozen) return logFail(playerUuid, shop.id, "trade", "frozen")
+        if (!shop.adminShop && !stallAccess.allows(shop.stallId, playerUuid, net.badgersmc.em.domain.stall.StallCapability.TRADE)) return logFail(playerUuid, shop.id, "trade", "Stall trading access denied")
         if (shop.sellAmount <= 0 || shop.costAmount <= 0) return logFail(playerUuid, shop.id, "trade", "invalid amounts")
         // Barter trades exchange items without economy transactions.
         // Player gives costItem, receives sellItem from the container.
@@ -522,6 +526,7 @@ open class ContainerTradeService(
         shop: Shop, playerUuid: UUID, placedCost: ItemStack, multiplier: Int
     ): ContainerTradeResult {
         if (shop.frozen) return logFail(playerUuid, shop.id, "trade_item", "frozen")
+        if (!shop.adminShop && !stallAccess.allows(shop.stallId, playerUuid, net.badgersmc.em.domain.stall.StallCapability.TRADE)) return logFail(playerUuid, shop.id, "trade", "Stall trading access denied")
         if (shop.sellAmount <= 0 || shop.costAmount <= 0) return logFail(playerUuid, shop.id, "trade_item", "invalid amounts")
         if (shopVault == null) return logFail(playerUuid, shop.id, "trade_item", "vault unavailable")
         val pre = slotTradePreconditions(shop, playerUuid)

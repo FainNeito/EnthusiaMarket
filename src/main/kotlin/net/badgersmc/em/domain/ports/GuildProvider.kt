@@ -28,6 +28,8 @@ interface GuildProvider {
     /** Public visual data when supported by the backing guild plugin. */
     fun visualById(id: String): GuildVisual? = null
     fun isMember(player: UUID, guildId: String): Boolean
+    /** Optional live alliance lookup; absence never grants allied access. */
+    fun areAllied(guildId: String, otherGuildId: String): Boolean = false
 
     /**
      * Check whether [player] has [permission] in the guild identified by [guildId].

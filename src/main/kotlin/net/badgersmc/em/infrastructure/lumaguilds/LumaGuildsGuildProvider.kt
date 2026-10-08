@@ -34,6 +34,12 @@ class LumaGuildsGuildProvider : GuildProvider {
     }
     private val dissolveHandlers = mutableListOf<(String) -> Unit>()
 
+    override fun areAllied(guildId: String, otherGuildId: String): Boolean {
+        val guild = parseUuid(guildId) ?: return false
+        val ally = parseUuid(otherGuildId) ?: return false
+        return OptionalGuildAllianceLookup.areAllied(guild, ally)
+    }
+
     override fun guildOf(player: UUID): GuildProvider.GuildRef? {
         val lg = lookup ?: return null
         val firstId = lg.getPlayerGuildIds(player).firstOrNull() ?: return null

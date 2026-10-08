@@ -40,6 +40,8 @@ open class EnthusiaMarket : JavaPlugin() {
     private var headUploadClientCache: net.badgersmc.em.websync.HeadUploadClientCache? = null
     private var moderationProvider: net.badgersmc.em.infrastructure.moderation.MarketModerationProvider? = null
     private var finderTrail: net.badgersmc.em.infrastructure.listeners.FinderTrailService? = null
+    private var stallEffectGuard: net.badgersmc.em.infrastructure.listeners.StallEffectGuard? = null
+    private var stallAccessRefresh: net.badgersmc.em.infrastructure.listeners.StallAccessRefreshWorker? = null
 
     @Suppress("LongMethod", "TooGenericExceptionThrown")
     override fun onEnable() {
@@ -158,8 +160,10 @@ open class EnthusiaMarket : JavaPlugin() {
         val websiteDirtyRelay = net.badgersmc.em.websync.WebsiteSyncDirtyRelay()
         val dirtyFailures = net.badgersmc.em.websync.RateLimitedDirtyTrackingFailureObserver(logger)
         val stallSqlRepo = net.badgersmc.em.infrastructure.persistence.StallRepositorySql(ds)
-        val stallRepository: net.badgersmc.em.domain.stall.StallRepository =
+        val trackedStalls: net.badgersmc.em.domain.stall.StallRepository =
             net.badgersmc.em.websync.DirtyTrackingStallRepository(stallSqlRepo, websiteDirtyRelay, dirtyFailures)
+        val stallRepository = net.badgersmc.em.application.StallAccessIndex(trackedStalls)
+        stallRepository.rebuild()
         ctx.registerBean("stallRepository", net.badgersmc.em.domain.stall.StallRepository::class, stallRepository)
         rentWarnings = ctx.getBean<net.badgersmc.em.infrastructure.listeners.RentLoginWarningListener>()
 
@@ -176,6 +180,19 @@ open class EnthusiaMarket : JavaPlugin() {
             this,
             org.bukkit.plugin.ServicePriority.Normal,
         )
+        ctx.registerBean("stallAccessIndex", net.badgersmc.em.application.StallAccessIndex::class, stallRepository)
+        val accessSettings = net.badgersmc.em.application.StallAccessSettingsService(
+            stallRepository, net.badgersmc.em.infrastructure.persistence.StallAccessSettingsSql(ds),
+            ctx.getBean(net.badgersmc.em.domain.ports.GuildProvider::class), marketMutationGate,
+        )
+        ctx.registerBean("stallAccessSettings", net.badgersmc.em.application.StallAccessSettingsService::class, accessSettings)
+        ctx.registerBean("stallAccessPolicy", net.badgersmc.em.domain.ports.StallAccessPolicy::class, accessSettings)
+        val accessProjection = net.badgersmc.em.infrastructure.listeners.StallAccessProjection()
+        ctx.registerBean("stallAccessProjection", net.badgersmc.em.infrastructure.listeners.StallAccessProjection::class, accessProjection)
+        applyStallAccessPolicies(trackedStalls, accessSettings, accessProjection)
+        val accessRefresh = net.badgersmc.em.infrastructure.listeners.StallAccessRefreshWorker(stallRepository)
+        stallAccessRefresh = accessRefresh
+        marketMutationGate.beforeRelease = accessRefresh::invalidateAndRefresh
 
         // Shop repository + in-memory container index (REQ-281/282, PERF-4). The hopper-control
         // hot path (InventoryMoveItemEvent) must resolve shop status without a DB query, so we wrap
@@ -304,6 +321,7 @@ open class EnthusiaMarket : JavaPlugin() {
         net.badgersmc.em.infrastructure.commands.FindItemRegistrar.register(this, itemMaterialNames, ctx)
 
         // Phase 6: Discover every @Listener-annotated bean in the scan
+        stallEffectGuard = ctx.getBean<net.badgersmc.em.infrastructure.listeners.StallEffectGuard>()
         // package, resolve it from DI, and register it with Bukkit.
         // NOTE: registerNexusListeners is fail-OPEN per listener — a bean
         // whose dependencies can't resolve is logged as a WARNING and
@@ -530,6 +548,8 @@ open class EnthusiaMarket : JavaPlugin() {
         finderTrail?.close()
         server.servicesManager.unregisterAll(this)
         runCatching { moderationProvider?.close() }
+        runCatching { stallEffectGuard?.close() }
+        runCatching { stallAccessRefresh?.close() }
         runCatching { geyserHeadIntegration?.close() }
         runCatching { floodgateHeadIntegration?.close() }
         runCatching { floodgateSkinCapture?.close() }
@@ -540,4 +560,10 @@ open class EnthusiaMarket : JavaPlugin() {
         nexus?.close()
         logger.info("EnthusiaMarket disabled")
     }
+
+    private fun applyStallAccessPolicies(
+        stalls: net.badgersmc.em.domain.stall.StallRepository,
+        service: net.badgersmc.em.application.StallAccessSettingsService,
+        projection: net.badgersmc.em.infrastructure.listeners.StallAccessProjection,
+    ) { stalls.all().forEach { projection.apply(it, service.current(it)) } }
 }

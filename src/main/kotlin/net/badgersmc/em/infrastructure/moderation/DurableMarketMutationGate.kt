@@ -12,6 +12,7 @@ import javax.sql.DataSource
  */
 internal class DurableMarketMutationGate(dataSource: DataSource) : MarketMutationGate {
     private val operationsByStall = ConcurrentHashMap<String, UUID>()
+    @Volatile var beforeRelease: (String) -> Unit = {}
 
     init {
         dataSource.connection.use { connection ->
@@ -33,6 +34,7 @@ internal class DurableMarketMutationGate(dataSource: DataSource) : MarketMutatio
         operationsByStall.compute(stallId) { _, existing -> existing ?: operationId } == operationId
 
     fun release(stallId: String, operationId: UUID) {
+        if (operationsByStall[stallId] == operationId) beforeRelease(stallId)
         operationsByStall.remove(stallId, operationId)
     }
 }
