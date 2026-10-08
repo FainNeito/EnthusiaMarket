@@ -71,11 +71,10 @@ compilation remains Java 25. The paired compatibility attempt with a simultaneou
 replaced artifact was invalidated and rerun with fixed artifact copies.
 No result from that failed harness run is presented as a successful check.
 
-
 ### Hosted review refinement
 
 [PR #207](https://github.com/BadgersMC/EnthusiaMarket/pull/207) pairs with Guilds
-#215. Initial Codacy findings prompted smaller capture/delivery helpers, explicit
+PR #215. Initial Codacy findings prompted smaller capture/delivery helpers, explicit
 `range` subcommands and authenticated native test credentials. The local
 MariaDB test requires `MARKET_ACCOUNTING_TEST_MARIA_USER` and
 `MARKET_ACCOUNTING_TEST_MARIA_PASSWORD` alongside the disposable port; no empty
