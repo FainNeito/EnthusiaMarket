@@ -39,15 +39,16 @@ class FinderTrailTracker {
             val from = origin(player, trail, now, maxRange, position(player)) ?: continue
             val distance = from.distance(trail.target)
             val count = minOf(budget, POINTS_PER_PLAYER, distance.toInt())
-            plans[player] = (1..count).map { step ->
-                val ratio = step / distance
-                Point(from.x + (trail.target.x - from.x) * ratio,
-                    from.y + (trail.target.y - from.y) * ratio,
-                    from.z + (trail.target.z - from.z) * ratio)
-            }
+            plans[player] = points(from, trail.target, count, distance)
             budget -= count
         }
         return plans
+    }
+
+    private fun points(from: Point, target: Point, count: Int, distance: Double): List<Point> = (1..count).map { step ->
+        val ratio = step / distance
+        Point(from.x + (target.x - from.x) * ratio,
+            from.y + (target.y - from.y) * ratio, from.z + (target.z - from.z) * ratio)
     }
 
     private fun origin(

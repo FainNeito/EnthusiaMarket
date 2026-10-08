@@ -167,13 +167,17 @@ class ShopCommands(
                 net.badgersmc.em.interaction.gui.SearchResultsMenu.Result(shop, it.material, it.nested)
             }
         }
+        showSearchResults(player, query, results)
+    }
+
+    private fun showSearchResults(player: Player, query: String, results: List<net.badgersmc.em.interaction.gui.SearchResultsMenu.Result>) {
         if (results.isNotEmpty()) {
             val ticker = org.bukkit.Material.matchMaterial(query)?.let {
                 net.badgersmc.em.application.PriceTickerService.compute(it.name, transactions)
             }
             net.badgersmc.em.interaction.gui.SearchResultsMenu(
                 results, query, lang, stallRepository, ticker,
-                navigate = finderTrail?.let { trail -> { player, shop -> trail.start(player, shop) } },
+                navigate = ::startTrail,
             ).open(player)
             return
         }
@@ -186,6 +190,8 @@ class ShopCommands(
         val player = sender as? Player ?: return
         finderTrail?.stop(player)
     }
+
+    private fun startTrail(player: Player, shop: net.badgersmc.em.domain.shop.Shop) { finderTrail?.start(player, shop) }
 
     @Subcommand("history")
     @Permission("enthusiamarket.shop.use")

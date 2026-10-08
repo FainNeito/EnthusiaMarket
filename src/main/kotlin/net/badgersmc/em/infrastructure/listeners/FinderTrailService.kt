@@ -41,8 +41,12 @@ class FinderTrailService(
         if (!tracker.start(player.uniqueId, trail, config.finderTrail.maxActive.coerceIn(1, MAX_ACTIVE))) {
             player.sendMessage(lang.msg("finder_trail.busy")); return
         }
-        if (task == null) task = plugin.server.scheduler.runTaskTimer(plugin, Runnable { render() }, 1, RENDER_TICKS)
+        ensureRenderTask()
         player.sendMessage(lang.msg("finder_trail.started", "seconds" to config.finderTrail.durationSeconds.coerceIn(1, MAX_DURATION)))
+    }
+
+    private fun ensureRenderTask() {
+        if (task == null) task = plugin.server.scheduler.runTaskTimer(plugin, Runnable { render() }, 1, RENDER_TICKS)
     }
 
     fun stop(player: Player) {
