@@ -24,7 +24,7 @@ requirements, tasks and verification evidence are maintained here.
 - [x] Add the shared presentation guard and localized feedback.
 - [x] Verify complete trades, mixed results, BUY/admin and explicit stock display.
 - [x] Complete full tests, architecture, build and mobile preview.
-- [ ] Publish PR and inspect exact-head hosted checks and review findings.
+- [x] Publish PR and inspect exact-head hosted checks and review findings.
 
 ## Proof and validation
 
@@ -55,6 +55,16 @@ results, touch navigation, and 320px layout. Shops and trails are simulated;
 the category examples represent pending category work, not current production.
 
 ## Acceptance limits
+
+## PR delivery
+
+PR: https://github.com/BadgersMC/EnthusiaMarket/pull/215.
+Tested runtime source: cb5d0296fda82054c69eb1ffdce0564dea18fd20.
+PR is open and mergeable. At this source head, hosted build and PR quality
+diagnostics conclude action_required; maintainer approval is needed. There are
+no unresolved inline review threads. CodeRabbit reports that automatic review
+was skipped; no automated review pass is claimed. Local tests and client
+acceptance are separate from those hosted approval gates.
 
 Source-level reproduction is separate from the user's production report.
 No production mutation is authorized or performed. PR merge, network pin/build
