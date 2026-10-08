@@ -32,31 +32,49 @@ class ShopDeleteConfirmMenu(
             player.sendMessage(lang.msg("shop.edit.not_owner"))
             return
         }
+        show(player, current)
+    }
+
+    private fun show(player: Player, current: Shop) {
         val gui = ChestGui(3, ComponentHolder.of(lang.msg("gui.shop.edit.delete_confirm_title")))
         val pane = StaticPane(9, 3)
-        val preview = ItemStackSerializer.deserialize(current.sellItem) ?: ItemStack(Material.BARRIER)
-        preview.itemMeta = preview.itemMeta?.apply {
-            lore(listOf(lang.msg("gui.shop.edit.delete_location", "world" to current.signWorld,
-                "x" to current.signX, "y" to current.signY, "z" to current.signZ),
-                lang.msg("gui.shop.edit.delete_details", "amount" to current.sellAmount, "cost" to current.costAmount)))
-        }
-        pane.addItem(GuiItem(preview) { it.isCancelled = true }, 4, 1)
+        pane.addItem(GuiItem(preview(current)) { it.isCancelled = true }, 4, 1)
         pane.addItem(GuiItem(named(Material.LIME_CONCRETE, "gui.shop.edit.delete_keep")) {
             it.isCancelled = true
-            if (!finished) { finished = true; onCancel() }
+            cancel()
         }, 2, 1)
         pane.addItem(GuiItem(named(Material.RED_CONCRETE, "gui.shop.edit.delete_confirm")) {
             it.isCancelled = true
-            if (finished) return@GuiItem
-            finished = true
-            val deleted = if (admin(player)) management.adminDelete(shop.id)
-                else management.delete(player.uniqueId, shop.id)
-            player.closeInventory()
-            player.sendMessage(lang.msg(if (deleted) "shop.delete.done" else "shop.edit.not_owner"))
+            confirm(player)
         }, 6, 1)
         gui.addPane(Slot.fromXY(0, 0), pane)
         gui.blockItemTheft()
         gui.show(player)
+    }
+
+    private fun preview(current: Shop): ItemStack {
+        val item = ItemStackSerializer.deserialize(current.sellItem) ?: ItemStack(Material.BARRIER)
+        item.itemMeta = item.itemMeta?.apply {
+            lore(listOf(lang.msg("gui.shop.edit.delete_location", "world" to current.signWorld,
+                "x" to current.signX, "y" to current.signY, "z" to current.signZ),
+                lang.msg("gui.shop.edit.delete_details", "amount" to current.sellAmount, "cost" to current.costAmount)))
+        }
+        return item
+    }
+
+    private fun cancel() {
+        if (finished) return
+        finished = true
+        onCancel()
+    }
+
+    private fun confirm(player: Player) {
+        if (finished) return
+        finished = true
+        val deleted = if (admin(player)) management.adminDelete(shop.id)
+            else management.delete(player.uniqueId, shop.id)
+        player.closeInventory()
+        player.sendMessage(lang.msg(if (deleted) "shop.delete.done" else "shop.edit.not_owner"))
     }
 
     private fun admin(player: Player) =

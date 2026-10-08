@@ -34,46 +34,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class ShopMenuInteractionTest {
-    private lateinit var player: PlayerMock
-    private val lang = mockk<LangService>()
-    private val trades = mockk<ContainerTradeService>(relaxed = true)
-    private val repository = mockk<ShopRepository>(relaxed = true)
-    private lateinit var current: Shop
-
-    @BeforeTest fun setUp() {
-        val server = MockBukkit.mock()
-        val plugin = MockBukkit.createMockPlugin()
-        player = server.addPlayer()
-        mockkStatic(JavaPlugin::class)
-        every { JavaPlugin.getProvidingPlugin(any<Class<*>>()) } returns plugin
-        // IF's one-time static registration outlives a MockBukkit server instance.
-        // Use its real public listener on each fresh server, with no duplicate handlers.
-        ChestGui(1, "fixture")
-        HandlerList.unregisterAll(plugin)
-        server.pluginManager.registerEvents(GuiListener(plugin), plugin)
-        mockkObject(ItemStackSerializer)
-        every { ItemStackSerializer.deserialize(any()) } answers {
-            ItemStack(if (firstArg<String>() == "money") Material.RAW_GOLD else Material.DIAMOND)
-        }
-        every { lang.msg(any(), *anyVararg()) } answers {
-            Component.text(firstArg<String>() + " " + secondArg<Array<Pair<String, Any>>>().joinToString())
-        }
-        every { lang.raw(any()) } answers { firstArg() }
-        every { trades.balanceOf(any()) } returns 1_000L
-        every { trades.executeSellBatch(any(), any(), any()) } returns ContainerTradeResult.Success("done")
-        current = shop()
-        every { repository.findById(1) } answers { current }
-        every { repository.findByOwner(any()) } answers { listOf(current) }
-        every { repository.upsert(any()) } answers { current = firstArg(); current }
-    }
-
-    @AfterTest fun tearDown() {
-        unmockkObject(ItemStackSerializer)
-        unmockkStatic(JavaPlugin::class)
-        MockBukkit.unmock()
-    }
-
+class ShopMenuInteractionTest : ShopMenuFixture() {
     @Test fun `money purchase fits three rows and bulk selection does not trade`() {
         PurchaseMenu(current, trades, lang).open(player)
         assertEquals(27, player.openInventory.topInventory.size)
@@ -221,14 +182,61 @@ class ShopMenuInteractionTest {
         assertNotNull(item(31))
     }
 
+}
+
+/** Fresh server and real InventoryFramework click listener shared by interaction cases. */
+abstract class ShopMenuFixture {
+    protected lateinit var player: PlayerMock
+    protected val lang = mockk<LangService>()
+    protected val trades = mockk<ContainerTradeService>(relaxed = true)
+    protected val repository = mockk<ShopRepository>(relaxed = true)
+    protected lateinit var current: Shop
+
+    @BeforeTest fun setUp() {
+        val server = MockBukkit.mock()
+        val plugin = MockBukkit.createMockPlugin()
+        player = server.addPlayer()
+        mockkStatic(JavaPlugin::class)
+        every { JavaPlugin.getProvidingPlugin(any<Class<*>>()) } returns plugin
+        // IF's one-time static registration outlives a MockBukkit server instance.
+        // Use its real public listener on each fresh server, with no duplicate handlers.
+        ChestGui(1, "fixture")
+        HandlerList.unregisterAll(plugin)
+        server.pluginManager.registerEvents(GuiListener(plugin), plugin)
+        configureAdapters()
+    }
+
+    private fun configureAdapters() {
+        mockkObject(ItemStackSerializer)
+        every { ItemStackSerializer.deserialize(any()) } answers {
+            ItemStack(if (firstArg<String>() == "money") Material.RAW_GOLD else Material.DIAMOND)
+        }
+        every { lang.msg(any(), *anyVararg()) } answers {
+            Component.text(firstArg<String>() + " " + secondArg<Array<Pair<String, Any>>>().joinToString())
+        }
+        every { lang.raw(any()) } answers { firstArg() }
+        every { trades.balanceOf(any()) } returns 1_000L
+        every { trades.executeSellBatch(any(), any(), any()) } returns ContainerTradeResult.Success("done")
+        current = shop()
+        every { repository.findById(1) } answers { current }
+        every { repository.findByOwner(any()) } answers { listOf(current) }
+        every { repository.upsert(any()) } answers { current = firstArg(); current }
+    }
+
+    @AfterTest fun tearDown() {
+        unmockkObject(ItemStackSerializer)
+        unmockkStatic(JavaPlugin::class)
+        MockBukkit.unmock()
+    }
+
     private fun shop() = Shop(1, "stall1", player.uniqueId, "world", 1, 64, 3,
         "world", 4, 64, 6, "diamond", 8, "money", 100, stockCount = 256)
-    private fun click(index: Int) { assertTrue(player.simulateInventoryClick(index).isCancelled) }
-    private fun item(index: Int) = player.openInventory.topInventory.getItem(index)
-    private fun label(index: Int) = item(index)?.itemMeta?.displayName()?.let {
+    protected fun click(index: Int) { assertTrue(player.simulateInventoryClick(index).isCancelled) }
+    protected fun item(index: Int) = player.openInventory.topInventory.getItem(index)
+    protected fun label(index: Int) = item(index)?.itemMeta?.displayName()?.let {
         PlainTextComponentSerializer.plainText().serialize(it)
     }.orEmpty()
-    private fun lore(index: Int) = item(index)?.itemMeta?.lore()?.joinToString {
+    protected fun lore(index: Int) = item(index)?.itemMeta?.lore()?.joinToString {
         PlainTextComponentSerializer.plainText().serialize(it)
     }.orEmpty()
 }
