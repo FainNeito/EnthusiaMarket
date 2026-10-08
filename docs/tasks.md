@@ -13,7 +13,7 @@ State legend: `[ ]` not started, `[~]` in progress, `[x]` done, `[!]` blocked.
 - [x] **TDD-360** — Prove all bulk presets/custom/maximum have distinct clickable slots and preserve multiplier without executing trades.
 - [x] **TDD-361** — Group editor controls, preserve draft changes until authorized save, and verify leaving a draft and revoked authority.
 - [x] **TDD-362** — Require a separate item/location confirmation before editor deletion, preserve draft on cancel, and recheck current authority exactly once.
-- [ ] **DOC-359** — Record local, hosted, integration and real-client evidence separately in `docs/menu-cleanup-verification.md`; deliver through a dependency-aware reviewable PR.
+- [x] **DOC-359** — Record local, hosted, integration and real-client evidence separately in `docs/menu-cleanup-verification.md`; deliver through a dependency-aware reviewable PR.
 
 ## Item data component preservation (REQ-300, REQ-301)
 
