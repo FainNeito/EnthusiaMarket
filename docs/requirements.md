@@ -531,6 +531,18 @@ return the stall to UNOWNED.
 
 ---
 
+## Search filtering follow-up (2026-10-07)
+
+REQ-323 through REQ-342 are reserved by existing pending Market work, including #197 and the guild API/XP branches; this independent main-based change uses REQ-343/344.
+
+### REQ-343 — Shop direction search filters
+
+**Event-driven.** WHEN a player searches with `/finditem` or `/shop search` THE SYSTEM SHALL offer ANY, SELL and BUY filters using the shop owner's direction, retain the selected filter across paging, sorting and stock changes, reset the page when the direction changes, and preserve existing visibility and trade permissions.
+
+### REQ-344 — Generic shulker material search
+
+**Event-driven.** WHEN a player searches for `shulker` or `shulker_box` THE SYSTEM SHALL match uncolored and every colored shulker box while preserving exact-color queries, nested-content matching, visibility gating and bounded traversal.
+
 ## Authoring rules
 
 1. Every REQ has a single ID, a heading, and exactly one EARS-formatted sentence under a **pattern label** (Ubiquitous / Event-driven / State-driven / Unwanted / Optional).

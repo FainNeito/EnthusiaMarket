@@ -1,41 +1,41 @@
 package net.badgersmc.em.application
 
+import net.badgersmc.em.domain.shop.SignDirection
 import net.badgersmc.nexus.annotations.Service
 import org.bukkit.Material
 import org.bukkit.block.ShulkerBox
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.BlockStateMeta
 import org.bukkit.inventory.meta.BundleMeta
+import java.util.Locale
 
 /**
- * Pure shop-search filter (ItemShops parity SP2). Matches shops by their SELL
- * item material, gated by the per-shop searchEnabled opt-in. Under EM's current
- * Vault-money model only sell matching is active; BUY (search by cost item)
- * needs the barter model (SP3) and always returns false today, so the command
- * keeps the ItemShops mode arg without behaving wrongly.
+ * Matches the shop's traded item, including supported container contents.
+ * Direction filters use the owner's BUY/SELL direction, independently of item matching.
  */
 @Service
 class ShopSearchService {
 
     data class Match(val material: Material, val nested: Boolean)
 
-    enum class SearchMode { SELL, BUY, ANY }
+    enum class SearchMode {
+        SELL, BUY, ANY;
 
-    /** True when a shop with [sellMaterial] (searchEnabled=[searchEnabled]) matches [query] under [mode]. */
+        fun includes(direction: SignDirection): Boolean = this == ANY || name == direction.name
+
+        fun next(): SearchMode = entries[(ordinal + 1) % entries.size]
+    }
+
+    /** Legacy material-only check for a SELL shop; direction-aware menus use [SearchMode.includes]. */
     fun matches(searchEnabled: Boolean, sellMaterial: Material?, query: Material, mode: SearchMode): Boolean {
         if (!searchEnabled) return false
-        val inSell = sellMaterial != null && sellMaterial == query
-        return when (mode) {
-            SearchMode.SELL -> inSell
-            SearchMode.ANY -> inSell // BUY half needs barter (SP3)
-            SearchMode.BUY -> false
-        }
+        return sellMaterial == query && mode.includes(SignDirection.SELL)
     }
 
     /** Finds an exact or prefix material match in the sold item and its supported containers. */
     fun findMatch(searchEnabled: Boolean, soldItem: ItemStack, query: String): Match? {
         if (!searchEnabled || query.length < MIN_QUERY_LENGTH) return null
-        val normalized = query.uppercase()
+        val normalized = query.uppercase(Locale.ROOT)
         var visited = 0
 
         fun search(item: ItemStack, depth: Int): Match? {
@@ -68,6 +68,8 @@ class ShopSearchService {
         private const val MAX_ITEMS_SCANNED = 1024
 
         private val CATEGORY_MATCHERS: Map<String, (Material) -> Boolean> = mapOf(
+            "SHULKER" to { it == Material.SHULKER_BOX || it.name.endsWith("_SHULKER_BOX") },
+            "SHULKER_BOX" to { it == Material.SHULKER_BOX || it.name.endsWith("_SHULKER_BOX") },
             "ARMOR" to { it.name.endsWith("_HELMET") || it.name.endsWith("_CHESTPLATE") ||
                 it.name.endsWith("_LEGGINGS") || it.name.endsWith("_BOOTS") || it.name.endsWith("_HORSE_ARMOR") ||
                 it.name == "ELYTRA" },
