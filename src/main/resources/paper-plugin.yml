@@ -9,6 +9,10 @@ api-version: '26.2'
 
 dependencies:
   server:
+    packetevents:
+      load: BEFORE
+      required: false
+      join-classpath: true
     LumaGuilds:
       # Guilds already enables in STARTUP. Ordering it before POSTWORLD Market
       # closes Staff -> Market -> Guilds -> Staff; keep the required classpath only.

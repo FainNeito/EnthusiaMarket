@@ -57,12 +57,25 @@ class EnthusiaMarketConfig {
 
     class FinderTrail {
         var enabled: Boolean = true
+        @Comment("LOCATOR, PARTICLES or BOTH. Unsupported locator clients always retain particles.")
+        var mode: String = "BOTH"
+        var showDistance: Boolean = true
+        var arrivalSound: Boolean = true
+        var locator: FinderLocator = FinderLocator()
         var durationSeconds: Long = 60
         var maxRange: Double = 256.0
         var maxActive: Int = 64
         var maxParticlesPerRender: Int = 200
         @Comment("Private destination outline; independent of general stall-border particles.")
         var outline: FinderOutline = FinderOutline()
+    }
+
+    class FinderLocator {
+        var enabled: Boolean = true
+        @Comment("Use minecraft:default without a custom pack. Install the supplied Nexo add-on for enthusiamarket:stall.")
+        var style: String = "minecraft:default"
+        @Comment("Custom styles require a successfully loaded resource pack; otherwise use a vanilla gold icon.")
+        var requireResourcePack: Boolean = true
     }
 
     class FinderOutline {

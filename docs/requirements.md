@@ -690,3 +690,11 @@ WHEN a current guild shop manager requests a stall report THE SYSTEM SHALL verif
 ### REQ-383 — Durable ordered accounting observations
 
 WHEN a captured accounting observation is appended successfully THE SYSTEM SHALL retain it through SQL delivery failure or restart, SHALL apply its immutable recording ID once in a transaction, and SHALL preserve stock lots and receipts after failed writes. Uncertain inventory provenance SHALL replace remaining attribution with unknown stock. Corrupt earlier pending records SHALL block later delivery rather than silently reorder attribution.
+
+### REQ-386 — Private locator navigation
+
+WHEN a player selects a shop result THE SYSTEM SHALL offer one private locator waypoint at the selected shop, using a configurable style and retaining the original stall icon colors with a white tint. The system SHALL send only its own waypoint to that player, SHALL NOT change player waypoint visibility, gamerules, attributes, permissions or world entities, and SHALL fall back to existing particles for unsupported clients or an unavailable packet adapter.
+
+### REQ-387 — Navigation lifecycle and preferences
+
+WHILE a shop guide is active THE SYSTEM SHALL show configurable localized stall, item and distance feedback, SHALL support locator, particles and both modes with a persistent per-player override, and SHALL retain existing outline/range/budget limits. Replacement, arrival, cancellation, timeout, world change, death, disconnect, disable and shutdown SHALL remove the owned waypoint. Missing or declined resource packs SHALL use a vanilla icon rather than a missing texture. Bedrock SHALL use particle guidance until its locator behavior is separately proven.

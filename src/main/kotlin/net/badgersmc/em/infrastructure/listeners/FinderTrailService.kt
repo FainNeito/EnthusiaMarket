@@ -28,7 +28,9 @@ class FinderTrailService(
     private val regions: RegionProvider,
 ) : Listener, AutoCloseable {
     private val tracker = FinderTrailTracker()
+    internal val navigation = FinderNavigationHud(config, lang, plugin)
     private var task: BukkitTask? = null
+    internal var clock: java.time.Clock = java.time.Clock.systemUTC()
 
     fun start(player: Player, shop: Shop) {
         if (!config.finderTrail.enabled) { player.sendMessage(lang.msg("finder_trail.disabled")); return }
@@ -39,11 +41,12 @@ class FinderTrailService(
             player.sendMessage(lang.msg("finder_trail.out_of_range")); return
         }
         val trail = FinderTrailTracker.Trail(shop.signWorld, target,
-            Instant.now().plusSeconds(config.finderTrail.durationSeconds.coerceIn(1, MAX_DURATION)),
+            Instant.now(clock).plusSeconds(config.finderTrail.durationSeconds.coerceIn(1, MAX_DURATION)),
             footprint(shop))
         if (!tracker.start(player.uniqueId, trail, config.finderTrail.maxActive.coerceIn(1, MAX_ACTIVE))) {
             player.sendMessage(lang.msg("finder_trail.busy")); return
         }
+        navigation.start(player, shop)
         ensureRenderTask()
         player.sendMessage(lang.msg("finder_trail.started", "seconds" to config.finderTrail.durationSeconds.coerceIn(1, MAX_DURATION)))
     }
@@ -57,12 +60,22 @@ class FinderTrailService(
 
     fun stop(player: Player) {
         tracker.stop(player.uniqueId)
+        navigation.stop(player)
         player.sendMessage(lang.msg("finder_trail.stopped"))
+    }
+
+    fun setMode(player: Player, value: String) {
+        if (!FinderNavigationPreferences.set(player, value)) {
+            player.sendMessage(lang.msg("finder_trail.mode_usage"))
+            return
+        }
+        player.sendMessage(lang.msg("finder_trail.mode_set",
+            "mode" to FinderNavigationPreferences.get(player, config.finderTrail.mode).name.lowercase()))
     }
 
     internal fun render() {
         if (!config.finderTrail.enabled) tracker.clear()
-        val plans = tracker.renderFrames(Instant.now(), FinderTrailTracker.RenderSettings(
+        val plans = tracker.renderFrames(Instant.now(clock), FinderTrailTracker.RenderSettings(
             config.finderTrail.maxParticlesPerRender.coerceIn(0, MAX_BUDGET),
             range(), FinderOutlineStyle.options(config.finderTrail.outline))) { id ->
             val player = Bukkit.getPlayer(id)?.takeIf { it.isOnline && !it.isDead } ?: return@renderFrames null
@@ -70,9 +83,11 @@ class FinderTrailService(
             player.world.name to FinderTrailTracker.Point(point.x, point.y + 0.5, point.z)
         }
         val dust = FinderOutlineStyle.dust(config.finderTrail.outline)
+        navigation.retain(plans.keys)
         plans.forEach { (id, frame) ->
             val player = Bukkit.getPlayer(id) ?: return@forEach
-            frame.direction.filter { loaded(player, it) }
+            val direction = if (navigation.render(player, frame)) frame.direction else emptyList()
+            direction.filter { loaded(player, it) }
                 .forEach { player.spawnParticle(Particle.END_ROD, it.x, it.y, it.z, 1, 0.0, 0.0, 0.0, 0.0) }
             frame.outline.filter { loaded(player, it) }
                 .forEach { player.spawnParticle(Particle.DUST, it.x, it.y, it.z, 1, 0.0, 0.0, 0.0, 0.0, dust) }
@@ -86,11 +101,16 @@ class FinderTrailService(
     private fun range(): Double = config.finderTrail.maxRange.takeIf { it.isFinite() && it > 0 }
         ?.coerceAtMost(MAX_RANGE) ?: DEFAULT_RANGE
 
-    @EventHandler fun onQuit(event: PlayerQuitEvent) { tracker.stop(event.player.uniqueId) }
-    @EventHandler fun onWorldChange(event: PlayerChangedWorldEvent) { tracker.stop(event.player.uniqueId) }
-    @EventHandler fun onDeath(event: PlayerDeathEvent) { tracker.stop(event.player.uniqueId) }
+    @EventHandler fun onQuit(event: PlayerQuitEvent) { remove(event.player) }
+    @EventHandler fun onWorldChange(event: PlayerChangedWorldEvent) { remove(event.player) }
+    @EventHandler fun onDeath(event: PlayerDeathEvent) { remove(event.player) }
 
-    override fun close() { tracker.clear(); task?.cancel(); task = null }
+    private fun remove(player: Player) {
+        tracker.stop(player.uniqueId)
+        navigation.stop(player)
+    }
+
+    override fun close() { tracker.clear(); navigation.clear(); task?.cancel(); task = null }
 
     companion object {
         private const val MAX_DURATION = 300L

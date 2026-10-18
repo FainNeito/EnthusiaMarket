@@ -11,6 +11,13 @@ import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 import org.bukkit.scheduler.BukkitScheduler
 import org.bukkit.scheduler.BukkitTask
+import org.bukkit.persistence.PersistentDataType
+import org.bukkit.event.player.PlayerChangedWorldEvent
+import org.bukkit.event.player.PlayerQuitEvent
+import org.bukkit.event.entity.PlayerDeathEvent
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import java.util.UUID
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -33,6 +40,7 @@ class FinderOutlineRenderingTest {
         every { player.location } returns Location(world, 12.0, 65.0, 4.0)
         every { player.isOnline } returns true
         every { player.isDead } returns false
+        every { player.persistentDataContainer.get(any<NamespacedKey>(), PersistentDataType.STRING) } returns null
         every { world.name } returns "world"
         every { world.isChunkLoaded(any(), any()) } returns true
         every { Bukkit.getPlayer(id) } returns player
@@ -68,6 +76,57 @@ class FinderOutlineRenderingTest {
         verify(exactly = 0) { player.spawnParticle(Particle.DUST, any<Double>(), any<Double>(), any<Double>(),
             any<Int>(), any<Double>(), any<Double>(), any<Double>(), any<Double>(), any<Particle.DustOptions>()) }
         verify(exactly = 0) { world.getChunkAt(any<Int>(), any<Int>()) }
+    }
+
+    @Test fun `waypoint and particle sessions end on every explicit lifecycle event`() {
+        val locator = mockk<FinderLocator>(relaxed = true)
+        every { locator.show(player, any(), any()) } returns true
+        service.navigation.locator = locator
+        val events = listOf<() -> Unit>(
+            { service.onQuit(PlayerQuitEvent(player, net.kyori.adventure.text.Component.empty(), null)) },
+            { service.onWorldChange(PlayerChangedWorldEvent(player, world)) },
+            { val event = mockk<PlayerDeathEvent>(); every { event.player } returns player; service.onDeath(event) },
+            { service.stop(player) },
+            { service.close() },
+        )
+        events.forEach { finish ->
+            service.start(player, shop())
+            service.render()
+            clearMocks(locator, answers = false)
+            finish()
+            verify { locator.clear(player) }
+            clearMocks(locator, answers = false)
+            service.render()
+            verify(exactly = 0) { locator.show(any(), any(), any()) }
+        }
+    }
+
+    @Test fun `expiry disable and arrival clear selected locator without changing the existing outline budget`() {
+        val locator = mockk<FinderLocator>(relaxed = true)
+        every { locator.show(player, any(), any()) } returns true
+        service.navigation.locator = locator
+        val now = Instant.parse("2026-10-18T00:00:00Z")
+        service.clock = Clock.fixed(now, ZoneOffset.UTC)
+        config.finderTrail.durationSeconds = 1
+        service.start(player, shop())
+        service.render()
+        clearMocks(locator, answers = false)
+        service.clock = Clock.fixed(now.plusSeconds(2), ZoneOffset.UTC)
+        service.render()
+        verify { locator.clear(player) }
+        service.start(player, shop())
+        service.render()
+        clearMocks(locator, answers = false)
+        config.finderTrail.enabled = false
+        service.render()
+        verify { locator.clear(player) }
+        config.finderTrail.enabled = true
+        service.start(player, shop())
+        every { player.location } returns Location(world, 4.5, 65.0, 4.5)
+        clearMocks(locator, answers = false)
+        service.render()
+        verify { locator.clear(player) }
+        verify(exactly = 0) { locator.show(any(), any(), any()) }
     }
 
     private fun shop() = Shop(stallId = "stall", owner = id, signWorld = "world", signX = 4, signY = 65,

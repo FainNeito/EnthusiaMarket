@@ -652,12 +652,16 @@ rent_warning:
   guild_funds: "<yellow>The guild bank needs <amount> currency to renew; its current funds are insufficient.</yellow>"
   renew: "<gray>Renew manually by right-clicking your stall purchase sign. Rent is not automatically charged.</gray>"
 finder_trail:
-  click: "<aqua>Click for a private direction trail. Staff: shift-click.</aqua>"
-  started: "<aqua>Follow your private particles for up to <seconds> seconds. This points toward the shop; use safe paths around obstacles. Cancel with /shop trail stop.</aqua>"
+  click: "<aqua>Click for private shop guidance. Staff: shift-click.</aqua>"
+  started: "<aqua>Follow your private shop guide for up to <seconds> seconds. This points toward the shop; use safe paths around obstacles. Cancel with /shop trail stop.</aqua>"
   stopped: "<gray>Shop direction trail stopped.</gray>"
   disabled: "<yellow>Shop direction trails are disabled.</yellow>"
   out_of_range: "<yellow>This shop is too far away or in another world. Use its displayed coordinates.</yellow>"
   busy: "<yellow>Direction trails are busy. Please try again shortly.</yellow>"
+  destination: "<gold><stall></gold> <gray>•</gray> <white><item></white> <gray>•</gray> <yellow><distance>m</yellow>"
+  arrived: "<green>You've arrived</green> <gray>•</gray> <gold><stall></gold> <gray>•</gray> <white><item></white>"
+  mode_usage: "<yellow>/shop trail mode locator|particles|both|default</yellow>"
+  mode_set: "<green>Shop guidance mode: <mode>.</green>"
 accounting:
   denied: "<red>Only current guild stall managers can view this report."
   usage: "<yellow>/guildsales [export] stall [all|today] or /guildsales [export] range stall YYYY-MM-DD YYYY-MM-DD"

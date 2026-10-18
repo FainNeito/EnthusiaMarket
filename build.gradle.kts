@@ -56,6 +56,9 @@ repositories {
     maven("https://repo.opencollab.dev/main/")  // Floodgate / Cumulus
 
     maven("https://repo.extendedclip.com/content/repositories/placeholderapi/") // PlaceholderAPI
+    maven("https://repo.codemc.io/repository/maven-releases/") {
+        content { includeGroup("com.github.retrooper") }
+    }
 
     // Nexus releases — served via JitPack (https://jitpack.io). No token
     // required; the repo at https://github.com/BadgersMC/Nexus is public.
@@ -69,6 +72,9 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:26.2.build.129-stable")
+    // Optional installed adapter; never shade or change vanilla waypoint broadcasts.
+    compileOnly("com.github.retrooper:packetevents-spigot:2.14.0")
+    testImplementation("com.github.retrooper:packetevents-spigot:2.14.0")
     compileOnly("com.github.MilkBowl:VaultAPI:1.7") {
         exclude(group = "org.bukkit", module = "bukkit")
     }

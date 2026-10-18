@@ -15,7 +15,8 @@ class FinderTrailTracker {
                      val footprint: RegionProvider.Footprint? = null)
     data class RenderSettings(val budget: Int, val range: Double, val outline: FinderOutlineOptions)
     private data class RenderContext(val now: Instant, val settings: RenderSettings)
-    data class Frame(val direction: List<Point>, val outline: List<Point>)
+    data class Frame(val direction: List<Point>, val outline: List<Point>, val target: Point? = null,
+                     val arrived: Boolean = false)
     private data class Active(val trail: Trail, var arrivedAt: Instant? = null)
     private val active = linkedMapOf<UUID, Active>()
     private var offset = 0
@@ -99,7 +100,7 @@ class FinderTrailTracker {
         val outline = if (shape != null && distance <= options.revealDistance) {
             FinderOutlinePlanner.plan(shape, trail.target, options, budget - direction.size)
         } else emptyList()
-        return Frame(direction, outline)
+        return Frame(direction, outline, trail.target, entry.arrivedAt != null)
     }
 
     private fun direction(from: Point, target: Point, budget: Int, distance: Double): List<Point> {
