@@ -46,13 +46,20 @@ internal class FinderNavigationHud(
     }
 
     private fun renderLocator(player: Player, target: FinderTrailTracker.Point,
-                              mode: FinderNavigationMode, arrived: Boolean): Boolean = try {
-        if (arrived || mode == FinderNavigationMode.PARTICLES || !config.finderTrail.locator.enabled) {
+                              mode: FinderNavigationMode, arrived: Boolean): Boolean = attemptLocator {
+        if (hideLocator(mode, arrived)) {
             locator.clear(player)
             false
         } else {
             locator.show(player, target, style(player))
         }
+    }
+
+    private fun hideLocator(mode: FinderNavigationMode, arrived: Boolean): Boolean =
+        arrived || mode == FinderNavigationMode.PARTICLES || !config.finderTrail.locator.enabled
+
+    private fun attemptLocator(action: () -> Boolean): Boolean = try {
+        action()
     } catch (error: RuntimeException) {
         warn(error)
         false
@@ -69,21 +76,30 @@ internal class FinderNavigationHud(
     }
 
     private fun renderStatus(session: Session, frame: FinderTrailTracker.Frame) {
-        val player = session.player
-        if (frame.arrived && !session.arrived && config.finderTrail.arrivalSound) {
-            player.playSound(player.location, Sound.BLOCK_NOTE_BLOCK_PLING, 0.4f, 1.5f)
+        arrivalFeedback(session, frame.arrived)
+        when {
+            config.finderTrail.showDistance -> distanceStatus(session, frame)
+            session.actionBar -> {
+                session.player.sendActionBar(Component.empty())
+                session.actionBar = false
+            }
         }
-        session.arrived = frame.arrived
-        if (config.finderTrail.showDistance) {
-            val point = player.location
-            val distance = frame.target?.distance(FinderTrailTracker.Point(point.x, point.y, point.z)) ?: return
-            player.sendActionBar(lang.msg(if (frame.arrived) "finder_trail.arrived" else "finder_trail.destination",
-                "stall" to session.stall, "item" to session.item, "distance" to ceil(distance).toInt().toString()))
-            session.actionBar = true
-        } else if (session.actionBar) {
-            player.sendActionBar(Component.empty())
-            session.actionBar = false
+    }
+
+    private fun arrivalFeedback(session: Session, arrived: Boolean) {
+        if (arrived && !session.arrived && config.finderTrail.arrivalSound) {
+            session.player.playSound(session.player.location, Sound.BLOCK_NOTE_BLOCK_PLING, 0.4f, 1.5f)
         }
+        session.arrived = arrived
+    }
+
+    private fun distanceStatus(session: Session, frame: FinderTrailTracker.Frame) {
+        val point = session.player.location
+        val distance = frame.target?.distance(FinderTrailTracker.Point(point.x, point.y, point.z)) ?: return
+        val message = if (frame.arrived) "finder_trail.arrived" else "finder_trail.destination"
+        session.player.sendActionBar(lang.msg(message, "stall" to session.stall, "item" to session.item,
+            "distance" to ceil(distance).toInt().toString()))
+        session.actionBar = true
     }
 
     fun retain(active: Set<UUID>) {
