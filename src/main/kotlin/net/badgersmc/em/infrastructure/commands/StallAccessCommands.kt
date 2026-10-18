@@ -21,14 +21,14 @@ class StallAccessCommands(
     private val names: PlayerNameResolver,
     private val projection: StallAccessProjection,
 ) {
-    @Subcommand("settings <stall>")
+    @Subcommand("settings")
     @Permission("enthusiamarket.shop.use")
     fun settings(@Context player: Player, @Arg("stall") id: String) {
         runCatching { service.refreshIfUncertain(id) }
         StallAccessMenu(index, service, guilds, projection).open(player, id)
     }
 
-    @Subcommand("blacklist <stall> <player> <blocked>")
+    @Subcommand("blacklist")
     @Permission("enthusiamarket.shop.use")
     fun blacklist(@Context actor: Player, @Arg("stall") id: String, @Arg("player") name: String, @Arg("blocked") blocked: String) {
         val stall = index.cached(id) ?: return
