@@ -58,14 +58,16 @@ internal class FinderNavigationHud(
     private fun hideLocator(mode: FinderNavigationMode, arrived: Boolean): Boolean =
         arrived || mode == FinderNavigationMode.PARTICLES || !config.finderTrail.locator.enabled
 
-    private fun attemptLocator(action: () -> Boolean): Boolean = try {
-        action()
-    } catch (error: RuntimeException) {
-        warn(error)
-        false
-    } catch (error: LinkageError) {
-        warn(error)
-        false
+    private fun attemptLocator(action: () -> Boolean): Boolean {
+        return try {
+            action()
+        } catch (error: RuntimeException) {
+            warn(error)
+            false
+        } catch (error: LinkageError) {
+            warn(error)
+            false
+        }
     }
 
     private fun style(player: Player): String {

@@ -14,9 +14,10 @@ Use installed optional PacketEvents through its supported API, isolated from pla
 - [x] Specify privacy, optional dependencies, resource-pack fallback, preferences and lifecycle boundaries.
 - [x] Prove tracker, private transport, session cleanup, config roundtrip and preference behavior.
 - [x] Implement and run canonical full tests, shadowJar, architecture and static checks.
-- [ ] Publish source PR and inspect exact-head checks/comments.
-- [ ] Back up TEST, deploy explicitly labeled unmerged test artifact plus pack add-on, activate TEST and verify startup/client marker and cleanup.
-- [ ] Update interactive preview to match implemented behavior and provide mobile link.
+- [x] Publish source PR #221 and inspect exact-head checks/comments; refine actionable quality findings.
+- [x] Back up TEST, deploy explicitly labeled unmerged test artifact plus pack add-on, activate TEST and verify startup and downloaded artwork.
+- [ ] Observe selected waypoint appearance/privacy in the native client; ordinary-player permissions remain deferred.
+- [x] Update interactive preview to match implemented behavior and provide mobile link.
 
 Existing preview: https://enthusia-stall-locator-preview.awareyak.chatgpt.site (private; ChatGPT login). A simulated HUD with actual TEST artwork and inspected Java 26.3 geometry; this is not native client acceptance.
 
@@ -37,3 +38,7 @@ PR #221 source 0cf5b41 passed hosted build, diagnostics and security. Codacy rep
 The first candidate activated successfully on TEST with the Guilds integration preserved and no Market locator startup errors. Offline backup was saved before activation. Full remote JAR download is blocked by the download host's TLS failure; upload/remote size and all 85 changed archive entries were verified via authenticated TLS readback. The actual Java client downloaded the generated 5,228,786-byte pack: the custom style points to `enthusiamarket:stall`, and the icon bytes match the original artwork hash exactly after Nexo SIMPLE obfuscation. Native `/shop trail mode both` and `default` commands succeeded; the temporary mode override was removed. FainNeito reconnected to TEST. FainNoir was offline; the temporary proxy reconnect grant was removed.
 
 Native marker appearance/privacy through an actual selected search-result guide remains a separate acceptance gate; packet/session tests, pack download and successful startup do not claim that observation. Ordinary-player permission testing remains deferred. The interactive mobile preview now matches the implemented gold/white/yellow destination text and 9x9 icon geometry; it remains a simulation and requires ChatGPT sign-in.
+
+Final TEST activation: source ab167a6, artifact `.2` / SHA-256 `3d82d7ed36c795bde8af9176b3b508c8daddb1c80eacddb1c3d1707ed26aa813`; offline rollback archive `archive-2026-10-18T205221Z.tar.gz`. Startup on 2026-10-18 20:53 UTC confirmed the expected version, server ready, no pending update, unchanged Nexo settings, preserved Guilds integration build, regenerated pack and no Market locator errors. FainNeito was returned to TEST. Production was not changed.
+
+Codacy's remaining function-length notice included the following helper in an expression-bodied try function. An explicit function block fixes the boundary. The full `javap -c -p` executable disassembly of FinderNavigationHud is byte-for-byte identical to the activated `.2` artifact; the final source change affects syntax/debug metadata only. Focused finder tests pass again with no failures/skips. TEST retains the fully tested `.2` artifact and its recorded source/hash; this syntax-only refinement does not require another activation. Final hosted status is recorded in the PR handoff separately.
