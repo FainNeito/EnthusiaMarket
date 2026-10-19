@@ -16,7 +16,7 @@ class StallRegionAccessService(
 ) {
     /** False means deliberately preserved. Provider failures propagate to the caller's report. */
     fun sync(stall: Stall): Boolean {
-        if (gate.isStallLocked(stall.id.value) || stall.state == StallState.MODERATION_HOLD) return false
+        if (gate.isStallLocked(stall.id.value)) return false
         return when (stall.state) {
             StallState.OWNED, StallState.GRACE -> {
                 syncActive(stall)
@@ -26,15 +26,16 @@ class StallRegionAccessService(
                 regions.clearOwnersAndMembers(stall.world, stall.regionId)
                 true
             }
-            StallState.AUCTIONING, StallState.RE_AUCTIONING -> {
-                // A seller-owned auction has not transferred ownership yet.
-                if (stall.owner.type != OwnerType.NONE) false else {
-                    regions.clearOwnersAndMembers(stall.world, stall.regionId)
-                    true
-                }
-            }
+            StallState.AUCTIONING, StallState.RE_AUCTIONING -> syncSystemAuction(stall)
             StallState.MODERATION_HOLD -> false
         }
+    }
+
+    private fun syncSystemAuction(stall: Stall): Boolean {
+        // A seller-owned auction has not transferred ownership yet.
+        if (stall.owner.type != OwnerType.NONE) return false
+        regions.clearOwnersAndMembers(stall.world, stall.regionId)
+        return true
     }
 
     private fun syncActive(stall: Stall) {

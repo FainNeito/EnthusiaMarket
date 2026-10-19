@@ -62,9 +62,7 @@ class GuildStallResyncOnStartup(
         var skipped = 0
         var errors = 0
 
-        for (stall in stalls.all()) {
-            if (worldName != null && stall.world != worldName) continue
-
+        for (stall in stallsIn(worldName)) {
             try {
                 if (access.sync(stall)) synced++ else skipped++
             } catch (e: Exception) {
@@ -81,4 +79,7 @@ class GuildStallResyncOnStartup(
                 "$skipped preserved, $errors errors"
         )
     }
+
+    private fun stallsIn(worldName: String?) =
+        stalls.all().filter { worldName == null || it.world == worldName }
 }
