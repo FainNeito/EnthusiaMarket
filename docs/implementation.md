@@ -284,3 +284,9 @@ V033 stores receipt IDs, remaining lots, stock events and sale attribution.
 Reporting adapters authorize through the existing GuildProvider and reuse date
 window values. No economic write path or XP policy is added by reporting.
 See [stall-accounting.md](stall-accounting.md) for proof and release boundaries.
+
+## Ownership access recovery
+
+StallRegionAccessService shares lifecycle-aware region access replacement between the startup/world-load listener and administrative resync. The database remains authoritative; automatic recovery touches no rent, shops, flags or member records. Moderation holds/reservations and seller-owned auctions are preserved. See [stall-access-recovery.md](stall-access-recovery.md) for ticket evidence, the state matrix, dated-snapshot limits and verification.
+
+Management rejects forfeited, vacant and held ownership provenance. StallMemberService consults the durable moderation gate and saves additions before external grants; repeating a persisted addition retries its projection. Existing seller-auction access and current legitimate members are retained.

@@ -51,6 +51,36 @@ class StallRepositorySqlTest {
         assertEquals(StallState.UNOWNED, found.state)
     }
 
+    @Test fun `reloaded transfer drops former delegation and preserves the new owners later additions`() {
+        val oldOwner = UUID.randomUUID()
+        val oldMember = UUID.randomUUID()
+        val buyer = UUID.randomUUID()
+        val newMember = UUID.randomUUID()
+        val held = newUnowned("transferred").copy(
+            state = StallState.OWNED, owner = OwnerRef.solo(oldOwner), members = setOf(oldMember),
+        )
+        repo.create(held)
+        val at = java.time.Instant.parse("2026-10-19T12:00:00Z")
+        repo.save(held.awardTo(OwnerRef.solo(buyer), 100, at, at.plusSeconds(86400)))
+        val reloaded = assertNotNull(StallRepositorySql(ds).findById(held.id))
+        assertEquals(OwnerRef.solo(buyer), reloaded.owner)
+        assertEquals(emptySet(), reloaded.members)
+        val guilds = io.mockk.mockk<net.badgersmc.em.domain.ports.GuildProvider>(relaxed = true)
+        kotlin.test.assertFalse(reloaded.canManage(oldOwner, guilds))
+        kotlin.test.assertFalse(reloaded.canManage(oldMember, guilds))
+        repo.save(reloaded.addMember(newMember))
+        val current = assertNotNull(StallRepositorySql(ds).findById(held.id))
+        val regions = io.mockk.mockk<net.badgersmc.em.domain.ports.RegionMemberSync>(relaxed = true)
+        val sync = net.badgersmc.em.application.StallRegionAccessService(
+            guilds, regions, net.badgersmc.em.domain.ports.MarketMutationGate.Open,
+        )
+        repeat(2) { kotlin.test.assertTrue(sync.sync(current)) }
+        io.mockk.verify(exactly = 2) { regions.setOwner("world", "transferred", buyer) }
+        io.mockk.verify(exactly = 2) { regions.addMember("world", "transferred", newMember) }
+        io.mockk.verify(exactly = 0) { regions.addMember(any(), any(), oldMember) }
+        assertEquals(setOf(newMember), assertNotNull(repo.findById(held.id)).members)
+    }
+
     @Test fun `unknown id returns null`() {
         assertNull(repo.findById(StallId("nope")))
     }

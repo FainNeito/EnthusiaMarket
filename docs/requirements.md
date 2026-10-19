@@ -690,3 +690,9 @@ WHEN a current guild shop manager requests a stall report THE SYSTEM SHALL verif
 ### REQ-383 — Durable ordered accounting observations
 
 WHEN a captured accounting observation is appended successfully THE SYSTEM SHALL retain it through SQL delivery failure or restart, SHALL apply its immutable recording ID once in a transaction, and SHALL preserve stock lots and receipts after failed writes. Uncertain inventory provenance SHALL replace remaining attribution with unknown stock. Corrupt earlier pending records SHALL block later delivery rather than silently reorder attribution.
+
+## Ownership access recovery (bug-0406 follow-up)
+
+**Event-driven (REQ-317/318/319/320/321).** WHEN startup, a subsequently loaded world, or an authorized region resync reconciles a stall THE SYSTEM SHALL replace active SOLO access with its current owner and delegated members, replace active guild access with its current guild roster, and clear access for vacant, forfeited emergency, and ownerless system-auction stalls. THE SYSTEM SHALL preserve seller-owned auction access and moderation holds or live reservations, without changing the database, shops, flags, or rent during automatic reconciliation. Missing regions/worlds SHALL be reported as failures rather than successful mutations.
+
+**State-driven (REQ-319/320).** WHILE a stall is vacant, forfeited to an emergency auction, held for moderation, or durably reserved for moderation THE SYSTEM SHALL reject member mutations before granting external region access. WHEN member persistence is rejected THE SYSTEM SHALL grant no new WorldGuard membership. A retained former-owner identifier SHALL NOT grant management authority in vacant, forfeited or held states.

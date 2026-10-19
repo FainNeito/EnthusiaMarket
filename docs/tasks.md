@@ -1168,3 +1168,13 @@ See [guild-shop-xp.md](guild-shop-xp.md) for policy, payment boundary, journal s
 
 - [x] STALL-ACCOUNTING — REQ-384, REQ-385 and REQ-383: approved FIFO attribution and read-only contributor/gross-sales reports, conservative unknown stock, durable ordered observation delivery, date windows and optional server-local CSV.
   - Tag: TDD; Evidence: docs/stall-accounting.md. Full paired clean suite: 895 tests, zero failures/errors, 12 unrelated skips; new native MariaDB accounting case executed without skips. Detekt passed on analyzer Java 22, bytecode/tests on Java 25/Paper 26.2. No local EARS/state helpers exist; manual records maintained. Exact-head hosted results, canonical dependency integration and real client acceptance remain separate. Payouts, XP and production remain unchanged.
+
+## Ownership access recovery — bug-0406 follow-up (2026-10-19)
+
+- [x] Spec: inspect authoritative main 57704f1 and ticket 406; ordinary award already clears DB members.
+- [x] Evidence: read-only comparison of the 2026-10-18 database backup and 2026-10-19 saved WorldGuard regions shows stale solo ACLs; stall48 itself is clean in that backup. These are different capture times, not live client proof.
+- [x] Prove: both actual delayed-startup regressions failed before the recovery change; both former-owner member-grant/save-failure regressions failed before authority/write-order changes.
+- [x] Engine: share lifecycle-aware access reconciliation; deny forfeited/held management; fence member mutations and persist before grants; preserve moderation and current members.
+- [x] Arch/refine: 1041 local tests (0 failures/errors, 14 environment-dependent skips), shadowJar and Java-22 Detekt passed; tested source prepared for PR delivery with hosted exact-head CI/review and live acceptance tracked separately. No production repair or deployment authorized.
+
+No repository-local EARS validator or SPEAR state helper was found; requirements, this task record and verification evidence track the workflow manually.

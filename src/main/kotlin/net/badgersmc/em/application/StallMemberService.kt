@@ -1,6 +1,7 @@
 package net.badgersmc.em.application
 
 import net.badgersmc.em.domain.ports.GuildProvider
+import net.badgersmc.em.domain.ports.MarketMutationGate
 import net.badgersmc.em.domain.ports.RegionMemberSync
 import net.badgersmc.em.domain.stall.Stall
 import net.badgersmc.em.domain.stall.StallId
@@ -13,16 +14,17 @@ import java.util.UUID
  *
  * - Authorises the actor against [Stall.canManage] (REQ-202).
  * - Applies the pure domain operation on the [Stall] aggregate.
- * - Mirrors the change to the underlying WorldGuard region via
- *   [RegionMemberSync] so the member actually gains build/interact
- *   rights (REQ-203).
- * - Persists the updated aggregate.
+ * - Rejects durable moderation reservations before mutations.
+ * - Persists additions before [RegionMemberSync] grants build/interact
+ *   rights (REQ-203); repeating a persisted addition retries its projection.
+ * - Revokes external access before persisting member removals.
  */
 @Service
 class StallMemberService(
     private val stalls: StallRepository,
     private val regionMembers: RegionMemberSync,
     private val guildProvider: GuildProvider,
+    private val mutationGate: MarketMutationGate = MarketMutationGate.Open,
 ) {
 
     sealed interface Result {
@@ -34,21 +36,28 @@ class StallMemberService(
 
     fun addMember(stallId: StallId, actor: UUID, target: UUID): Result {
         val stall = stalls.findById(stallId) ?: return Result.NotFound
+        if (mutationGate.isStallLocked(stallId.value)) return Result.Rejected("Stall is reserved for moderation")
         if (!stall.canManage(actor, guildProvider)) return Result.NotAuthorised
         val updated = try {
             stall.addMember(target)
         } catch (e: IllegalStateException) {
             return Result.Rejected(e.message ?: "member cap reached")
         }
-        // Short-circuit when the roster didn't change (already a member, owner)
-        if (updated === stall) return Result.Success(stall)
-        regionMembers.addMember(stall.world, stall.regionId, target)
+        // Repeating an already-persisted grant retries a failed projection without
+        // adding the owner to the delegated roster or requiring another DB write.
+        if (updated === stall) {
+            if (target in stall.members) regionMembers.addMember(stall.world, stall.regionId, target)
+            return Result.Success(stall)
+        }
+        // A rejected/fenced save must never leave an unrecorded WorldGuard grant.
         stalls.save(updated)
+        regionMembers.addMember(stall.world, stall.regionId, target)
         return Result.Success(updated)
     }
 
     fun removeMember(stallId: StallId, actor: UUID, target: UUID): Result {
         val stall = stalls.findById(stallId) ?: return Result.NotFound
+        if (mutationGate.isStallLocked(stallId.value)) return Result.Rejected("Stall is reserved for moderation")
         if (!stall.canManage(actor, guildProvider)) return Result.NotAuthorised
         val updated = stall.removeMember(target)
         // Short-circuit when the roster didn't change (not a member)

@@ -8,6 +8,8 @@ import java.util.UUID
  * in the infrastructure layer (see WorldGuardRegionMemberSync). Domain
  * code orchestrates calls; the port keeps Stall free of any WG type
  * dependency. See REQ-202, REQ-203.
+ * Missing worlds/regions are failures, not successful no-ops; callers can
+ * report failure and retry after world load or through administrative resync.
  */
 interface RegionMemberSync {
     /** Grant [player] member rights in the region identified by [world]/[regionId]. */
@@ -20,7 +22,7 @@ interface RegionMemberSync {
      * Replace the region's owner set with exactly [player]. Used when a
      * stall changes hands via buyout/auction/award so the new owner
      * gets WG build/interact rights without needing to be op. Existing
-     * owners are cleared first.
+     * owners AND members are cleared first, including named/group entries.
      */
     fun setOwner(world: String, regionId: String, player: UUID)
 
@@ -34,7 +36,8 @@ interface RegionMemberSync {
     /**
      * Sync all [memberUuids] as WG region members. Used to bridge guild
      * membership into WG so guild members can build in guild-owned stalls
-     * without op or manual `/em stall members add`.
+     * without op or manual `/em stall members add`. Replaces both owner and
+     * member sets even when [memberUuids] is empty.
      */
     fun syncGuildMembers(world: String, regionId: String, memberUuids: Set<UUID>)
 }

@@ -24,6 +24,63 @@ class StallMemberServiceTest {
     private val owner = UUID.randomUUID()
     private val stallId = StallId("s1")
 
+    @Test fun `expired former owner cannot regrant access while retained as auction provenance`() {
+        val target = UUID.randomUUID()
+        val stalls = mockk<StallRepository>(relaxed = true)
+        val sync = mockk<RegionMemberSync>(relaxed = true)
+        every { stalls.findById(stallId) } returns ownedStall().copy(state = StallState.EMERGENCY_AUCTIONING)
+        val result = StallMemberService(stalls, sync, mockk(relaxed = true)).addMember(stallId, owner, target)
+        assertIs<Result.NotAuthorised>(result)
+        verify(exactly = 0) { sync.addMember(any(), any(), any()) }
+        verify(exactly = 0) { stalls.save(any()) }
+    }
+
+    @Test fun `rejected member persistence must never grant external access`() {
+        val target = UUID.randomUUID()
+        val stalls = mockk<StallRepository>(relaxed = true)
+        val sync = mockk<RegionMemberSync>(relaxed = true)
+        every { stalls.findById(stallId) } returns ownedStall()
+        every { stalls.save(any()) } throws IllegalStateException("save rejected")
+        kotlin.test.assertFailsWith<IllegalStateException> {
+            StallMemberService(stalls, sync, mockk(relaxed = true)).addMember(stallId, owner, target)
+        }
+        verify(exactly = 0) { sync.addMember(any(), any(), any()) }
+    }
+
+    @Test fun `moderation reservation rejects both member mutations before any projection`() {
+        val stalls = mockk<StallRepository>(relaxed = true)
+        val sync = mockk<RegionMemberSync>(relaxed = true)
+        val target = UUID.randomUUID()
+        every { stalls.findById(stallId) } returns ownedStall().copy(members = setOf(target))
+        val gate = mockk<net.badgersmc.em.domain.ports.MarketMutationGate> {
+            every { isStallLocked("s1") } returns true
+        }
+        val service = StallMemberService(stalls, sync, mockk(relaxed = true), gate)
+        assertIs<Result.Rejected>(service.addMember(stallId, owner, UUID.randomUUID()))
+        assertIs<Result.Rejected>(service.removeMember(stallId, owner, target))
+        verify(exactly = 0) { stalls.save(any()) }
+        confirmVerified(sync)
+    }
+
+    @Test fun `projection failure after a successful save is repaired by repeating the grant`() {
+        val stalls = mockk<StallRepository>(relaxed = true)
+        val sync = mockk<RegionMemberSync>(relaxed = true)
+        val target = UUID.randomUUID()
+        var stored = ownedStall()
+        every { stalls.findById(stallId) } answers { stored }
+        every { stalls.save(any()) } answers { stored = firstArg() }
+        var attempts = 0
+        every { sync.addMember(any(), any(), target) } answers {
+            if (attempts++ == 0) error("WorldGuard unavailable")
+        }
+        val service = StallMemberService(stalls, sync, mockk(relaxed = true))
+        kotlin.test.assertFailsWith<IllegalStateException> { service.addMember(stallId, owner, target) }
+        assertTrue(target in stored.members)
+        assertIs<Result.Success>(service.addMember(stallId, owner, target))
+        verify(exactly = 1) { stalls.save(any()) }
+        verify(exactly = 2) { sync.addMember("world", "s1", target) }
+    }
+
     private fun ownedStall() = Stall(
         id = stallId,
         regionId = "s1",

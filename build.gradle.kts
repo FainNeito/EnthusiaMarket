@@ -73,6 +73,8 @@ dependencies {
         exclude(group = "org.bukkit", module = "bukkit")
     }
     compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.9")
+    // Domain mutation tests need no Bukkit plugin or its bundled SQL migrations.
+    testImplementation("com.sk89q.worldguard:worldguard-core:7.0.9")
     // WorldEdit + FAWE — backs the SchematicService adapter (REQ-270..272).
     // compileOnly: provided by the WorldEdit/FAWE plugins at runtime (softdepend).
     compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.3.0")

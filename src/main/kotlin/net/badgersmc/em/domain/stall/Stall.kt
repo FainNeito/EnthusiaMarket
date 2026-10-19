@@ -126,6 +126,10 @@ data class Stall(
      * @return `true` if the player is authorised, `false` otherwise.
      */
     fun canManage(playerUuid: UUID, guildProvider: GuildProvider): Boolean {
+        // A retained owner ID after forfeiture is settlement provenance, not authority.
+        if (state in setOf(StallState.UNOWNED, StallState.EMERGENCY_AUCTIONING, StallState.MODERATION_HOLD)) {
+            return false
+        }
         return when (owner.type) {
             OwnerType.NONE -> false
             OwnerType.SOLO -> {

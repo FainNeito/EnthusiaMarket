@@ -6,19 +6,10 @@ import net.badgersmc.em.domain.ports.RegionMemberSync
 import net.badgersmc.nexus.annotations.Component
 import org.bukkit.Bukkit
 import java.util.UUID
-import java.util.logging.Logger
 
-/**
- * WorldGuard implementation of [RegionMemberSync]. Mutates the
- * region's member set so the player gains build/interact rights
- * inside the stall (REQ-203). Silently ignores missing worlds /
- * regions — the domain-side roster remains authoritative, and a
- * later resync (e.g. world reload) can re-attach memberships.
- */
+/** WorldGuard projection of the authoritative stall roster. Missing targets are failures. */
 @Component
-class WorldGuardRegionMemberSync : RegionMemberSync {
-
-    private val log = Logger.getLogger(javaClass.name)
+open class WorldGuardRegionMemberSync : RegionMemberSync {
 
     override fun addMember(world: String, regionId: String, player: UUID) {
         withRegion(world, regionId) { region ->
@@ -65,22 +56,23 @@ class WorldGuardRegionMemberSync : RegionMemberSync {
         regionId: String,
         block: (com.sk89q.worldguard.protection.regions.ProtectedRegion) -> Unit,
     ) {
-        val bukkitWorld = Bukkit.getWorld(world)
-        if (bukkitWorld == null) {
-            log.warning("RegionMemberSync: world $world not loaded; skipping mutation")
-            return
+        block(findRegion(world, regionId))
+    }
+
+    /** Keep platform lookup separate from mutations of WorldGuard's access domains. */
+    protected open fun findRegion(
+        world: String,
+        regionId: String,
+    ): com.sk89q.worldguard.protection.regions.ProtectedRegion {
+        val bukkitWorld = checkNotNull(Bukkit.getWorld(world)) {
+            "RegionMemberSync: world $world not loaded"
         }
-        val regionManager = WorldGuard.getInstance().platform.regionContainer
-            .get(BukkitAdapter.adapt(bukkitWorld))
-        if (regionManager == null) {
-            log.warning("RegionMemberSync: no region manager for $world; skipping mutation")
-            return
+        val regionManager = checkNotNull(WorldGuard.getInstance().platform.regionContainer
+            .get(BukkitAdapter.adapt(bukkitWorld))) {
+            "RegionMemberSync: no region manager for $world"
         }
-        val region = regionManager.getRegion(regionId)
-        if (region == null) {
-            log.warning("RegionMemberSync: region $regionId not found in $world; skipping mutation")
-            return
+        return checkNotNull(regionManager.getRegion(regionId)) {
+            "RegionMemberSync: region $regionId not found in $world"
         }
-        block(region)
     }
 }
