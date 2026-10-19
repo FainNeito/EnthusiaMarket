@@ -133,6 +133,11 @@ internal class FinderNavigationHud(
         sessions.values.toList().forEach { stop(it.player) }
     }
 
+    fun close() {
+        clear()
+        locator.close()
+    }
+
     private fun warn(error: Throwable) {
         if (!warned) plugin.logger.warning("Stall locator failed (${error.javaClass.simpleName}); using particles.")
         warned = true

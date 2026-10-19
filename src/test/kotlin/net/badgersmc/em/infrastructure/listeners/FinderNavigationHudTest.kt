@@ -90,6 +90,16 @@ class FinderNavigationHudTest {
         verify(exactly = 1) { plugin.logger.warning(any<String>()) }
     }
 
+    @Test fun `shutdown clears destination before closing transport and idle render never restarts it`() {
+        hud.render(player, frame)
+        clearMocks(locator, answers = false)
+        hud.close()
+        verifyOrder { locator.clear(player); locator.close() }
+        clearMocks(locator, answers = false)
+        assertTrue(hud.render(player, frame))
+        verify(exactly = 0) { locator.show(any(), any(), any()) }
+    }
+
     private fun shop() = Shop(stallId = "stall24", owner = id, signWorld = "world", signX = 10, signY = 64,
         signZ = 8, containerWorld = "world", containerX = 10, containerY = 64, containerZ = 8,
         sellItem = "", sellAmount = 1, costItem = "", costAmount = 1)

@@ -1171,6 +1171,8 @@ See [guild-shop-xp.md](guild-shop-xp.md) for policy, payment boundary, journal s
 
 - [x] FINDER-386 — REQ-386/387 source implementation and authorized TEST deployment: private locator transport, namespaced existing stall icon, resource-pack/Bedrock fallback, destination feedback, persistent mode preference and existing guide lifecycle. Manual SPEAR evidence: finder-locator-verification.md. Full 1,032-case suite, architecture, Detekt and focused refinement checks pass. TEST `.2` is active with offline backup and downloaded icon verified. Native selected-marker appearance/privacy, ordinary-player permission testing, human review, merging and production remain separate gates.
 
+- [x] FINDER-386 privacy correction: suppress native player and other waypoint tracking with a per-recipient active-stall allowlist; preserve explicit command/search-result start and all cleanup paths. Evidence and remaining native acceptance gates: finder-privacy-verification.md. Interactive mobile preview includes idle, arrival, cancel and expiry states.
+
 - [x] FINDER-388/389 — source implementation: bounded route graph and moving clustered pulses/intensity; private glowing beams, exact sign and cleanup. Final 1,045-case suite, architecture, shadowJar/JaCoCo and Java 22 Detekt pass; 14 external skips remain. Mobile interactive preview published. Manual SPEAR evidence in finder-enhancements-verification.md; local EARS/state helpers absent. Exact-head CI/TEST receipt is recorded in the PR handoff; native appearance/privacy, route survey and ordinary-player acceptance remain separate.
 ## Ownership access recovery — bug-0406 follow-up (2026-10-19)
 

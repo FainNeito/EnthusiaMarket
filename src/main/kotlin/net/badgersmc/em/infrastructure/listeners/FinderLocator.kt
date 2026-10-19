@@ -4,11 +4,12 @@ import net.badgersmc.em.application.FinderTrailTracker
 import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 
-/** An optional private HUD transport; never changes vanilla player waypoints. */
-interface FinderLocator {
+/** Optional private HUD transport. The installed adapter suppresses non-Market tracking. */
+interface FinderLocator : AutoCloseable {
     fun supported(player: Player): Boolean
     fun show(player: Player, target: FinderTrailTracker.Point, style: String): Boolean
     fun clear(player: Player)
+    override fun close() = Unit
 }
 
 internal object UnavailableFinderLocator : FinderLocator {
@@ -21,7 +22,10 @@ internal object FinderLocators {
     fun create(plugin: Plugin): FinderLocator {
         if (!plugin.server.pluginManager.isPluginEnabled("packetevents")) return UnavailableFinderLocator
         return try {
-            PacketEventsFinderLocator()
+            PacketEventsFinderLocator().also { adapter ->
+                com.github.retrooper.packetevents.PacketEvents.getAPI().eventManager.registerListener(adapter.privacy)
+                adapter.hideExistingPlayers(plugin.server.onlinePlayers.toList())
+            }
         } catch (error: LinkageError) {
             plugin.logger.warning("Stall locator adapter unavailable (${error.javaClass.simpleName}); using particles.")
             UnavailableFinderLocator

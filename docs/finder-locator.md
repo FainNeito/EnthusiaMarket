@@ -32,6 +32,8 @@ finderTrail:
 
 The existing `finderTrail.outline` settings remain independent of the navigation mode. Use `enthusiamarket:stall` only after installing the supplied [Nexo add-on](../resourcepack/README.md). Missing/declined packs use a vanilla gold marker. The supplied multicolor artwork uses white waypoint tint. The bar has a fixed 9x9 icon slot and shows destinations within its normal forward-facing viewing range; direction indicators are not obstacle-aware paths.
 
-The optional `packetevents` plugin must support waypoint packets (tested with 2.14.0). Older Java clients, Bedrock/Floodgate, disabled locator support and unavailable transports fall back to particles. No vanilla player waypoints, player attributes, gamerules, permissions or entities are changed.
+The optional `packetevents` plugin must support waypoint packets (tested with 2.14.0). While the adapter is installed, a per-recipient allowlist suppresses all non-Market tracking waypoints, including players, even when finder guidance or its locator mode is disabled. Only the viewer's explicitly selected destination passes; removal packets always pass. Installation clears existing online-player markers. The filter is removed on plugin shutdown after owned markers are removed. Other waypoint-producing plugins are intentionally suppressed on this Market server.
+
+Idle, cancelled and expired guidance leaves the ordinary XP bar; arrival removes the locator immediately while the outline finishes. Mode commands only save a preference. Older Java clients, Bedrock/Floodgate and disabled locator support use particles. Without a working PacketEvents adapter, Market cannot enforce waypoint suppression: configure vanilla player tracking separately before accepting that fallback. No player attributes, gamerules, permissions or entities are changed.
 
 Native Java acceptance, Geyser limitations and TEST artifact provenance are recorded separately in [verification](finder-locator-verification.md).
