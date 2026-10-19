@@ -94,4 +94,28 @@ class FinderLocatorTest {
         locator.clear(player)
         assertEquals(1, packets.size)
     }
+
+    @Test fun `startup removes existing player markers without sending locations`() {
+        locator.hideExistingPlayers(listOf(player, observer))
+        assertEquals(4, packets.size)
+        assertTrue(packets.all { it.second.operation == WrapperPlayServerWaypoint.Operation.UNTRACK })
+        assertEquals(setOf(player.uniqueId, observer.uniqueId),
+            packets.map { it.second.waypoint.identifier.left }.toSet())
+    }
+
+    @Test fun `failed track can be removed and retried instead of reported as successful`() {
+        var fail = true
+        val adapter = PacketEventsFinderLocator({ target, packet ->
+            if (fail) throw IllegalStateException("transport failed")
+            packets += target to packet
+        }, { true }, { false })
+        val point = Point(0.0, 65.0, 0.0)
+        assertFailsWith<IllegalStateException> { adapter.show(player, point, "minecraft:default") }
+        fail = false
+        assertTrue(adapter.show(player, point, "minecraft:default"))
+        assertEquals(listOf(WrapperPlayServerWaypoint.Operation.UNTRACK, WrapperPlayServerWaypoint.Operation.TRACK),
+            packets.map { it.second.operation })
+        adapter.clear(player)
+        assertEquals(WrapperPlayServerWaypoint.Operation.UNTRACK, packets.last().second.operation)
+    }
 }

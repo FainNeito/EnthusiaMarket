@@ -130,7 +130,7 @@ class FinderTrailService(
         glow.clear(player.uniqueId)
     }
 
-    override fun close() { tracker.clear(); navigation.clear(); glow.close(); task?.cancel(); task = null }
+    override fun close() { tracker.clear(); navigation.close(); glow.close(); task?.cancel(); task = null }
 
     companion object {
         private const val MAX_DURATION = 300L

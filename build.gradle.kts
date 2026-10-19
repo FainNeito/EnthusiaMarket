@@ -72,7 +72,7 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:26.2.build.129-stable")
-    // Optional installed adapter; never shade or change vanilla waypoint broadcasts.
+    // Optional stall-only locator adapter; never shade PacketEvents.
     compileOnly("com.github.retrooper:packetevents-spigot:2.14.0")
     testImplementation("com.github.retrooper:packetevents-spigot:2.14.0")
     compileOnly("com.github.MilkBowl:VaultAPI:1.7") {

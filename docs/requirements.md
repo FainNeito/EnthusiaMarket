@@ -693,7 +693,7 @@ WHEN a captured accounting observation is appended successfully THE SYSTEM SHALL
 
 ### REQ-386 — Private locator navigation
 
-WHEN a player selects a shop result THE SYSTEM SHALL offer one private locator waypoint at the selected shop, using a configurable style and retaining the original stall icon colors with a white tint. The system SHALL send only its own waypoint to that player, SHALL NOT change player waypoint visibility, gamerules, attributes, permissions or world entities, and SHALL fall back to existing particles for unsupported clients or an unavailable packet adapter.
+WHEN a player selects a shop result THE SYSTEM SHALL offer one private locator waypoint at the selected shop, using a configurable style and retaining the original stall icon colors with a white tint. With the supported packet adapter installed, the system SHALL allow only that recipient's active selected destination to be tracked and SHALL suppress all player and other tracking waypoints during both idle and active navigation. The system SHALL remove existing online-player markers when installing the filter, SHALL NOT change gamerules, attributes, permissions or world entities, and SHALL fall back to existing particles for unsupported clients or an unavailable packet adapter. Choosing a navigation mode alone SHALL NOT start guidance.
 
 ### REQ-387 — Navigation lifecycle and preferences
 
