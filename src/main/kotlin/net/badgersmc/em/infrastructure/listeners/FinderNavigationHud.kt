@@ -40,7 +40,7 @@ internal class FinderNavigationHud(
         val session = sessions[player.uniqueId] ?: return true
         val target = frame.target ?: return true
         val mode = FinderNavigationPreferences.get(player, config.finderTrail.mode)
-        val shown = renderLocator(player, target, mode, frame.arrived)
+        val shown = renderLocator(player, frame.waypoint ?: target, mode, frame.arrived)
         renderStatus(session, frame)
         return mode != FinderNavigationMode.LOCATOR || !shown
     }
@@ -90,14 +90,23 @@ internal class FinderNavigationHud(
 
     private fun arrivalFeedback(session: Session, arrived: Boolean) {
         if (arrived && !session.arrived && config.finderTrail.arrivalSound) {
-            session.player.playSound(session.player.location, Sound.BLOCK_NOTE_BLOCK_PLING, 0.4f, 1.5f)
+            playArrivalSound(session.player)
         }
         session.arrived = arrived
     }
 
+    private fun playArrivalSound(player: Player) {
+        val options = config.finderTrail
+        val sound = runCatching { Sound.valueOf(options.arrivalSoundName.uppercase(Locale.ROOT)) }
+            .getOrDefault(Sound.BLOCK_NOTE_BLOCK_PLING)
+        val volume = options.arrivalVolume.takeIf { it.isFinite() }?.coerceIn(0.0, 1.0) ?: 0.4
+        val pitch = options.arrivalPitch.takeIf { it.isFinite() }?.coerceIn(0.5, 2.0) ?: 1.5
+        player.playSound(player.location, sound, volume.toFloat(), pitch.toFloat())
+    }
+
     private fun distanceStatus(session: Session, frame: FinderTrailTracker.Frame) {
         val point = session.player.location
-        val distance = frame.target?.distance(FinderTrailTracker.Point(point.x, point.y, point.z)) ?: return
+        val distance = frame.remainingDistance ?: frame.target?.distance(FinderTrailTracker.Point(point.x, point.y, point.z)) ?: return
         val message = if (frame.arrived) "finder_trail.arrived" else "finder_trail.destination"
         session.player.sendActionBar(lang.msg(message, "stall" to session.stall, "item" to session.item,
             "distance" to ceil(distance).toInt().toString()))

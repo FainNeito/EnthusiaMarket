@@ -12,7 +12,6 @@ import com.github.retrooper.packetevents.util.Vector3i
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerWaypoint
 import net.badgersmc.em.application.FinderTrailTracker
 import org.bukkit.entity.Player
-import org.geysermc.floodgate.api.FloodgateApi
 import java.util.UUID
 import kotlin.math.floor
 
@@ -22,7 +21,7 @@ internal class PacketEventsFinderLocator(
         PacketEvents.getAPI().playerManager.sendPacket(player, packet)
     },
     private val compatible: (Player) -> Boolean = { player -> javaClientSupported(player) },
-    private val bedrock: (Player) -> Boolean = { player -> floodgatePlayer(player) },
+    private val bedrock: (Player) -> Boolean = FinderClientSupport::bedrock,
 ) : FinderLocator {
     private data class Sent(val waypoint: TrackedWaypoint, val target: FinderTrailTracker.Point, val style: String)
     private val sent = mutableMapOf<UUID, Sent>()
@@ -59,13 +58,5 @@ internal class PacketEventsFinderLocator(
             return version.isNewerThanOrEquals(ClientVersion.V_1_21_6)
         }
 
-        private fun floodgatePlayer(player: Player): Boolean =
-            try {
-                FloodgateApi.getInstance().isFloodgatePlayer(player.uniqueId)
-            } catch (_: LinkageError) {
-                false
-            } catch (_: IllegalStateException) {
-                false
-            }
     }
 }

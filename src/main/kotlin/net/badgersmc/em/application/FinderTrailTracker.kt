@@ -12,12 +12,15 @@ class FinderTrailTracker {
             (x - other.x) * (x - other.x) + (y - other.y) * (y - other.y) + (z - other.z) * (z - other.z))
     }
     data class Trail(val world: String, val target: Point, val expiresAt: Instant,
-                     val footprint: RegionProvider.Footprint? = null)
-    data class RenderSettings(val budget: Int, val range: Double, val outline: FinderOutlineOptions)
+                     val footprint: RegionProvider.Footprint? = null, val route: List<Point> = emptyList())
+    data class RenderSettings(val budget: Int, val range: Double, val outline: FinderOutlineOptions,
+                              val points: Int = 12, val pulseSpeed: Double = 0.0,
+                              val feedbackWithoutOutline: Boolean = false)
     private data class RenderContext(val now: Instant, val settings: RenderSettings)
     data class Frame(val direction: List<Point>, val outline: List<Point>, val target: Point? = null,
-                     val arrived: Boolean = false)
-    private data class Active(val trail: Trail, var arrivedAt: Instant? = null)
+                     val arrived: Boolean = false, val footprint: RegionProvider.Footprint? = null,
+                     val waypoint: Point? = null, val remainingDistance: Double? = null)
+    private data class Active(val trail: Trail, var arrivedAt: Instant? = null, var routeIndex: Int = 0)
     private val active = linkedMapOf<UUID, Active>()
     private var offset = 0
 
@@ -48,7 +51,7 @@ class FinderTrailTracker {
             val entry = active.getValue(player)
             val origin = origin(entry, context, position(player))
             if (origin == null) { stop(player); continue }
-            val frame = frame(entry, origin, context.settings.outline, remaining)
+            val frame = frame(entry, origin, context, remaining)
             plans[player] = frame
             remaining -= frame.direction.size + frame.outline.size
         }
@@ -66,7 +69,15 @@ class FinderTrailTracker {
         if (location == null || location.first != entry.trail.world) return null
         val distance = location.second.distance(entry.trail.target)
         if (!distance.isFinite() || distance > context.settings.range) return null
-        return location.second.takeIf { advanceArrival(entry, distance, context) }
+        advanceRoute(entry, location.second)
+        val arrivalDistance = if (entry.routeIndex < entry.trail.route.size) maxOf(distance, 4.0) else distance
+        return location.second.takeIf { advanceArrival(entry, arrivalDistance, context) }
+    }
+
+    private fun advanceRoute(entry: Active, from: Point) {
+        while (entry.routeIndex < entry.trail.route.size && from.distance(entry.trail.route[entry.routeIndex]) <= 2.5) {
+            entry.routeIndex++
+        }
     }
 
     private fun advanceArrival(entry: Active, distance: Double, context: RenderContext): Boolean {
@@ -74,9 +85,10 @@ class FinderTrailTracker {
         val options = context.settings.outline
         if (expiredBeforeArrival(entry, now)) return false
         if (distance <= ARRIVAL_RADIUS && entry.arrivedAt == null) {
-            if (!canLinger(entry, options)) return false
+            if (!canLinger(entry, options) && !context.settings.feedbackWithoutOutline) return false
             entry.arrivedAt = now
         }
+        if (context.settings.feedbackWithoutOutline && entry.arrivedAt == now) return true
         return !arrivalEnded(entry, now, options)
     }
 
@@ -92,27 +104,24 @@ class FinderTrailTracker {
         options.enabled && options.arrivalSeconds > 0 &&
             entry.trail.footprint?.let(FinderOutlinePlanner::valid) == true
 
-    private fun frame(entry: Active, from: Point, options: FinderOutlineOptions, budget: Int): Frame {
+    private fun frame(entry: Active, from: Point, context: RenderContext, budget: Int): Frame {
         val trail = entry.trail
+        val options = context.settings.outline
         val distance = from.distance(trail.target)
-        val direction = if (entry.arrivedAt == null) direction(from, trail.target, budget, distance) else emptyList()
+        val route = trail.route.drop(entry.routeIndex) + trail.target
+        val direction = if (entry.arrivedAt == null) FinderPulsePlanner.plan(from, route,
+            minOf(budget, context.settings.points), context.now, context.settings.pulseSpeed) else emptyList()
         val shape = trail.footprint
-        val outline = if (shape != null && distance <= options.revealDistance) {
+        val visible = distance <= options.revealDistance && options.enabled
+        val outline = if (shape != null && visible) {
             FinderOutlinePlanner.plan(shape, trail.target, options, budget - direction.size)
         } else emptyList()
-        return Frame(direction, outline, trail.target, entry.arrivedAt != null)
+        val remaining = (listOf(from) + route).zipWithNext().sumOf { (a, b) -> a.distance(b) }
+        return Frame(direction, outline, trail.target, entry.arrivedAt != null,
+            shape.takeIf { visible }, route.first(), remaining)
     }
 
-    private fun direction(from: Point, target: Point, budget: Int, distance: Double): List<Point> {
-        val count = minOf(budget, POINTS_PER_PLAYER, distance.toInt())
-        return (1..count).map { step ->
-            val ratio = step / distance
-            Point(from.x + (target.x - from.x) * ratio, from.y + (target.y - from.y) * ratio,
-                  from.z + (target.z - from.z) * ratio)
-        }
-    }
     companion object {
-        private const val POINTS_PER_PLAYER = 12
         private const val ARRIVAL_RADIUS = 3.0
     }
 }

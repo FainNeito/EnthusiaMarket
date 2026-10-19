@@ -284,3 +284,7 @@ V033 stores receipt IDs, remaining lots, stock events and sale attribution.
 Reporting adapters authorize through the existing GuildProvider and reuse date
 window values. No economic write path or XP policy is added by reporting.
 See [stall-accounting.md](stall-accounting.md) for proof and release boundaries.
+
+## Routed finder and glowing displays (REQ-388/389)
+
+FinderRoutePlanner owns bounded explicit-graph shortest paths; FinderPulsePlanner samples the remaining polyline with a time phase. FinderTrailTracker advances route points and preserves the selected shop as its arrival target. FinderBeamPlanner emits complete footprint edges/pillars plus an exact-sign box. FinderGlowRenderer owns private, nonpersistent Paper display lifecycle and global/per-recipient caps; owned UUIDs are excluded from EntityLimitListener rescans. Existing particles remain the fallback. FinderClientSupport centralizes optional Floodgate detection with a null-safe absent-runtime path. No domain imports Bukkit, no schema or companion API changes. Configuration and operator route examples: finder-enhancements.md. SPEAR evidence: finder-enhancements-verification.md.

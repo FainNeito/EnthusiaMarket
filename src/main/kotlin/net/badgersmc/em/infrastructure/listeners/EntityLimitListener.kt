@@ -122,6 +122,7 @@ class EntityLimitListener(
         )
         val counts = HashMap<String, Int>()
         for (entity: Entity in world.getNearbyEntities(box)) {
+            if (FinderGlowRenderer.owns(entity.uniqueId)) continue
             val t = entity.type.name.lowercase(java.util.Locale.ROOT)
             counts[t] = (counts[t] ?: 0) + 1
         }
