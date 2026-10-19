@@ -25,12 +25,12 @@ class FinderBeamPlannerTest {
         val origin = FinderTrailTracker.Point(0.0, 64.0, 0.0)
         val route = listOf(origin.copy(x = 3.0), origin.copy(x = 3.0, z = 20.0))
         val now = Instant.parse("2026-10-18T00:00:00Z")
-        val first = FinderPulsePlanner.plan(origin, route, 12, now, 2.0)
-        val next = FinderPulsePlanner.plan(origin, route, 12, now.plusMillis(500), 2.0)
+        val first = FinderPulsePlanner.plan(origin, route, FinderPulsePlanner.Settings(12, now, 2.0))
+        val next = FinderPulsePlanner.plan(origin, route, FinderPulsePlanner.Settings(12, now.plusMillis(500), 2.0))
         assertEquals(12, first.size)
         assertNotEquals(first, next)
         assertTrue(first.intersect(next.toSet()).isEmpty(), "Default cadence must visibly move the pulse, not redraw the same lattice")
         assertTrue(first.all { it.z == 0.0 || it.x == 3.0 })
-        assertTrue(FinderPulsePlanner.plan(origin, route, 0, now, 2.0).isEmpty())
+        assertTrue(FinderPulsePlanner.plan(origin, route, FinderPulsePlanner.Settings(0, now, 2.0)).isEmpty())
     }
 }

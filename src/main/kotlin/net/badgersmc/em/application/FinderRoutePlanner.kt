@@ -23,6 +23,8 @@ object FinderRoutePlanner {
                 listOf(it.point.x, it.point.y, it.point.z).all(Double::isFinite)
 
 
+    private data class Search(val costs: MutableMap<String, Double>, val previous: MutableMap<String, String>)
+
     private fun shortest(nodes: List<Node>, start: String, end: String): List<FinderTrailTracker.Point> {
         val byId = nodes.associateBy { it.id }
         val remaining = byId.keys.toMutableSet()
@@ -33,19 +35,19 @@ object FinderRoutePlanner {
             if (current !in costs) return emptyList()
             if (current == end) return reconstruct(byId, previous, end)
             remaining.remove(current)
-            relax(nodes, current, remaining, costs, previous)
+            relax(nodes, current, remaining, Search(costs, previous))
         }
         return emptyList()
     }
 
     private fun relax(nodes: List<Node>, current: String, remaining: Set<String>,
-                      costs: MutableMap<String, Double>, previous: MutableMap<String, String>) {
+                      search: Search) {
         val node = nodes.first { it.id == current }
         nodes.filter { connected(node, it, remaining) }.forEach { next ->
-            val cost = costs.getValue(current) + node.point.distance(next.point)
-            if (cost < (costs[next.id] ?: Double.POSITIVE_INFINITY)) {
-                costs[next.id] = cost
-                previous[next.id] = current
+            val cost = search.costs.getValue(current) + node.point.distance(next.point)
+            if (cost < (search.costs[next.id] ?: Double.POSITIVE_INFINITY)) {
+                search.costs[next.id] = cost
+                search.previous[next.id] = current
             }
         }
     }

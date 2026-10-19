@@ -110,7 +110,7 @@ class FinderTrailTracker {
         val distance = from.distance(trail.target)
         val route = trail.route.drop(entry.routeIndex) + trail.target
         val direction = if (entry.arrivedAt == null) FinderPulsePlanner.plan(from, route,
-            minOf(budget, context.settings.points), context.now, context.settings.pulseSpeed) else emptyList()
+            FinderPulsePlanner.Settings(minOf(budget, context.settings.points), context.now, context.settings.pulseSpeed)) else emptyList()
         val shape = trail.footprint
         val visible = distance <= options.revealDistance && options.enabled
         val outline = if (shape != null && visible) {

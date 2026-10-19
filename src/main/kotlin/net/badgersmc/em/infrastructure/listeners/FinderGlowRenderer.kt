@@ -22,10 +22,11 @@ internal class FinderGlowRenderer(private val plugin: Plugin) {
     private data class Scene(val beams: List<FinderBeamPlanner.Beam>, val style: Style,
                              val displays: List<BlockDisplay>)
     private val scenes = mutableMapOf<UUID, Scene>()
-    internal var supported: (Player) -> Boolean = { !FinderClientSupport.bedrock(it) }
-    internal var spawn: (Location, Consumer<BlockDisplay>) -> BlockDisplay = { location, initialize ->
+    internal var supported: (Player) -> Boolean = FinderClientSupport::glow
+    internal var spawn: (Location, Consumer<BlockDisplay>) -> BlockDisplay = ::spawnDisplay
+
+    private fun spawnDisplay(location: Location, initialize: Consumer<BlockDisplay>): BlockDisplay =
         location.world.spawn(location, BlockDisplay::class.java, initialize)
-    }
     private var warned = false
 
     fun render(player: Player, frame: FinderTrailTracker.Frame, config: EnthusiaMarketConfig.FinderOutline): Boolean {

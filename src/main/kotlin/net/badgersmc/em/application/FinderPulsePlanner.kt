@@ -3,13 +3,13 @@ package net.badgersmc.em.application
 import java.time.Instant
 
 object FinderPulsePlanner {
-    fun plan(from: FinderTrailTracker.Point, route: List<FinderTrailTracker.Point>, count: Int,
-             now: Instant, speed: Double): List<FinderTrailTracker.Point> {
+    data class Settings(val count: Int, val now: Instant, val speed: Double)
+    fun plan(from: FinderTrailTracker.Point, route: List<FinderTrailTracker.Point>, settings: Settings): List<FinderTrailTracker.Point> {
         val segments = (listOf(from) + route).zipWithNext()
         val length = segments.sumOf { (a, b) -> a.distance(b) }
-        val velocity = speed.takeIf { it.isFinite() }?.coerceIn(0.0, 8.0) ?: 2.0
-        val phase = (Math.floorMod(now.toEpochMilli(), 120_000L) / 1000.0 * velocity) % 6.0
-        return distances(count.coerceIn(0, 24), phase, velocity > 0).takeWhile { it <= minOf(length, 24.0) }
+        val velocity = settings.speed.takeIf { it.isFinite() }?.coerceIn(0.0, 8.0) ?: 2.0
+        val phase = (Math.floorMod(settings.now.toEpochMilli(), 120_000L) / 1000.0 * velocity) % 6.0
+        return distances(settings.count.coerceIn(0, 24), phase, velocity > 0).takeWhile { it <= minOf(length, 24.0) }
             .map { sample(segments, it) }
     }
 

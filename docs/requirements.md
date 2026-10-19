@@ -699,9 +699,10 @@ WHEN a player selects a shop result THE SYSTEM SHALL offer one private locator w
 
 WHILE a shop guide is active THE SYSTEM SHALL show configurable localized stall, item and distance feedback, SHALL support locator, particles and both modes with a persistent per-player override, and SHALL retain existing outline/range/budget limits. Replacement, arrival, cancellation, timeout, world change, death, disconnect, disable and shutdown SHALL remove the owned waypoint. Missing or declined resource packs SHALL use a vanilla icon rather than a missing texture. Bedrock SHALL use particle guidance until its locator behavior is separately proven.
 
-
 ### REQ-388 — Routed and animated private guidance
+
 WHEN a guide starts with valid connected configured walkway nodes near both endpoints THE SYSTEM SHALL follow the bounded shortest linked route. Missing, malformed or disconnected routes SHALL retain direct guidance without terrain/chunk loading. Animated pulses SHALL move toward the next route point. Operators SHALL configure LOW/NORMAL/HIGH particle intensity, pulse speed, route attachment radius and arrival sound. Existing mode preferences and global particle limits SHALL remain effective.
 
 ### REQ-389 — Private glowing destination
+
 WHEN a destination is within reveal distance THE SYSTEM SHALL show a configurable glowing beam boundary and exact selected sign marker only to the searching player. Temporary displays SHALL be invisible by default before spawn, nonpersistent, noncolliding and bounded per recipient and globally. Replacement, cancellation, expiry, death, disconnect, world change, unloaded geometry and shutdown SHALL remove owned displays. Disabled or unavailable glow SHALL preserve private particle fallback. No blocks, other entities, permissions or ownership SHALL change. Arrival feedback SHALL occur even without region geometry.
