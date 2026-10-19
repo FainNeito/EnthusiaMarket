@@ -25,8 +25,9 @@ internal class FinderGlowRenderer(private val plugin: Plugin) {
     internal var supported: (Player) -> Boolean = FinderClientSupport::glow
     internal var spawn: (Location, Consumer<BlockDisplay>) -> BlockDisplay = ::spawnDisplay
 
-    private fun spawnDisplay(location: Location, initialize: Consumer<BlockDisplay>): BlockDisplay =
-        location.world.spawn(location, BlockDisplay::class.java, initialize)
+    private fun spawnDisplay(location: Location, initialize: Consumer<BlockDisplay>): BlockDisplay {
+        return location.world.spawn(location, BlockDisplay::class.java, initialize)
+    }
     private var warned = false
 
     fun render(player: Player, frame: FinderTrailTracker.Frame, config: EnthusiaMarketConfig.FinderOutline): Boolean {
@@ -37,6 +38,13 @@ internal class FinderGlowRenderer(private val plugin: Plugin) {
         if (!enabled(player, config) || distance > options.revealDistance) {
             return clearAndFalse(player.uniqueId)
         }
+        return renderScene(player, frame, config)
+    }
+
+    private fun renderScene(player: Player, frame: FinderTrailTracker.Frame,
+                            config: EnthusiaMarketConfig.FinderOutline): Boolean {
+        val target = checkNotNull(frame.target)
+        val options = FinderOutlineStyle.options(config)
         val beams = FinderBeamPlanner.plan(frame.footprint, target, options)
         val style = Style(FinderOutlineStyle.dust(config).color.asRGB(), width(config.beamWidth))
         val current = scenes[player.uniqueId]
