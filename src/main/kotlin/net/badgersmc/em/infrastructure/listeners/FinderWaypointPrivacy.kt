@@ -26,8 +26,11 @@ internal class FinderWaypointPrivacy(
             return
         }
         if (packet.operation == WrapperPlayServerWaypoint.Operation.UNTRACK) return
-        val identifier = packet.waypoint.identifier
-        val destination = destinations[event.user.uuid]
-        if (destination == null || !identifier.isLeft || identifier.left != destination) event.isCancelled = true
+        if (!selected(event.user.uuid, packet.waypoint.identifier)) event.isCancelled = true
+    }
+
+    private fun selected(viewer: UUID, identifier: com.github.retrooper.packetevents.util.Either<UUID, String>): Boolean {
+        val destination = destinations[viewer]
+        return destination != null && identifier.isLeft && identifier.left == destination
     }
 }

@@ -33,7 +33,7 @@ internal class PacketEventsFinderLocator(
     override fun show(player: Player, target: FinderTrailTracker.Point, style: String): Boolean {
         if (!supported(player)) return false
         val previous = sent[player.uniqueId]
-        if (previous?.target == target && previous.style == style && previous.delivered) return true
+        if (unchanged(previous, target, style)) return true
         clear(player)
         val identifier = UUID.randomUUID()
         val waypoint = TrackedWaypoint(Either.createLeft(identifier),
@@ -46,6 +46,9 @@ internal class PacketEventsFinderLocator(
         pending.delivered = true
         return true
     }
+
+    private fun unchanged(previous: Sent?, target: FinderTrailTracker.Point, style: String): Boolean =
+        previous != null && previous.target == target && previous.style == style && previous.delivered
 
     override fun clear(player: Player) {
         privacy.forget(player.uniqueId)
