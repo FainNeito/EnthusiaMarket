@@ -288,3 +288,8 @@ See [stall-accounting.md](stall-accounting.md) for proof and release boundaries.
 ## Routed finder and glowing displays (REQ-388/389)
 
 FinderRoutePlanner owns bounded explicit-graph shortest paths; FinderPulsePlanner samples the remaining polyline with a time phase. FinderTrailTracker advances route points and preserves the selected shop as its arrival target. FinderBeamPlanner emits complete footprint edges/pillars plus an exact-sign box. FinderGlowRenderer owns private, nonpersistent Paper display lifecycle and global/per-recipient caps; owned UUIDs are excluded from EntityLimitListener rescans. Existing particles remain the fallback. FinderClientSupport centralizes optional Floodgate detection with a null-safe absent-runtime path. No domain imports Bukkit, no schema or companion API changes. Configuration and operator route examples: finder-enhancements.md. SPEAR evidence: finder-enhancements-verification.md.
+## Ownership access recovery
+
+StallRegionAccessService shares lifecycle-aware region access replacement between the startup/world-load listener and administrative resync. The database remains authoritative; automatic recovery touches no rent, shops, flags or member records. Moderation holds/reservations and seller-owned auctions are preserved. See [stall-access-recovery.md](stall-access-recovery.md) for ticket evidence, the state matrix, dated-snapshot limits and verification.
+
+Management rejects forfeited, vacant and held ownership provenance. StallMemberService consults the durable moderation gate and saves additions before external grants; repeating a persisted addition retries its projection. Existing seller-auction access and current legitimate members are retained.

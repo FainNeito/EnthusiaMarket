@@ -1172,3 +1172,12 @@ See [guild-shop-xp.md](guild-shop-xp.md) for policy, payment boundary, journal s
 - [x] FINDER-386 — REQ-386/387 source implementation and authorized TEST deployment: private locator transport, namespaced existing stall icon, resource-pack/Bedrock fallback, destination feedback, persistent mode preference and existing guide lifecycle. Manual SPEAR evidence: finder-locator-verification.md. Full 1,032-case suite, architecture, Detekt and focused refinement checks pass. TEST `.2` is active with offline backup and downloaded icon verified. Native selected-marker appearance/privacy, ordinary-player permission testing, human review, merging and production remain separate gates.
 
 - [x] FINDER-388/389 — source implementation: bounded route graph and moving clustered pulses/intensity; private glowing beams, exact sign and cleanup. Final 1,045-case suite, architecture, shadowJar/JaCoCo and Java 22 Detekt pass; 14 external skips remain. Mobile interactive preview published. Manual SPEAR evidence in finder-enhancements-verification.md; local EARS/state helpers absent. Exact-head CI/TEST receipt is recorded in the PR handoff; native appearance/privacy, route survey and ordinary-player acceptance remain separate.
+## Ownership access recovery — bug-0406 follow-up (2026-10-19)
+
+- [x] Spec: inspect authoritative main 57704f1 and ticket 406; ordinary award already clears DB members.
+- [x] Evidence: read-only comparison of the 2026-10-18 database backup and 2026-10-19 saved WorldGuard regions shows stale solo ACLs; stall48 itself is clean in that backup. These are different capture times, not live client proof.
+- [x] Prove: both actual delayed-startup regressions failed before the recovery change; both former-owner member-grant/save-failure regressions failed before authority/write-order changes.
+- [x] Engine: share lifecycle-aware access reconciliation; deny forfeited/held management; fence member mutations and persist before grants; preserve moderation and current members.
+- [x] Arch/refine: 1041 local tests (0 failures/errors, 14 environment-dependent skips), shadowJar and Java-22 Detekt passed; tested source prepared for PR delivery with hosted exact-head CI/review and live acceptance tracked separately. No production repair or deployment authorized.
+
+No repository-local EARS validator or SPEAR state helper was found; requirements, this task record and verification evidence track the workflow manually.

@@ -285,9 +285,13 @@ class AdminCommandsTest {
         lang: net.badgersmc.nexus.i18n.LangService,
         freeze: net.badgersmc.em.application.MaintenanceFreezeService,
         bulkRentExtension: net.badgersmc.em.application.BulkRentExtensionService? = null,
+        stallRepo: StallRepository = mockk(relaxed = true),
+        regionMembers: net.badgersmc.em.domain.ports.RegionMemberSync = mockk(relaxed = true),
+        regionProvisioner: net.badgersmc.em.domain.ports.RegionProvisioner = mockk(relaxed = true),
+        mutationGate: net.badgersmc.em.domain.ports.MarketMutationGate = net.badgersmc.em.domain.ports.MarketMutationGate.Open,
     ): AdminCommands = AdminCommands(
         service = mockk(relaxed = true),
-        stalls = mockk(relaxed = true),
+        stalls = stallRepo,
         config = config,
         auctionService = mockk(relaxed = true),
         configManager = mockk(relaxed = true),
@@ -298,8 +302,8 @@ class AdminCommandsTest {
         stallMembers = mockk(relaxed = true),
         sellOffers = mockk(relaxed = true),
         sellback = mockk(relaxed = true),
-        regionMembers = mockk(relaxed = true),
-        regionProvisioner = mockk(relaxed = true),
+        regionMembers = regionMembers,
+        regionProvisioner = regionProvisioner,
         entityCounter = mockk(relaxed = true),
         regionProvider = mockk(relaxed = true),
         stallInfo = mockk(relaxed = true),
@@ -315,7 +319,35 @@ class AdminCommandsTest {
         maintenanceFreeze = freeze,
         playerNameResolver = mockk(relaxed = true),
         bulkRentExtension = bulkRentExtension,
+        mutationGate = mutationGate,
     )
+
+    @Test fun `region resync clears forfeited ACLs but never provisions held or reserved stalls`() {
+        val repo = mockk<StallRepository>(relaxed = true)
+        val regions = mockk<net.badgersmc.em.domain.ports.RegionMemberSync>(relaxed = true)
+        val provisioner = mockk<net.badgersmc.em.domain.ports.RegionProvisioner>(relaxed = true)
+        val gate = mockk<net.badgersmc.em.domain.ports.MarketMutationGate> {
+            every { isStallLocked(any()) } answers { firstArg<String>() == "locked" }
+        }
+        val expired = Stall(
+            StallId("expired"), "expired", "world", StallState.EMERGENCY_AUCTIONING,
+            OwnerRef.solo(UUID.randomUUID()), null, 100, RentTerms.flat(100),
+        )
+        every { repo.all() } returns listOf(
+            expired, expired.copy(id = StallId("held"), regionId = "held", state = StallState.MODERATION_HOLD),
+            expired.copy(id = StallId("locked"), regionId = "locked", state = StallState.OWNED),
+        )
+        val lang = mockk<net.badgersmc.nexus.i18n.LangService>()
+        every { lang.msg(any(), *anyVararg()) } returns Component.empty()
+        freezeCommands(lang, mockk(relaxed = true), stallRepo = repo, regionMembers = regions,
+            regionProvisioner = provisioner, mutationGate = gate).rgResync(sender)
+        verify(exactly = 1) { regions.clearOwnersAndMembers("world", "expired") }
+        verify(exactly = 1) { provisioner.provision("world", "expired", any()) }
+        verify(exactly = 0) { provisioner.provision(any(), match { it != "expired" }, any()) }
+        verify(exactly = 0) { regions.setOwner(any(), any(), any()) }
+        verify(exactly = 0) { repo.save(any()) }
+        verify { lang.msg("admin.rg_resync.result", "fixed" to 1, "skipped" to 2, "errors" to 0) }
+    }
 
     private val freezeSince = java.time.Instant.parse("2026-06-01T10:00:00Z")
 
