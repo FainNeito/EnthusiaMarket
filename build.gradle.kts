@@ -263,6 +263,16 @@ tasks {
         outputs.upToDateWhen { !accountingMariaPort.isPresent }
         testMariaPort.orNull?.let { environment("GUILD_SHOP_XP_TEST_MARIA_PORT", it) }
         outputs.upToDateWhen { !testMariaPort.isPresent }
+        // External disposable schemas must execute afresh, including partial/invalid opt-ins.
+        val nativeMariaVariables = listOf("MARKET_TEST_MARIADB_PORT", "MARKET_TEST_MARIADB_USER", "MARKET_TEST_MARIADB_PASSWORD")
+        val nativeMariaConfigured = nativeMariaVariables.any { providers.environmentVariable(it).isPresent }
+        inputs.property("marketNativeMariaConfigured", nativeMariaConfigured)
+        inputs.property("marketNativeMariaPort", providers.environmentVariable("MARKET_TEST_MARIADB_PORT").orElse(""))
+        nativeMariaVariables.forEach { name ->
+            providers.environmentVariable(name).orNull?.let { environment(name, it) }
+        }
+        outputs.upToDateWhen { !nativeMariaConfigured }
+        outputs.doNotCacheIf("Native MariaDB fixtures require fresh execution") { nativeMariaConfigured }
         // Runtime-contract tests inspect this exact companion artifact through an isolated loader.
         val companionPath = providers.environmentVariable("LUMAGUILDS_JAR")
         inputs.property("guildsRuntimePath", companionPath.orElse(""))

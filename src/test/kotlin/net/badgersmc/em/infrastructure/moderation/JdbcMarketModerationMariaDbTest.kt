@@ -12,15 +12,13 @@ import net.badgersmc.em.domain.stall.StallId
 import net.badgersmc.em.domain.stall.StallState
 import net.badgersmc.em.infrastructure.persistence.AuctionRepositorySql
 import net.badgersmc.em.infrastructure.persistence.StallRepositorySql
+import net.badgersmc.em.testing.MarketMariaDbFixture
 import net.badgersmc.nexus.persistence.MigrationRunner
 import net.enthusia.market.api.moderation.MarketBlacklistRequest
 import net.enthusia.market.api.moderation.MarketBlacklistResult
 import net.enthusia.market.api.moderation.MarketOperationRequest
 import net.enthusia.market.api.moderation.MarketOperationResult
-import org.testcontainers.containers.MariaDBContainer
-import org.testcontainers.utility.DockerImageName
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
+import org.junit.jupiter.api.extension.RegisterExtension
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
@@ -38,7 +36,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-@Testcontainers(disabledWithoutDocker = true)
 class JdbcMarketModerationMariaDbTest {
     private lateinit var dataSource: HikariDataSource
     private val now = Instant.parse("2026-08-13T12:00:00Z")
@@ -493,14 +490,8 @@ class JdbcMarketModerationMariaDbTest {
         const val CONCURRENCY_ROUNDS = 8
         const val PREPARATION_BLOCK_CHECK_MILLIS = 200L
 
-        @Container
-        @JvmStatic
-        val database = MarketMariaDbContainer("mariadb:11.8.3")
-            .withDatabaseName("enthusia_market_test")
-            .withUsername("market_test")
-            .withPassword("market_test")
+        @RegisterExtension
+        @JvmField
+        val database = MarketMariaDbFixture("moderation")
     }
-
-    private class MarketMariaDbContainer(image: String) :
-        MariaDBContainer<MarketMariaDbContainer>(DockerImageName.parse(image))
 }
