@@ -188,15 +188,18 @@ class ShopCommands(
         player.sendMessage(lang.msg("shop.cmd.search.none", "query" to query))
     }
 
-    @Subcommand("trail")
+    @Subcommand("trail stop")
     @Permission("enthusiamarket.shop.use")
-    fun trail(@Context sender: CommandSender, @Arg("action") action: String, @Arg("mode") mode: String = "") {
+    fun trailStop(@Context sender: CommandSender) {
         val player = sender as? Player ?: return
-        when (action.lowercase(java.util.Locale.ROOT)) {
-            "stop" -> finderTrail?.stop(player)
-            "mode" -> finderTrail?.setMode(player, mode)
-            else -> player.sendMessage(lang.msg("finder_trail.mode_usage"))
-        }
+        finderTrail?.stop(player)
+    }
+
+    @Subcommand("trail mode")
+    @Permission("enthusiamarket.shop.use")
+    fun trailMode(@Context sender: CommandSender, @Arg("mode") mode: String) {
+        val player = sender as? Player ?: return
+        finderTrail?.setMode(player, mode)
     }
 
     private val historyMessages: ShopHistoryMessages
