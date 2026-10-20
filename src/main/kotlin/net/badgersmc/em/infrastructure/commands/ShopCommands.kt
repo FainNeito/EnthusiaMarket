@@ -171,21 +171,17 @@ class ShopCommands(
                 net.badgersmc.em.interaction.gui.SearchResultsMenu.Result(shop, it.material, it.nested)
             }
         }
-        showSearchResults(player, query.value, results)
-    }
-
-    private fun showSearchResults(player: Player, query: String, results: List<net.badgersmc.em.interaction.gui.SearchResultsMenu.Result>) {
         if (results.isNotEmpty()) {
-            val ticker = shopSearchService.tickerMaterial(query)?.let {
+            val ticker = shopSearchService.tickerMaterial(query.value)?.let {
                 net.badgersmc.em.application.PriceTickerService.compute(it.name, transactions)
             }
             net.badgersmc.em.interaction.gui.SearchResultsMenu(
-                results, query, lang, stallRepository, ticker,
+                results, query.value, lang, stallRepository, ticker,
                 navigate = { finder, shop -> finderTrail?.start(finder, shop) },
             ).open(player)
             return
         }
-        player.sendMessage(lang.msg("shop.cmd.search.none", "query" to query))
+        player.sendMessage(lang.msg("shop.cmd.search.none", "query" to query.value))
     }
 
     @Subcommand("trail stop")
