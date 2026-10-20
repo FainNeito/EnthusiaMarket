@@ -699,6 +699,8 @@ WHEN a player selects a shop result THE SYSTEM SHALL offer one private locator w
 
 WHILE a shop guide is active THE SYSTEM SHALL show configurable localized stall, item and distance feedback, SHALL support locator, particles and both modes with a persistent per-player override, and SHALL retain existing outline/range/budget limits. Replacement, arrival, cancellation, timeout, world change, death, disconnect, disable and shutdown SHALL remove the owned waypoint. Missing or declined resource packs SHALL use a vanilla icon rather than a missing texture. Bedrock SHALL use particle guidance until its locator behavior is separately proven.
 
+Command acceptance: WHEN an authorized player executes `/shop trail stop` THE SYSTEM SHALL invoke cancellation without requiring a mode or placeholder argument; `/shop trail mode <locator|particles|both|default>` SHALL retain preference handling without starting guidance. Both routes SHALL retain `enthusiamarket.shop.use` and player-only effects.
+
 ### REQ-388 — Routed and animated private guidance
 
 WHEN a guide starts with valid connected configured walkway nodes near both endpoints THE SYSTEM SHALL follow the bounded shortest linked route. Missing, malformed or disconnected routes SHALL retain direct guidance without terrain/chunk loading. Animated pulses SHALL move toward the next route point. Operators SHALL configure LOW/NORMAL/HIGH particle intensity, pulse speed, route attachment radius and arrival sound. Existing mode preferences and global particle limits SHALL remain effective.

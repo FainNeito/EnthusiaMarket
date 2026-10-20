@@ -1173,6 +1173,8 @@ See [guild-shop-xp.md](guild-shop-xp.md) for policy, payment boundary, journal s
 
 - [x] FINDER-386 privacy correction: suppress native player and other waypoint tracking with a per-recipient active-stall allowlist; preserve explicit command/search-result start and all cleanup paths. Evidence and remaining native acceptance gates: finder-privacy-verification.md. Interactive mobile preview includes idle, arrival, cancel and expiry states.
 
+- [x] FINDER-COMMAND-387 — Repair the native-acceptance `/shop trail stop` dispatch failure with explicit stop/mode routes and a real Nexus registrar regression. The five-case native Java 25 run produced three expected failures before the adapter correction and zero failures/errors/skips afterward. Manual SPEAR evidence: finder-privacy-verification.md. Existing permissions, player scope, lifecycle service and mode semantics are retained; final-head CI and new-build native client validation remain separate gates.
+
 - [x] FINDER-388/389 — source implementation: bounded route graph and moving clustered pulses/intensity; private glowing beams, exact sign and cleanup. Final 1,045-case suite, architecture, shadowJar/JaCoCo and Java 22 Detekt pass; 14 external skips remain. Mobile interactive preview published. Manual SPEAR evidence in finder-enhancements-verification.md; local EARS/state helpers absent. Exact-head CI/TEST receipt is recorded in the PR handoff; native appearance/privacy, route survey and ordinary-player acceptance remain separate.
 ## Ownership access recovery — bug-0406 follow-up (2026-10-19)
 
