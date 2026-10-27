@@ -3,12 +3,14 @@ package net.badgersmc.em.application
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import io.mockk.verifyOrder
 import net.badgersmc.em.application.IpLimiter
 import net.badgersmc.em.config.EnthusiaMarketConfig
 import net.badgersmc.em.domain.ports.EconomyProvider
 import net.badgersmc.em.domain.ports.GuildProvider
 import net.badgersmc.em.domain.ports.MarketMutationGate
 import net.badgersmc.em.domain.ports.RegionMemberSync
+import net.badgersmc.em.domain.ports.SchematicService
 import net.badgersmc.em.domain.stall.OwnerRef
 import net.badgersmc.em.domain.stall.OwnerType
 import net.badgersmc.em.domain.stall.RentTerms
@@ -45,6 +47,9 @@ class StallBuyoutServiceTest {
         ownedByPlayer: List<Stall> = emptyList(),
         economyWithdrawOk: Boolean = true,
         mutationGate: MarketMutationGate = MarketMutationGate.Open,
+        schematics: SchematicService = SchematicService.Disabled,
+        config: EnthusiaMarketConfig = EnthusiaMarketConfig().apply { this.schematics.enabled = false },
+        guildProvider: GuildProvider = mockk(relaxed = true),
     ): ServiceWithMocks {
         val stalls = mockk<StallRepository>(relaxUnitFun = true)
         every { stalls.findById(stallId) } returns stall
@@ -70,13 +75,14 @@ class StallBuyoutServiceTest {
             offers = mockk(relaxed = true),
             auctions = auctions,
             economy = economy,
-            config = EnthusiaMarketConfig(),
-            guildProvider = mockk(relaxed = true),
+            config = config,
+            guildProvider = guildProvider,
             regionMembers = mockk(relaxed = true),
             limits = limits,
             ownership = ownership,
             ipLimiter = mockk<IpLimiter>(relaxed = true).also { every { it.acquireStall(any(), any()) } returns IpLimiter.Attempt(true, null) },
             mutationGate = mutationGate,
+            schematics = schematics,
         )
         return ServiceWithMocks(svc, economy)
     }
@@ -92,6 +98,64 @@ class StallBuyoutServiceTest {
         assertTrue(result.stall.members.isEmpty())
         kotlin.test.assertFalse(result.stall.canManage(formerMember, mockk(relaxed = true)))
         assertEquals(OwnerRef.solo(player), result.stall.owner)
+    }
+
+    @Test
+    fun `snapshot failure rejects direct purchase before payment`() {
+        val snapshot = mockk<SchematicService>()
+        every { snapshot.capture(stallId.value, "world", "stall_01") } returns
+            SchematicService.Result.Failure(IllegalStateException("capture failed"))
+        val (service, economy) = buildService(schematics = snapshot, config = EnthusiaMarketConfig())
+
+        assertIs<StallBuyoutService.Result.Rejected>(service.buy(stallId, player, 100L, "1.2.3.4"))
+        verify(exactly = 1) { snapshot.capture(stallId.value, "world", "stall_01") }
+        verify(exactly = 0) { economy.withdraw(any(), any()) }
+    }
+
+    @Test
+    fun `direct purchase captures before charging`() {
+        val snapshot = mockk<SchematicService>()
+        every { snapshot.capture(stallId.value, "world", "stall_01") } returns SchematicService.Result.Success
+        val (service, economy) = buildService(schematics = snapshot, config = EnthusiaMarketConfig())
+
+        assertIs<StallBuyoutService.Result.Purchased>(service.buy(stallId, player, 100L, "1.2.3.4"))
+        verifyOrder {
+            snapshot.capture(stallId.value, "world", "stall_01")
+            economy.withdraw(player, 100L)
+        }
+    }
+
+    @Test
+    fun `guild purchase snapshot failure never charges the actor`() {
+        val snapshot = mockk<SchematicService>()
+        every { snapshot.capture(stallId.value, "world", "stall_01") } returns
+            SchematicService.Result.Failure(IllegalStateException("capture failed"))
+        val guilds = mockk<GuildProvider>(relaxed = true)
+        every { guilds.guildOf(player) } returns GuildProvider.GuildRef("guild1", "Test Guild")
+        every { guilds.hasShopPermission(player, "guild1", GuildProvider.GuildPermission.MANAGE_SHOPS) } returns true
+        val (service, economy) = buildService(schematics = snapshot, guildProvider = guilds, config = EnthusiaMarketConfig())
+
+        assertIs<StallBuyoutService.Result.Rejected>(service.buyForGuild(stallId, player, 100L, "1.2.3.4"))
+        verify(exactly = 0) { economy.withdraw(any(), any()) }
+    }
+
+    @Test
+    fun `disabled snapshots are not called for direct purchase`() {
+        val snapshot = mockk<SchematicService>()
+        val config = EnthusiaMarketConfig().apply { this.schematics.enabled = false }
+        val (service, economy) = buildService(schematics = snapshot, config = config)
+
+        assertIs<StallBuyoutService.Result.Purchased>(service.buy(stallId, player, 100L, "1.2.3.4"))
+        verify(exactly = 0) { snapshot.capture(any(), any(), any()) }
+        verify(exactly = 1) { economy.withdraw(player, 100L) }
+    }
+
+    @Test
+    fun `unavailable snapshot provider rejects when snapshots enabled`() {
+        val (service, economy) = buildService(config = EnthusiaMarketConfig())
+
+        assertIs<StallBuyoutService.Result.Rejected>(service.buy(stallId, player, 100L, "1.2.3.4"))
+        verify(exactly = 0) { economy.withdraw(any(), any()) }
     }
 
     @Test
@@ -165,7 +229,7 @@ class StallBuyoutServiceTest {
 
         val svc = StallBuyoutService(
             stalls = stalls, offers = mockk(relaxed = true), auctions = auctions,
-            economy = economy, config = EnthusiaMarketConfig(),
+            economy = economy, config = EnthusiaMarketConfig().apply { schematics.enabled = false },
             guildProvider = guildProvider, regionMembers = mockk(relaxed = true),
             limits = limits, ownership = ownership,
             ipLimiter = mockk<IpLimiter>(relaxed = true).also { every { it.acquireStall(any(), any()) } returns IpLimiter.Attempt(true, null) },
