@@ -1,6 +1,8 @@
 
 # Tasks — EnthusiaMarket
 
+- [~] STOCK-386 — Correct stale purchase and bulk availability after sales; retain authoritative transaction checks. TEST previously reproduced a green confirmation after the final item sold, with the repeated payment safely rejected. Focused interaction tests and full local test suite passed (1,021 tests, 14 skipped); native client acceptance and review remain pending. Project-local EARS and state helpers are absent.
+
 - [x] INTEGRATE-380 — Reconcile #215/#213/#214, distinguish direction no-match from stock shortage, preserve inventory and approved controls, prove nine stock regressions and the clean 899/915-case bundles, refine actionable exact-head static findings and refresh the private mobile preview. Evidence: search-stock-integration.md. Hosted workflow approval, maintainer merge, network pins and Minecraft acceptance remain separate gates.
 
 - [~] **TDD-340** Guild stall read API (REQ-340/341): API, current-member authority shared with PR #197, ownership filtering, offline roster freshness, denied/failed reads, held stalls and asynchronous boundaries implemented. Evidence: docs/guild-stall-api.md, GuildStallQueryTest and GuildStallReadProviderTest; clean full and focused local checks passed. Deliver as dependent canonical PR; hosted final-head/live acceptance remain separate. No merge or production change. Project-local EARS/state helpers are absent.
