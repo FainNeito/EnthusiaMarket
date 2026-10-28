@@ -9,6 +9,10 @@ Each requirement carries a stable ID. Tasks reference requirements by ID. New re
 
 ---
 
+### REQ-386 - Live purchase stock
+
+**Event-driven.** WHEN a purchase or bulk menu is rendered THE SYSTEM SHALL calculate available sale and barter quantities from the current shop container, fail closed if it cannot read the item or container, and preserve existing buy and administrator shop behavior; transaction checks remain authoritative.
+
 ## Accepted history filters (8 October 2026)
 
 ### REQ-356 - Today and retained history
