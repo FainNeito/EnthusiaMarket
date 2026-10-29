@@ -11,6 +11,7 @@ import net.badgersmc.em.application.ShopManagementService
 import net.badgersmc.em.domain.shop.Shop
 import net.badgersmc.nexus.i18n.LangService
 import net.badgersmc.em.interaction.Menu
+import net.badgersmc.em.interaction.ShopMenuPage
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -20,8 +21,7 @@ import java.util.UUID
 /**
  * Pick which of the owner's shops to trust/untrust [targetName] on. Clicking a
  * shop icon toggles its selection; the confirm button applies via
- * [ShopManagementService]. Up to 45 shops (one chest page) — owners with more
- * use `/shop trust <player> all`.
+ * [ShopManagementService]. Selection is retained by immutable ID across pages.
  */
 class BulkTrustMenu(
     private val owner: UUID,
@@ -33,23 +33,41 @@ class BulkTrustMenu(
 
     private val selected = mutableSetOf<Long>()
 
+    private var pageIndex = 0
+
     override fun open(player: Player) {
-        val shops = management.shopsOwnedBy(owner).take(45)
+        if (!ShopMenuNavigation.allowed(player, owner)) return
+        val eligible = management.shopsOwnedBy(owner).filter { management.canDelete(it, player.uniqueId) }
+        selected.retainAll(eligible.map { it.id }.toSet())
+        val page = ShopMenuPage.of(eligible, pageIndex) { it.id }
+        pageIndex = page.index
         val gui = ChestGui(6, ComponentHolder.of(lang.msg("gui.shop.trust.title", "name" to targetName)))
         val pane = StaticPane(9, 6)
-        shops.forEachIndexed { idx, shop ->
+        page.items.forEachIndexed { idx, shop ->
             pane.addItem(GuiItem(icon(shop, shop.id in selected)) {
                 it.isCancelled = true
+                if (!ShopMenuNavigation.allowed(player, owner)) return@GuiItem
+                val current = management.shopsOwnedBy(player.uniqueId).find { it.id == shop.id }
+                if (current == null || !management.canDelete(current, player.uniqueId)) {
+                    selected.remove(shop.id)
+                    open(player)
+                    return@GuiItem
+                }
                 if (shop.id in selected) selected.remove(shop.id) else selected.add(shop.id)
                 open(player) // re-render
             }, idx % 9, idx / 9)
         }
         pane.addItem(GuiItem(named(Material.LIME_STAINED_GLASS_PANE, lang.msg("gui.shop.trust.confirm"))) {
             it.isCancelled = true
-            val n = management.trust(owner, target, selected.toList())
+            if (!ShopMenuNavigation.allowed(player, owner)) return@GuiItem
+            val n = management.trust(player.uniqueId, target, selected.toList())
             player.closeInventory()
             player.sendMessage(lang.msg("shop.cmd.trusted_all", "name" to targetName, "count" to n))
         }, 8, 5)
+        ShopMenuNavigation.add(pane, page, lang) { requested ->
+            pageIndex = requested
+            open(player)
+        }
         gui.addPane(Slot.fromXY(0, 0), pane)
         gui.blockItemTheft()
         gui.show(player)

@@ -322,6 +322,7 @@ shop:
       disabled: "<shadow:#000000:1><gray>Break-others mode disabled.</shadow>"
       deleted: "<shadow:#000000:1><green>Admin-broke and deleted that shop.</shadow>"
   delete:
+    failed: "<red>This shop could not be deleted. It may have changed or you no longer have access."
     done: "<shadow:#000000:1><yellow>Shop deleted.</shadow>"
   store:
     url: "<shadow:#000000:1><green>Our web store: <aqua><click:open_url:'<url>'><url></click></shadow>"
