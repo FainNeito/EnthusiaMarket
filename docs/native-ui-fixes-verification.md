@@ -18,4 +18,12 @@ Changes remain within command/GUI adapters, language resources, focused tests an
 
 Authored regressions exercise the actual Nexus-built Brigadier tree (bare/explicit delete, additional delete-all permission, console/base-permission rejection), actual GUI clicks for empty direction and stock transitions, and both readable trust states without premature persistence. Existing coverage preserves initial empty-search inventories and cross-page confirmation.
 
-Canonical GitHub CI is pending on the final PR head; no local JVM build is claimed. Interactive preview and exact-head results will be recorded after publication. New-build native acceptance remains pending. No merge, server operation or deployment is part of this task.
+First canonical run41094145043 executed 1,144 cases with one failure and one unchanged external-authentication skip. The failure was the existing help contract choosing one arbitrary handler for the overloaded delete path; the actual registrar and GUI regressions passed. The contract now accepts an arity-compatible handler at the longest matching command path. This retains rejection of invalid help syntax while supporting the actual command tree.
+
+Codacy on refinement head11b3056 completed with zero annotations after resolving documentation spacing, method length and test-class count findings. Final-head canonical execution counts, checks and review receipts are recorded on [PR226](https://github.com/BadgersMC/EnthusiaMarket/pull/226). No local JVM build is claimed. New-build native acceptance remains pending. No merge, server operation or plugin deployment is part of this task.
+
+## Interactive artifact
+
+[Native menu fixes preview](https://enthusia-market-native-fixes-review.xxnatetheprogamerxx.chatgpt.site) is an owner-private, published simulation. Browser actions exercised bare-delete opening and second-click deletion with refreshed results, empty BUY-filter closure/feedback, readable trust toggling and explicit confirmation. At 390px, no horizontal overflow was observed; alternative controls are 46px tall. Language YAML parses and preserves the custom-template `sel` placeholder; preview JavaScript syntax passes.
+
+Hosted access reaches the ChatGPT owner sign-in gate in the available browser. Authenticated hosted/mobile-device rendering is unverified. The preview uses schematic icons and is not native Minecraft acceptance; it cannot change a server shop.

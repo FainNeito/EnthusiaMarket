@@ -1193,5 +1193,6 @@ No repository-local EARS validator or SPEAR state helper was found; requirements
 
 - [x] MARKET-15 / REQ-390/391/392 spec and native failure evidence: bare-delete parse failure, stale SELL results after BUY filter, raw trust boolean.
 - [x] Engine/architecture: explicit no-argument command route; filter-transition-only empty-menu closure; localized trust labels. No schema, economy, companion API or permission policy changes.
-- [ ] Refine: exact-head canonical hosted regressions/build and actionable review checks; responsive interactive preview. Evidence: native-ui-fixes-verification.md.
+- [x] Refine implementation: actual-registrar/GUI regressions and responsive interactive preview; first hosted suite identified the help contract's single-handler assumption, now corrected for valid overloads. Evidence: native-ui-fixes-verification.md.
+- Hosted delivery gate: final-head canonical build, test counts and actionable review results are recorded on [PR226](https://github.com/BadgersMC/EnthusiaMarket/pull/226); source completion alone does not establish this gate.
 - [ ] Separate acceptance: deploy an authorized candidate to TEST and rerun these three native cases. No deployment in this source-fix task.
