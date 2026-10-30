@@ -137,7 +137,7 @@ class AuctionBidMenu(private val auction: Auction, private val auctionService: A
         val gui = ChestGui(rows, ComponentHolder.of(Component.text(title)))
         val pane = StaticPane(9, rows)
         pane.addItem(GuiItem(icon(Material.PAPER, if (slotPositions == null) title else lines.joinToString(" "), lines)) { it.isCancelled = true }, 4, if (slotPositions == null) 0 else 5)
-        guarded.forEachIndexed { index, action ->
+        for ((index, action) in guarded.withIndex()) {
             val slot = slotPositions?.get(index) ?: (9 + index)
             pane.addItem(GuiItem(icon(Material.GOLD_INGOT, action.first)) { event ->
                 event.isCancelled = true
