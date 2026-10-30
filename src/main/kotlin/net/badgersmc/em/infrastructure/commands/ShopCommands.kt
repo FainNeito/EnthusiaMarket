@@ -219,19 +219,31 @@ class ShopCommands(
 
     @Subcommand("history")
     @Permission("enthusiamarket.shop.use")
-    fun history(@Context sender: CommandSender, @Arg("page") page: Int = 1) {
+    fun history(@Context sender: CommandSender) = history(sender, 1)
+
+    @Subcommand("history")
+    @Permission("enthusiamarket.shop.use")
+    fun history(@Context sender: CommandSender, @Arg("page") page: Int) {
         historyMessages.read(sender, page, ShopHistorySelection(null, "/shop history", "all"))
     }
 
     @Subcommand("history all")
     @Permission("enthusiamarket.shop.use")
-    fun historyAll(@Context sender: CommandSender, @Arg("page") page: Int = 1) {
+    fun historyAll(@Context sender: CommandSender) = historyAll(sender, 1)
+
+    @Subcommand("history all")
+    @Permission("enthusiamarket.shop.use")
+    fun historyAll(@Context sender: CommandSender, @Arg("page") page: Int) {
         historyMessages.read(sender, page, ShopHistorySelection(null, "/shop history all", "all"))
     }
 
     @Subcommand("history today")
     @Permission("enthusiamarket.shop.use")
-    fun historyToday(@Context sender: CommandSender, @Arg("page") page: Int = 1) {
+    fun historyToday(@Context sender: CommandSender) = historyToday(sender, 1)
+
+    @Subcommand("history today")
+    @Permission("enthusiamarket.shop.use")
+    fun historyToday(@Context sender: CommandSender, @Arg("page") page: Int) {
         val window = net.badgersmc.em.application.ShopHistoryDates.today(historyClock, historyZone)
         historyMessages.read(sender, page, ShopHistorySelection(window, "/shop history today", "today"))
     }
@@ -242,7 +254,15 @@ class ShopCommands(
         @Context sender: CommandSender,
         @Arg("from") from: String,
         @Arg("to") to: String,
-        @Arg("page") page: Int = 1,
+    ) = historyRange(sender, from, to, 1)
+
+    @Subcommand("history range")
+    @Permission("enthusiamarket.shop.use")
+    fun historyRange(
+        @Context sender: CommandSender,
+        @Arg("from") from: String,
+        @Arg("to") to: String,
+        @Arg("page") page: Int,
     ) {
         val window = try {
             net.badgersmc.em.application.ShopHistoryDates.range(from, to, historyZone)

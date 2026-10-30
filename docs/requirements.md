@@ -1,6 +1,13 @@
 
 # Requirements — EnthusiaMarket
 
+## REQ-394 - Optional history pages
+
+**Event-driven.** WHEN a player invokes shop history, all, today, or a complete
+date range without an explicit page THE SYSTEM SHALL dispatch the existing
+history reader with page one while retaining explicit pages, required range
+dates, ownership scope, permission checks and player-only validation.
+
 **Date:** 2026-05-24
 **Status:** Bootstrap (emitted by `/spear:init`; extend via `/spear:spec`)
 **EARS subset enforced:** Ubiquitous, Event-driven, State-driven, Unwanted. Optional Feature pattern (`WHERE …`) accepted without validation.

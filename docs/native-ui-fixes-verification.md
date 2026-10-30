@@ -20,7 +20,7 @@ Authored regressions exercise the actual Nexus-built Brigadier tree (bare/explic
 
 First canonical run41094145043 executed 1,144 cases with one failure and one unchanged external-authentication skip. The failure was the existing help contract choosing one arbitrary handler for the overloaded delete path; the actual registrar and GUI regressions passed. The contract now accepts an arity-compatible handler at the longest matching command path. This retains rejection of invalid help syntax while supporting the actual command tree.
 
-Codacy on refinement head11b3056 completed with zero annotations after resolving documentation spacing, method length and test-class count findings. Final-head canonical execution counts, checks and review receipts are recorded on [PR226](https://github.com/BadgersMC/EnthusiaMarket/pull/226). No local JVM build is claimed. New-build native acceptance remains pending. No merge, server operation or plugin deployment is part of this task.
+Codacy on refinement head11b3056 completed with zero annotations after resolving documentation spacing, method length and test-class count findings. Final-head canonical execution counts, checks and review receipts are recorded on [PR226](https://github.com/BadgersMC/EnthusiaMarket/pull/226). No local JVM build is claimed for this initial correction. Subsequent separately authorized TEST activation and pass2529 verified bare delete, empty-filter closure and readable trust labels; pass2549 verified high-count pagination and zero-stock feedback. Current source/runtime pins and remaining acceptance are reconciled in market-release-acceptance.md. No merge or production operation occurred.
 
 ## Interactive artifact
 

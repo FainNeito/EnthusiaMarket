@@ -49,3 +49,18 @@ claimed. Canonical CI and the deployed companion contract remain separate.
 The unchanged menu can be explored in the existing
 [interactive pagination simulation](https://enthusia-market-pagination-review.awareyak.chatgpt.site/).
 It is a simulation and does not prove command registration or native rendering.
+
+## Verified TEST follow-up
+
+Source615fff9 passed canonical run41115116315: 1,146 tests executed, zero
+failures/errors, one unchanged opt-in remote-authentication skip. All four new
+registrar cases executed. Artifact13004399521 was independently verified and
+activated under fresh Staff/Guilds acknowledgments in pass2556. A fresh runtime
+receipt confirms the enabled artifact hash recorded in market-release-acceptance.md.
+
+FainNeito ran `/shop trust FainNoir` without a mode argument on TEST. The existing
+one-shop trust menu opened, then was canceled with Escape without selection or
+Confirm. Exact database bytes, all 33 table fingerprints and configuration
+matched the offline pre-deployment backup afterward. This proves command routing
+and cancellation, not a trust-confirmation or ordinary-player permission test.
+Source remains unmerged and production unchanged.
