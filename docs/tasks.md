@@ -1188,6 +1188,7 @@ See [guild-shop-xp.md](guild-shop-xp.md) for policy, payment boundary, journal s
 - [x] Arch/refine: 1041 local tests (0 failures/errors, 14 environment-dependent skips), shadowJar and Java-22 Detekt passed; tested source prepared for PR delivery with hosted exact-head CI/review and live acceptance tracked separately. No production repair or deployment authorized.
 
 No repository-local EARS validator or SPEAR state helper was found; requirements, this task record and verification evidence track the workflow manually.
+
 # Native management UI corrections (2026-10-30)
 
 - [x] MARKET-15 / REQ-390/391/392 spec and native failure evidence: bare-delete parse failure, stale SELL results after BUY filter, raw trust boolean.

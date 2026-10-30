@@ -49,15 +49,7 @@ class SearchResultsMenu(
     private fun open(player: Player, closeOnEmpty: Boolean) {
         val visible = sort(filter(results, includeOutOfStock, mode), sort)
         if (visible.isEmpty()) {
-            // A filter transition must not leave results from the previous filter visible.
-            // New command searches still leave an unrelated inventory untouched.
-            if (closeOnEmpty) player.closeInventory()
-            val message = if (filter(results, true, mode).isEmpty()) {
-                "shop.cmd.search.none"
-            } else {
-                "shop.cmd.search.out_of_stock"
-            }
-            player.sendMessage(lang.msg(message, "query" to query))
+            rejectEmpty(player, closeOnEmpty)
             return
         }
         val totalPages = ((visible.size + PER_PAGE - 1) / PER_PAGE).coerceAtLeast(1)
@@ -74,6 +66,18 @@ class SearchResultsMenu(
         gui.addPane(Slot.fromXY(0, 0), pane)
         gui.blockItemTheft()
         gui.show(player)
+    }
+
+    private fun rejectEmpty(player: Player, closeOnEmpty: Boolean) {
+        // Only an in-menu transition closes the previous results. A new command
+        // search must preserve any unrelated inventory the player already has open.
+        if (closeOnEmpty) player.closeInventory()
+        val message = if (filter(results, true, mode).isEmpty()) {
+            "shop.cmd.search.none"
+        } else {
+            "shop.cmd.search.out_of_stock"
+        }
+        player.sendMessage(lang.msg(message, "query" to query))
     }
 
     private fun addResultIcons(

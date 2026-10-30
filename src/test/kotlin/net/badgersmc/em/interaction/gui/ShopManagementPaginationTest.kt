@@ -107,6 +107,13 @@ class ShopManagementPaginationTest {
     @Test fun `bulk selection survives round trip and confirmation spans pages`() {
         seed(91)
         trust().open(player)
+        assertTrue(label(0).contains("(sel, Not selected)"))
+        click(0)
+        assertTrue(label(0).contains("(sel, Selected)"))
+        assertTrue(rows.getValue(1L).trusted.isEmpty())
+        click(0)
+        assertTrue(label(0).contains("(sel, Not selected)"))
+        verify(exactly = 0) { repository.upsert(any()) }
         click(0)
         click(51)
         click(0)
@@ -117,18 +124,6 @@ class ShopManagementPaginationTest {
         assertTrue(label(0).contains("(sel, Selected)"))
         click(53)
         assertEquals(setOf(1L, 46L, 91L), rows.values.filter { target in it.trusted }.map { it.id }.toSet())
-    }
-
-    @Test fun `trust labels describe both selection states without saving before confirm`() {
-        seed(1)
-        trust().open(player)
-        assertTrue(label(0).contains("(sel, Not selected)"))
-        click(0)
-        assertTrue(label(0).contains("(sel, Selected)"))
-        assertTrue(rows.getValue(1L).trusted.isEmpty())
-        click(0)
-        assertTrue(label(0).contains("(sel, Not selected)"))
-        verify(exactly = 0) { repository.upsert(any()) }
     }
 
     @Test fun `delete last page entry clamps to previous page`() {
