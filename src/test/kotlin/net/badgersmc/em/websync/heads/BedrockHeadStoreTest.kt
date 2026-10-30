@@ -28,7 +28,7 @@ class BedrockHeadStoreTest {
         val store = store(upload = { DeliveryOutcome.Success }, published = published::add)
         store.capture(player, validSkin())
 
-        await { store.url(player) != null }
+        awaitWorker(store)
         assertTrue(store.url(player)!!.matches(Regex("https://market-api\\.enthusia\\.info/v1/player-heads/[0-9a-f]{64}\\.png")))
         assertEquals(listOf(player), published)
         assertEquals(0, store.status().pending)
