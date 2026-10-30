@@ -302,3 +302,5 @@ Management rejects forfeited, vacant and held ownership provenance. StallMemberS
 ## Native management UI corrections
 
 ShopCommands registers an explicit zero-argument delete handler alongside the existing mode handler. SearchResultsMenu distinguishes a new command search from an in-menu filter transition so empty filters close previous results without closing unrelated inventories on initial empty searches. BulkTrustMenu supplies localized selection text through the compatible `sel` placeholder; confirmation remains the persistence boundary. Requirements390–392 and evidence: [native-ui-fixes-verification.md](native-ui-fixes-verification.md).
+
+REQ-393 similarly registers an explicit player-name-only trust handler that delegates to the existing `menu` path. The mode overload preserves explicit menu/all behavior; no GUI, application service or permission policy changes. Evidence: [trust-command-verification.md](trust-command-verification.md).

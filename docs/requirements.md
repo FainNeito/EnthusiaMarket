@@ -724,3 +724,5 @@ WHEN a destination is within reveal distance THE SYSTEM SHALL show a configurabl
 - **REQ-390** WHEN a player with shop-use permission runs `/shop delete`, Market SHALL open the existing owner-scoped deletion menu without requiring a mode argument; explicit `menu` and permission-gated `all` SHALL retain their behavior.
 - **REQ-391** WHEN an open search menu changes its direction or stock filter to an empty result set, Market SHALL close the previous results inventory and send the corresponding localized no-match or out-of-stock feedback. A new empty command search SHALL preserve an unrelated open inventory.
 - **REQ-392** WHEN the bulk-trust menu renders a shop, Market SHALL display localized Selected or Not selected text through the existing `sel` placeholder, and SHALL persist trust changes only after confirmation.
+
+- **REQ-393** WHEN a player with shop-use permission runs `/shop trust <player>`, Market SHALL dispatch the existing owner-scoped trust menu without a mode argument. Explicit `menu` and `all` routes, player-name resolution, player-only restrictions and confirmation-only menu persistence SHALL retain their behavior.

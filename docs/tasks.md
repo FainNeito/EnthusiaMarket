@@ -1196,3 +1196,11 @@ No repository-local EARS validator or SPEAR state helper was found; requirements
 - [x] Refine implementation: actual-registrar/GUI regressions and responsive interactive preview; first hosted suite identified the help contract's single-handler assumption, now corrected for valid overloads. Evidence: native-ui-fixes-verification.md.
 - Hosted delivery gate: final-head canonical build, test counts and actionable review results are recorded on [PR226](https://github.com/BadgersMC/EnthusiaMarket/pull/226); source completion alone does not establish this gate.
 - [ ] Separate acceptance: deploy an authorized candidate to TEST and rerun these three native cases. No deployment in this source-fix task.
+
+## Trust command shorthand follow-up (REQ-393)
+
+- [x] Spec/prove: pass2549 reproduced the advertised player-name-only trust command failing while explicit `menu` worked; current canonical main and clean ongoing PR head rechecked.
+- [x] Engine/architecture: explicit no-mode trust overload delegates to the existing menu path; preserve explicit modes, resolver, permissions and confirmation boundary.
+- [x] Refine authored: real registrar regression covers shorthand, explicit modes, invalid input, permission and console paths. Evidence: trust-command-verification.md.
+- [ ] Verify exact-head canonical CI, review findings and hash-pinned artifact.
+- [ ] Deploy to TEST under fresh ownership acknowledgments and verify the shorthand with the client. Production unchanged.

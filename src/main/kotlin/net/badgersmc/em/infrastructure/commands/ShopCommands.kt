@@ -70,7 +70,14 @@ class ShopCommands(
     fun trust(
         @Context sender: CommandSender,
         @net.badgersmc.nexus.commands.annotations.Arg("player") name: String,
-        @net.badgersmc.nexus.commands.annotations.Arg("mode") mode: String = "menu",
+    ) = trust(sender, name, "menu")
+
+    @Subcommand("trust")
+    @Permission("enthusiamarket.shop.use")
+    fun trust(
+        @Context sender: CommandSender,
+        @net.badgersmc.nexus.commands.annotations.Arg("player") name: String,
+        @net.badgersmc.nexus.commands.annotations.Arg("mode") mode: String,
     ) {
         val player = sender as? Player ?: run { sender.sendMessage(lang.msg("shop.cmd.players_only")); return }
         val target = playerNameResolver.resolve(name) ?: run {

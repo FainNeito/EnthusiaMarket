@@ -129,4 +129,6 @@ Local verification: Java 25 `test shadowJar -PuseMavenLocal=true -PreleaseVersio
 
 No repository-local EARS/state helpers or Codacy MCP analysis tools were exposed; manual SPEAR records and Detekt were used, with hosted Codacy/build/security/diagnostic results to be checked on the PR's exact head. Source review and GitHub checks are distinct from live Java/Bedrock re-rental acceptance. No production database repair, region resync, reset, upload, restart or Discord message was performed.
 
+Trust shorthand follow-up REQ-393: native pass2549 supplied the failure evidence. The focused real-registrar regression, final CI and TEST deployment/client receipts are tracked separately in [trust-command-verification.md](trust-command-verification.md) and PR226. This entry alone asserts no new-build test or deployment success.
+
 Hosted Codacy refinement: exact-head annotations identified complexity 7 in sync, complexity 6 and 21 lines in resyncStalls. Extracted the system-auction decision and world selection, retaining the same state matrix. 25 affected application/listener/admin tests passed with zero failures/errors/skips after refinement. Hosted CI is rerun on the follow-up head; no CodeRabbit automated review is claimed because its bot reports reviews disabled for this repository.
