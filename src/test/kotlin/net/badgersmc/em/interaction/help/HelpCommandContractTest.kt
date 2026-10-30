@@ -27,9 +27,16 @@ class HelpCommandContractTest {
             val candidates = owner?.functions?.mapNotNull { method ->
                 method.findAnnotation<Subcommand>()?.let { method to it.value.split(" ") }
             }.orEmpty().filter { (_, path) -> tokens.drop(1).take(path.size) == path }
-            val match = candidates.maxByOrNull { it.second.size }
+            val longestPath = candidates.maxOfOrNull { it.second.size }
+            val match = candidates.filter { it.second.size == longestPath }.firstOrNull { (method, path) ->
+                val arguments = method.parameters.filter { it.findAnnotation<Arg>() != null }
+                val required = arguments.count {
+                    it.findAnnotation<Arg>()!!.required && !it.isOptional && !it.type.isMarkedNullable
+                }
+                tokens.size - 1 - path.size in required..arguments.size
+            }
             if (match == null) {
-                errors += "Unregistered help command: ${entry.syntax}"
+                errors += "Unregistered help command or invalid overload arguments: ${entry.syntax}"
             } else {
                 val arguments = match.first.parameters.filter { it.findAnnotation<Arg>() != null }
                 val required = arguments.count {
