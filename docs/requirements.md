@@ -9,7 +9,7 @@ Each requirement carries a stable ID. Tasks reference requirements by ID. New re
 
 ---
 
-### REQ-386 - Live purchase stock
+## REQ-386 - Live purchase stock
 
 **Event-driven.** WHEN a purchase or bulk menu is rendered THE SYSTEM SHALL calculate available sale and barter quantities from the current shop container, fail closed if it cannot read the item or container, and preserve existing buy and administrator shop behavior; transaction checks remain authoritative.
 
@@ -712,6 +712,7 @@ WHEN a guide starts with valid connected configured walkway nodes near both endp
 ### REQ-389 — Private glowing destination
 
 WHEN a destination is within reveal distance THE SYSTEM SHALL show a configurable glowing beam boundary and exact selected sign marker only to the searching player. Temporary displays SHALL be invisible by default before spawn, nonpersistent, noncolliding and bounded per recipient and globally. Replacement, cancellation, expiry, death, disconnect, world change, unloaded geometry and shutdown SHALL remove owned displays. Disabled or unavailable glow SHALL preserve private particle fallback. No blocks, other entities, permissions or ownership SHALL change. Arrival feedback SHALL occur even without region geometry.
+
 ## Ownership access recovery (bug-0406 follow-up)
 
 **Event-driven (REQ-317/318/319/320/321).** WHEN startup, a subsequently loaded world, or an authorized region resync reconciles a stall THE SYSTEM SHALL replace active SOLO access with its current owner and delegated members, replace active guild access with its current guild roster, and clear access for vacant, forfeited emergency, and ownerless system-auction stalls. THE SYSTEM SHALL preserve seller-owned auction access and moderation holds or live reservations, without changing the database, shops, flags, or rent during automatic reconciliation. Missing regions/worlds SHALL be reported as failures rather than successful mutations.

@@ -18,11 +18,13 @@ internal object AuctionBidPresentation {
         if (deferred) return "Starts after the first bid"
         val duration = Duration.between(now, end)
         if (duration.isNegative || duration.isZero) return "Ended"
-        return buildList {
-            if (duration.toDays() > 0) add("${duration.toDays()}d")
-            if (duration.toHours() % 24 > 0) add("${duration.toHours() % 24}h")
-            if (duration.toMinutes() % 60 > 0) add("${duration.toMinutes() % 60}m")
-            add("${duration.seconds % 60}s")
-        }.joinToString(" ")
+        return durationParts(duration).joinToString(" ")
+    }
+
+    private fun durationParts(duration: Duration): List<String> = buildList {
+        if (duration.toDays() > 0) add("${duration.toDays()}d")
+        if (duration.toHours() % 24 > 0) add("${duration.toHours() % 24}h")
+        if (duration.toMinutes() % 60 > 0) add("${duration.toMinutes() % 60}m")
+        add("${duration.seconds % 60}s")
     }
 }

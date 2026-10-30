@@ -3,14 +3,17 @@
 Base: fresh canonical main57704f1acfaf8aacfdd65cb4ae74c0f36b55712d. Isolated branchcodex/readable-stall-access-labels-20261029; pagination61513733 remains separate and clean.
 
 ## Spec
+
 WHEN a player views stall settings THE SYSTEM SHALL show localized friendly sections, capabilities, effect names and Allowed/Blocked states instead of internal routes, enum identifiers or booleans. WHEN identity is unavailable THE SYSTEM SHALL show a neutral distinguishable unknown entry while retaining immutable action IDs. Display names SHALL be literal text, with control/legacy formatting removed. Unknown sections SHALL retain the existing visitor behavior and a friendly visitor title.
 WHEN a setting operation fails THE SYSTEM SHALL show a safe localized uncertain-confirmation message and retain the complete failure/context in staff diagnostics. Constructors, command routing/options/permission annotations, policy checks, revision/durable mutations and projection behavior SHALL remain unchanged.
 No new blocking offline/name-service lookups. The original Bukkit offline-name path is retained so known offline players remain identifiable; only actual name misses use numbered unknown fallback. Existing synchronous disk-I/O debt is explicitly deferred; no new lookup is added. Allied names are captured from the existing listing and used in selected-page titles, with a neutral fallback for unavailable direct routes. A current page may retain its last listed name until revisiting the list; identity/permissions never depend on that display name.
 
 ## Prove
+
 Focused helper tests are authored before engine implementation: all11 capabilities, effects including unknown keys, booleans, unknown/known-offline/renamed/deleted identity inputs, unknown sections, literal hostile markup and legacy/control sanitization, localization substitution, and safe error text. Full JVM/GUI tests require a later bridge grant and hosted toolchain. No executable Gradle red/green is claimed.
 
 ## Engine / architecture / refine
+
 Implemented plain-text labels with a pure StallAccessLabels helper and a small StallAccessUi adapter bound to the existing LangService/logger at startup and reset on disable. Constructor signatures and routing/permission annotation values remain exact. The startup binding avoids changing the existing command/menu constructor contract; it adds no background worker or identity cache. All dynamic names remain literal Component.text values, with legacy formatting/control characters removed.
 
 Selected ally titles use names from the menu's existing guild listing snapshot; no extra guild lookup is performed for a title. Known offline blacklist names retain the original lookup path and lookup count. The pre-existing synchronous offline-name disk-I/O debt is deferred; this patch does not claim all lookups are nonblocking. Unknown entry numbers identify current list positions and may shift after removal; callbacks retain the actual UUID.

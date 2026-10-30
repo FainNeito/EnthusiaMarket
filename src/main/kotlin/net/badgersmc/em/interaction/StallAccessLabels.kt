@@ -26,8 +26,10 @@ internal class StallAccessLabels(private val translate: (String) -> String? = { 
     private fun humanize(value: String): String = value.lowercase(java.util.Locale.ROOT).replace('_', ' ').trim()
         .replaceFirstChar { it.titlecase(java.util.Locale.ROOT) }
 
-    private fun literal(value: String?): String? = value?.replace(legacy, "")
-        ?.filterNot { it.isISOControl() }?.trim()?.takeIf { it.isNotEmpty() }
+    private fun literal(value: String?): String? {
+        return value?.replace(legacy, "")
+            ?.filterNot { it.isISOControl() }?.trim()?.takeIf { it.isNotEmpty() }
+    }
 
     companion object {
         private val placeholder = Regex("\\{(\\w+)\\}")

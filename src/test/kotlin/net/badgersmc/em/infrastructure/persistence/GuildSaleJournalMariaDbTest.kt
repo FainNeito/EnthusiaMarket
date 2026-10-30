@@ -4,19 +4,23 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import net.badgersmc.em.domain.ports.GuildSaleIntent
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.Assumptions.assumeTrue
+import org.junit.jupiter.api.extension.RegisterExtension
+import net.badgersmc.em.testing.MarketMariaDbFixture
 import java.util.UUID
 import kotlin.test.assertEquals
 
-/** Optional disposable loopback DB; does not use any server/operator connection configuration. */
+/** Disposable fixture; never uses server/operator connection configuration. */
 class GuildSaleJournalMariaDbTest {
+    companion object {
+        @JvmField @RegisterExtension
+        val database = MarketMariaDbFixture("guild_sale_journal")
+    }
+
     @Test fun `MariaDB journal persists completed only replay with idempotent acknowledgement states`() {
-        val port = System.getenv("GUILD_SHOP_XP_TEST_MARIA_PORT")?.toIntOrNull()
-        assumeTrue(port != null, "Disposable loopback MariaDB test instance not configured")
         HikariDataSource(HikariConfig().apply {
-            jdbcUrl = "jdbc:mariadb://127.0.0.1:${checkNotNull(port)}/market_shop_xp_test"
-            username = "xp_test"
-            password = "xp_test"
+            jdbcUrl = database.jdbcUrl
+            username = database.username
+            password = database.password
             maximumPoolSize = 2
         }).use { ds ->
             ds.connection.use { c ->

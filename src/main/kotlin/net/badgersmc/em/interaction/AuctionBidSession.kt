@@ -29,11 +29,15 @@ internal class AuctionBidSession(val actor: UUID, private val id: AuctionId,
         return Ready(current, amount, guildId, guild?.let { AuctionBidPresentation.name(it.name) })
     }
 
-    private fun changed(before: Ready, after: Ready): Boolean =
-        before.auction.id != after.auction.id || before.auction.stallId != after.auction.stallId ||
-            before.auction.highBid != after.auction.highBid ||
-            before.auction.startingBid != after.auction.startingBid || before.auction.endAt != after.auction.endAt ||
-            before.auction.auctionDuration != after.auction.auctionDuration || before.guildName != after.guildName
+    private fun changed(before: Ready, after: Ready): Boolean = listOf(
+        before.auction.id to after.auction.id,
+        before.auction.stallId to after.auction.stallId,
+        before.auction.highBid to after.auction.highBid,
+        before.auction.startingBid to after.auction.startingBid,
+        before.auction.endAt to after.auction.endAt,
+        before.auction.auctionDuration to after.auction.auctionDuration,
+        before.guildName to after.guildName,
+    ).any { (old, current) -> old != current }
 
     fun confirm(ready: Ready, ip: String): AuctionResult {
         if (!ready.used.compareAndSet(false, true)) return AuctionResult.Failure("This confirmation has already been used.")

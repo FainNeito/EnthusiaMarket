@@ -75,10 +75,14 @@ class AuctionBidMenu(private val auction: Auction, private val auctionService: A
         payer,
         text(if (guildTarget == null) "personal_funding" else "guild_funding"),
         text(if (current.highBid == null) "starting" else "current", "amount" to (current.highBid?.amount ?: current.startingBid)),
-        text("minimum", "amount" to (minimum?.toString() ?: text("no_higher_bid"))),
-        text("time", "time" to AuctionBidPresentation.time(Instant.now(), current.endAt,
-            current.highBid == null && !current.auctionDuration.isZero)),
+        text("minimum", "amount" to minimumLabel(minimum)),
+        text("time", "time" to timeDescription(current)),
     )
+
+    private fun minimumLabel(minimum: Long?): String = minimum?.toString() ?: text("no_higher_bid")
+
+    private fun timeDescription(current: Auction): String = AuctionBidPresentation.time(
+        Instant.now(), current.endAt, current.highBid == null && !current.auctionDuration.isZero)
 
     private fun review(player: Player, amount: Long, payer: String?) {
         if (!allowed(player)) return
@@ -205,24 +209,35 @@ class AuctionBidMenu(private val auction: Auction, private val auctionService: A
             val promptedPlayer = promptPlayers.getOrPut(player.uniqueId) { player }
             val guild = pendingGuildTargets.remove(player.uniqueId)
             val token = promptTokens.getOrPut(player.uniqueId) { UUID.randomUUID() }
-            val continuation: () -> Unit = continuation@{
-                if (!promptTokens.remove(player.uniqueId, token)) return@continuation
-                promptPlayers.remove(player.uniqueId, promptedPlayer)
-                if (promptedPlayer !== player || !player.isOnline) return@continuation
-                if (java.time.Duration.between(entry.second, Instant.now()).seconds > CUSTOM_BID_TIMEOUT_SEC) {
-                    player.sendMessage(lang.msg("gui.auction_bid.custom_timeout", "stall" to entry.first.stallId.value))
-                    return@continuation
-                }
-                val amount = message.trim().toLongOrNull()?.takeIf { it > 0 }
-                if (amount == null) {
-                    player.sendMessage(lang.msg("gui.auction_bid.custom_invalid", "input" to message))
-                } else {
-                    val menu = AuctionBidMenu(entry.first, auctionService, lang)
-                    menu.guildTarget = guild
-                    menu.review(player, amount, guild)
-                }
+            val continuation: () -> Unit = {
+                completeChat(player, promptedPlayer, entry, guild, token, message, lang, auctionService)
             }
             continuation
+        }
+
+        private fun completeChat(player: Player, promptedPlayer: Player, entry: Pair<Auction, Instant>,
+            guild: String?, token: UUID, message: String, lang: LangService,
+            auctionService: AuctionLifecycleService) {
+            if (!promptTokens.remove(player.uniqueId, token)) return
+            promptPlayers.remove(player.uniqueId, promptedPlayer)
+            if (promptedPlayer !== player || !player.isOnline) return
+            if (java.time.Duration.between(entry.second, Instant.now()).seconds > CUSTOM_BID_TIMEOUT_SEC) {
+                player.sendMessage(lang.msg("gui.auction_bid.custom_timeout", "stall" to entry.first.stallId.value))
+                return
+            }
+            reviewChatAmount(player, entry.first, guild, message, lang, auctionService)
+        }
+
+        private fun reviewChatAmount(player: Player, auction: Auction, guild: String?, message: String,
+            lang: LangService, auctionService: AuctionLifecycleService) {
+            val amount = message.trim().toLongOrNull()?.takeIf { it > 0 }
+            if (amount == null) {
+                player.sendMessage(lang.msg("gui.auction_bid.custom_invalid", "input" to message))
+                return
+            }
+            val menu = AuctionBidMenu(auction, auctionService, lang)
+            menu.guildTarget = guild
+            menu.review(player, amount, guild)
         }
 
         /** Compatible entrypoint; only claims/schedules, never opens inventories on async. */

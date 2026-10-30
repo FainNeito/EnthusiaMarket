@@ -102,6 +102,29 @@ jobs:
               raise SystemExit("Guild-shop XP v2 runtime contract did not execute cleanly")
           PY
 
+      - name: Verify journal and accounting MariaDB tests executed
+        run: |
+          python3 - <<'PY'
+          import pathlib
+          import re
+          suites = ("GuildSaleJournalMariaDbTest", "StallAccountingMariaDbTest")
+          for suite in suites:
+              reports = list(pathlib.Path("build/test-results/test").glob("TEST-*." + suite + ".xml"))
+              if len(reports) != 1:
+                  raise SystemExit("Missing exact required suite: " + suite)
+              header = reports[0].read_text().split("<testsuite", 1)[1].split(">", 1)[0]
+              counts = {key: re.search(r'\b' + key + r'="([0-9]+)"', header) for key in ("tests", "skipped", "failures", "errors")}
+              if any(value is None for value in counts.values()):
+                  raise SystemExit("Missing suite counts: " + suite)
+              values = {key: int(value.group(1)) for key, value in counts.items()}
+              if values["tests"] < 1 or any(values[key] for key in ("skipped", "failures", "errors")):
+                  raise SystemExit("Required native fixture did not pass: " + suite)
+              print(suite, values)
+          PY
+
+      - name: Verify manifest fail-closed fixtures
+        run: python3 .github/scripts/tests/test_artifact_manifest.py
+
       - name: Record verified TEST artifact provenance
         run: python3 .github/scripts/test-artifact-manifest.py
 
