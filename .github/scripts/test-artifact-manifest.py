@@ -4,7 +4,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
-from xml.parsers import expat
+from defusedxml import ElementTree
 import zipfile
 
 
@@ -23,28 +23,12 @@ def require(condition, message):
 
 
 def suite_counts(report):
-    # Expat never fetches external resources here. Reject all DTD/entity declarations
-    # and external entity references before accepting any report data.
-    parser = expat.ParserCreate()
-    def reject_entity(*_args):
-        raise ValueError("DTD and entities are forbidden in test reports")
-    parser.StartDoctypeDeclHandler = reject_entity
-    parser.EntityDeclHandler = reject_entity
-    parser.ExternalEntityRefHandler = reject_entity
-    parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
-    root = []
-    def start(name, attributes):
-        if not root:
-            require(name == "testsuite", "Expected testsuite root")
-            root.append(dict(attributes))
-    parser.StartElementHandler = start
-    with report.open("rb") as stream:
-        parser.ParseFile(stream)
-    require(bool(root), "Empty test report")
-    counts = {key: int(root[0].get(key, "0")) for key in ("tests", "failures", "errors", "skipped")}
+    suite = ElementTree.parse(report, forbid_dtd=True, forbid_entities=True, forbid_external=True).getroot()
+    require(suite.tag == "testsuite", "Expected testsuite root")
+    counts = {key: int(suite.attrib.get(key, "0")) for key in ("tests", "failures", "errors", "skipped")}
     require(all(value >= 0 for value in counts.values()), "Negative test count")
     require(counts["failures"] == counts["errors"] == 0, "Failed test suite: " + report.name)
-    return {"suite": root[0]["name"], **counts}
+    return {"suite": suite.attrib["name"], **counts}
 
 
 source = git("rev-parse", "HEAD")

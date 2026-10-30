@@ -4,7 +4,6 @@ import json
 import os
 from pathlib import Path
 import subprocess
-import sys
 import tempfile
 import unittest
 import zipfile
@@ -25,6 +24,7 @@ class ManifestFixtures(unittest.TestCase):
     def run_fixture(self, optimized, scenario):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+
             def git(*args):
                 return subprocess.check_output(["git", "-C", str(root), *args], text=True).strip()
             git("init", "--quiet")
@@ -43,15 +43,7 @@ class ManifestFixtures(unittest.TestCase):
                 archive.writestr("paper-plugin.yml", descriptor)
             if scenario == "duplicate_jar":
                 (libs / f"Duplicate-{version}.jar").write_bytes(b"duplicate")
-            reports = root / "build/test-results/test"
-            reports.mkdir(parents=True)
-            xml = '<testsuite name="fixture" tests="1" failures="0" errors="0" skipped="0"/>'
-            xml = {"malformed_xml": '<testsuite name="broken">',
-                   "entity_xml": '<!DOCTYPE testsuite [<!ENTITY x "expanded">]><testsuite name="&x;" tests="1"/>',
-                   "external_entity": '<!DOCTYPE testsuite SYSTEM "file:///never-read"><testsuite name="fixture" tests="1"/>',
-                   "failed_suite": '<testsuite name="failed" tests="1" failures="1"/>'}.get(scenario, xml)
-            if scenario != "no_reports":
-                (reports / "TEST-fixture.xml").write_text(xml)
+            make_reports(root, scenario)
             evidence = root / "build/test-artifact"
             evidence.mkdir(parents=True)
             (evidence / "dependencies.json").write_text("[]\n")
@@ -64,8 +56,7 @@ class ManifestFixtures(unittest.TestCase):
                        NEXUS_REF="fixture-nexus", LUMAGUILDS_REF="fixture-companion")
             if scenario == "bad_companion":
                 env["LUMAGUILDS_SHA256"] = "0" * 64
-            command = [sys.executable] + (["-O"] if optimized else []) + [str(SCRIPT)]
-            result = subprocess.run(command, cwd=root, env=env, capture_output=True, text=True, check=False)
+            result = run_manifest(root, env, optimized)
             valid = scenario in ("plain", "single", "double")
             self.assertEqual(result.returncode == 0, valid, result.stderr)
             manifest = evidence / "manifest.json"
@@ -74,6 +65,24 @@ class ManifestFixtures(unittest.TestCase):
                 data = json.loads(manifest.read_text())
                 self.assertEqual(data["source_sha"], source)
                 self.assertEqual(data["test_suites"][0]["tests"], 1)
+
+
+def make_reports(root, scenario):
+    reports = root / "build/test-results/test"
+    reports.mkdir(parents=True)
+    xml = '<testsuite name="fixture" tests="1" failures="0" errors="0" skipped="0"/>'
+    xml = {"malformed_xml": '<testsuite name="broken">',
+           "entity_xml": '<!DOCTYPE testsuite [<!ENTITY x "expanded">]><testsuite name="&x;" tests="1"/>',
+           "external_entity": '<!DOCTYPE testsuite SYSTEM "file:///never-read"><testsuite name="fixture" tests="1"/>',
+           "failed_suite": '<testsuite name="failed" tests="1" failures="1"/>'}.get(scenario, xml)
+    if scenario != "no_reports":
+        (reports / "TEST-fixture.xml").write_text(xml)
+
+
+def run_manifest(root, env, optimized):
+    flags = ["-O"] if optimized else []
+    return subprocess.run(["python3", *flags, str(SCRIPT)], cwd=root, env=env,
+                          capture_output=True, text=True, check=False)
 
 
 if __name__ == "__main__":

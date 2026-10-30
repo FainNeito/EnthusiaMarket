@@ -202,6 +202,12 @@ class AuctionBidMenu(private val auction: Auction, private val auctionService: A
             pendingCustomBids.clear(); pendingGuildTargets.clear(); promptTokens.clear(); promptPlayers.clear()
         }
 
+        private data class ChatClaim(
+            val promptedPlayer: Player,
+            val entry: Pair<Auction, Instant>,
+            val token: UUID,
+        )
+
         /** Claim once on the chat thread; the returned continuation must run on main. */
         internal fun claimChat(player: Player, message: String, lang: LangService,
             auctionService: AuctionLifecycleService): (() -> Unit)? = synchronized(promptLock) {
@@ -210,32 +216,30 @@ class AuctionBidMenu(private val auction: Auction, private val auctionService: A
             val guild = pendingGuildTargets.remove(player.uniqueId)
             val token = promptTokens.getOrPut(player.uniqueId) { UUID.randomUUID() }
             val continuation: () -> Unit = {
-                completeChat(player, promptedPlayer, entry, guild, token, message, lang, auctionService)
+                completeChat(player, ChatClaim(promptedPlayer, entry, token), lang) {
+                    reviewChatAmount(player, message, AuctionBidMenu(entry.first, auctionService, lang), guild)
+                }
             }
             continuation
         }
 
-        private fun completeChat(player: Player, promptedPlayer: Player, entry: Pair<Auction, Instant>,
-            guild: String?, token: UUID, message: String, lang: LangService,
-            auctionService: AuctionLifecycleService) {
-            if (!promptTokens.remove(player.uniqueId, token)) return
-            promptPlayers.remove(player.uniqueId, promptedPlayer)
-            if (promptedPlayer !== player || !player.isOnline) return
-            if (java.time.Duration.between(entry.second, Instant.now()).seconds > CUSTOM_BID_TIMEOUT_SEC) {
-                player.sendMessage(lang.msg("gui.auction_bid.custom_timeout", "stall" to entry.first.stallId.value))
+        private fun completeChat(player: Player, claim: ChatClaim, lang: LangService, review: () -> Unit) {
+            if (!promptTokens.remove(player.uniqueId, claim.token)) return
+            promptPlayers.remove(player.uniqueId, claim.promptedPlayer)
+            if (claim.promptedPlayer !== player || !player.isOnline) return
+            if (java.time.Duration.between(claim.entry.second, Instant.now()).seconds > CUSTOM_BID_TIMEOUT_SEC) {
+                player.sendMessage(lang.msg("gui.auction_bid.custom_timeout", "stall" to claim.entry.first.stallId.value))
                 return
             }
-            reviewChatAmount(player, entry.first, guild, message, lang, auctionService)
+            review()
         }
 
-        private fun reviewChatAmount(player: Player, auction: Auction, guild: String?, message: String,
-            lang: LangService, auctionService: AuctionLifecycleService) {
+        private fun reviewChatAmount(player: Player, message: String, menu: AuctionBidMenu, guild: String?) {
             val amount = message.trim().toLongOrNull()?.takeIf { it > 0 }
             if (amount == null) {
-                player.sendMessage(lang.msg("gui.auction_bid.custom_invalid", "input" to message))
+                player.sendMessage(menu.lang.msg("gui.auction_bid.custom_invalid", "input" to message))
                 return
             }
-            val menu = AuctionBidMenu(auction, auctionService, lang)
             menu.guildTarget = guild
             menu.review(player, amount, guild)
         }

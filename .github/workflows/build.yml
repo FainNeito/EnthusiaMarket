@@ -122,6 +122,12 @@ jobs:
               print(suite, values)
           PY
 
+      - name: Install pinned manifest XML parser
+        run: |
+          python3 -m venv "$RUNNER_TEMP/market-manifest-venv"
+          "$RUNNER_TEMP/market-manifest-venv/bin/python3" -m pip install --require-hashes --only-binary=:all: -r .github/scripts/requirements.txt
+          echo "$RUNNER_TEMP/market-manifest-venv/bin" >> "$GITHUB_PATH"
+
       - name: Verify manifest fail-closed fixtures
         run: python3 .github/scripts/tests/test_artifact_manifest.py
 
