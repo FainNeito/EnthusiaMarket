@@ -24,6 +24,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class ShopTrustCommandRegistrationTest {
+    private val actorId = UUID.randomUUID()
     private val management = mockk<ShopManagementService>(relaxed = true)
     private val names = mockk<PlayerNameResolver>()
     private val lang = mockk<LangService>().also {
@@ -35,7 +36,7 @@ class ShopTrustCommandRegistrationTest {
     )
     private val player = mockk<Player>(relaxed = true).also {
         every { it.hasPermission("enthusiamarket.shop.use") } returns true
-        every { it.uniqueId } returns UUID.randomUUID()
+        every { it.uniqueId } returns actorId
     }
     private val source = mockk<CommandSourceStack>().also { every { it.sender } returns player }
     private val dispatcher by lazy { registeredDispatcher() }
@@ -54,7 +55,7 @@ class ShopTrustCommandRegistrationTest {
         val target = mockk<OfflinePlayer>().also { every { it.uniqueId } returns targetId }
         every { names.resolve("KnownPlayer") } returns target
         assertEquals(1, dispatcher.execute("shop trust KnownPlayer all", source))
-        verify(exactly = 1) { management.trustAll(player.uniqueId, targetId) }
+        verify(exactly = 1) { management.trustAll(actorId, targetId) }
         verify(exactly = 0) { management.trust(any(), any(), any()) }
     }
 

@@ -39,6 +39,13 @@ are not implied to have passed. No repository-local EARS validator or SPEAR
 state helper exists; these requirement/task/evidence files track the workflow.
 Production and merging remain outside the authorized TEST deployment.
 
+The local Java25 focused run passed all six cases (four new registrar cases and
+two help-contract cases), with zero failures/errors/skips. The first local
+attempt lacked the configured companion path. After selecting the cached,
+workflow-hash-verified LumaGuilds3.0.39 JAR, an actor-UUID matcher mistake in the
+new test was corrected and the focused run passed. No pre-patch unit red run is
+claimed. Canonical CI and the deployed companion contract remain separate.
+
 The unchanged menu can be explored in the existing
 [interactive pagination simulation](https://enthusia-market-pagination-review.awareyak.chatgpt.site/).
 It is a simulation and does not prove command registration or native rendering.
