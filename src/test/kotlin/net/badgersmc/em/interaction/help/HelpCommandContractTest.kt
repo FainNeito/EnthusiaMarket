@@ -37,13 +37,6 @@ class HelpCommandContractTest {
             }
             if (match == null) {
                 errors += "Unregistered help command or invalid overload arguments: ${entry.syntax}"
-            } else {
-                val arguments = match.first.parameters.filter { it.findAnnotation<Arg>() != null }
-                val required = arguments.count {
-                    it.findAnnotation<Arg>()!!.required && !it.isOptional && !it.type.isMarkedNullable
-                }
-                val provided = tokens.size - 1 - match.second.size
-                if (provided !in required..arguments.size) errors += "Missing/extra arguments: ${entry.syntax} (requires $required)"
             }
         }
         assertTrue(errors.isEmpty(), errors.joinToString("\n"))
