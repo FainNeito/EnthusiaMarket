@@ -24,6 +24,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.test.assertNotSame
 
 class SearchResultsMenuNavigationTest {
     private lateinit var player: PlayerMock
@@ -80,6 +81,24 @@ class SearchResultsMenuNavigationTest {
         click(4) // BUY -> ANY; retained out-of-stock toggle includes all 44
         assertPage(1, 44)
         assertTrue(directionLabel().contains("direction_any"))
+    }
+
+    @Test fun `empty direction transition closes previous results and sends no matches`() {
+        SearchResultsMenu(listOf(result(1, SignDirection.SELL)), "diamond", lang, stalls).open(player)
+        click(4) // ANY -> SELL
+        val previous = player.openInventory.topInventory
+        click(4) // SELL -> BUY, no BUY shops
+        assertNotSame(previous, player.openInventory.topInventory)
+        assertTrue(player.nextMessage()!!.contains("shop.cmd.search.none"))
+    }
+
+    @Test fun `hiding empty stock closes previous results and sends stock feedback`() {
+        SearchResultsMenu(listOf(result(1, SignDirection.SELL, 0)), "diamond", lang, stalls,
+            includeOutOfStock = true).open(player)
+        val previous = player.openInventory.topInventory
+        click(3)
+        assertNotSame(previous, player.openInventory.topInventory)
+        assertTrue(player.nextMessage()!!.contains("shop.cmd.search.out_of_stock"))
     }
 
     private fun click(slot: Int) {

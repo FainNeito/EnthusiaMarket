@@ -515,6 +515,8 @@ gui:
     trust:
       title: "<dark_gray>Trust <name> on…"
       icon: "<white><world> <x>,<y>,<z> <gray>(<sel>)"
+      selected: "Selected"
+      not_selected: "Not selected"
       confirm: "<green>Confirm"
     delete:
       title: "<dark_red>Delete shops"

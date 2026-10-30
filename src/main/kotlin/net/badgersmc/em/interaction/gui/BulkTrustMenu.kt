@@ -76,7 +76,9 @@ class BulkTrustMenu(
     private fun icon(shop: Shop, sel: Boolean): ItemStack {
         val base = ItemStackSerializer.deserialize(shop.sellItem) ?: ItemStack(Material.CHEST)
         val meta = base.itemMeta ?: return base
-        meta.displayName(lang.msg("gui.shop.trust.icon", "world" to shop.signWorld, "x" to shop.signX, "y" to shop.signY, "z" to shop.signZ, "sel" to sel))
+        val selection = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
+            .serialize(lang.msg(if (sel) "gui.shop.trust.selected" else "gui.shop.trust.not_selected"))
+        meta.displayName(lang.msg("gui.shop.trust.icon", "world" to shop.signWorld, "x" to shop.signX, "y" to shop.signY, "z" to shop.signZ, "sel" to selection))
         base.itemMeta = meta
         return base
     }

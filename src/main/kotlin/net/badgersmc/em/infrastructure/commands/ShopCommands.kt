@@ -117,9 +117,13 @@ class ShopCommands(
 
     @Subcommand("delete")
     @Permission("enthusiamarket.shop.use")
+    fun delete(@Context sender: CommandSender) = delete(sender, "menu")
+
+    @Subcommand("delete")
+    @Permission("enthusiamarket.shop.use")
     fun delete(
         @Context sender: CommandSender,
-        @net.badgersmc.nexus.commands.annotations.Arg("mode") mode: String = "menu",
+        @net.badgersmc.nexus.commands.annotations.Arg("mode") mode: String,
     ) {
         val player = sender as? Player ?: run { sender.sendMessage(lang.msg("shop.cmd.players_only")); return }
         if (mode.equals("all", ignoreCase = true)) {

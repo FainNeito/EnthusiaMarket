@@ -60,6 +60,8 @@ class ShopManagementPaginationTest {
         every { lang.msg(any(), *anyVararg()) } answers {
             Component.text(firstArg<String>() + " " + secondArg<Array<Pair<String, Any>>>().joinToString())
         }
+        every { lang.msg("gui.shop.trust.selected", *anyVararg()) } returns Component.text("Selected")
+        every { lang.msg("gui.shop.trust.not_selected", *anyVararg()) } returns Component.text("Not selected")
         every { repository.findByOwner(any()) } answers {
             rows.values.filter { it.owner == firstArg<UUID>() }.reversed()
         }
@@ -112,9 +114,21 @@ class ShopManagementPaginationTest {
         click(0)
         click(45)
         click(45)
-        assertTrue(label(0).contains("(sel, true)"))
+        assertTrue(label(0).contains("(sel, Selected)"))
         click(53)
         assertEquals(setOf(1L, 46L, 91L), rows.values.filter { target in it.trusted }.map { it.id }.toSet())
+    }
+
+    @Test fun `trust labels describe both selection states without saving before confirm`() {
+        seed(1)
+        trust().open(player)
+        assertTrue(label(0).contains("(sel, Not selected)"))
+        click(0)
+        assertTrue(label(0).contains("(sel, Selected)"))
+        assertTrue(rows.getValue(1L).trusted.isEmpty())
+        click(0)
+        assertTrue(label(0).contains("(sel, Not selected)"))
+        verify(exactly = 0) { repository.upsert(any()) }
     }
 
     @Test fun `delete last page entry clamps to previous page`() {

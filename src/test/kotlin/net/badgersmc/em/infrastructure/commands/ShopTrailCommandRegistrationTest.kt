@@ -9,6 +9,9 @@ import io.mockk.mockk
 import io.mockk.verify
 import io.papermc.paper.command.brigadier.CommandSourceStack
 import net.badgersmc.em.infrastructure.listeners.FinderTrailService
+import net.badgersmc.em.application.ShopManagementService
+import net.badgersmc.nexus.i18n.LangService
+import net.kyori.adventure.text.Component
 import net.badgersmc.nexus.paper.commands.PaperCommandDefinition
 import net.badgersmc.nexus.paper.commands.PaperCommandRegistry
 import net.badgersmc.nexus.paper.commands.PaperCommandScanner
@@ -20,8 +23,12 @@ import kotlin.test.assertFailsWith
 
 class ShopTrailCommandRegistrationTest {
     private val finder = mockk<FinderTrailService>(relaxed = true)
+    private val management = mockk<ShopManagementService>(relaxed = true)
+    private val lang = mockk<LangService>().also {
+        every { it.msg(any(), *anyVararg()) } answers { Component.text(firstArg<String>()) }
+    }
     private val commands = ShopCommands(
-        mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk(),
+        management, mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), lang,
         mockk(), mockk(), mockk(), mockk(), finderTrail = finder,
     )
     private val player = mockk<Player>(relaxed = true).also {
@@ -34,6 +41,34 @@ class ShopTrailCommandRegistrationTest {
         assertEquals(1, dispatcher.execute("shop trail stop", source))
         verify(exactly = 1) { finder.stop(player) }
         verify(exactly = 0) { finder.setMode(any(), any()); finder.start(any(), any()) }
+    }
+
+    @Test fun `bare delete and explicit menu reach menu eligibility without deleting shops`() {
+        assertEquals(1, dispatcher.execute("shop delete", source))
+        assertEquals(1, dispatcher.execute("shop delete menu", source))
+        verify(exactly = 2) { management.shopsOwnedBy(player.uniqueId) }
+        verify(exactly = 2) { player.sendMessage(Component.text("shop.cmd.none_owned")) }
+        verify(exactly = 0) { management.deleteAll(any()) }
+    }
+
+    @Test fun `delete all retains its additional permission and explicit argument`() {
+        dispatcher.execute("shop delete all", source)
+        verify(exactly = 0) { management.deleteAll(any()) }
+        every { player.hasPermission("enthusiamarket.shop.delete.all") } returns true
+        dispatcher.execute("shop delete all", source)
+        verify(exactly = 1) { management.deleteAll(player.uniqueId) }
+    }
+
+    @Test fun `delete routes retain base permission and console rejection`() {
+        every { player.hasPermission("enthusiamarket.shop.use") } returns false
+        assertFailsWith<CommandSyntaxException> { dispatcher.execute("shop delete", source) }
+        assertFailsWith<CommandSyntaxException> { dispatcher.execute("shop delete menu", source) }
+        val console = mockk<CommandSender>(relaxed = true)
+        every { console.hasPermission("enthusiamarket.shop.use") } returns true
+        every { source.sender } returns console
+        dispatcher.execute("shop delete", source)
+        verify(exactly = 1) { console.sendMessage(Component.text("shop.cmd.players_only")) }
+        verify(exactly = 0) { management.shopsOwnedBy(any()); management.deleteAll(any()) }
     }
 
     @Test fun `mode commands preserve every supported preference and do not start guidance`() {

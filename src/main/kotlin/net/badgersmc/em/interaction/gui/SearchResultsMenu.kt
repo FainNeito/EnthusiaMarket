@@ -43,8 +43,15 @@ class SearchResultsMenu(
     enum class Sort { PRICE_LOW, PRICE_HIGH, STOCK_HIGH }
 
     override fun open(player: Player) {
+        open(player, closeOnEmpty = false)
+    }
+
+    private fun open(player: Player, closeOnEmpty: Boolean) {
         val visible = sort(filter(results, includeOutOfStock, mode), sort)
         if (visible.isEmpty()) {
+            // A filter transition must not leave results from the previous filter visible.
+            // New command searches still leave an unrelated inventory untouched.
+            if (closeOnEmpty) player.closeInventory()
             val message = if (filter(results, true, mode).isEmpty()) {
                 "shop.cmd.search.none"
             } else {
@@ -138,7 +145,7 @@ class SearchResultsMenu(
             lang.msg("gui.shop.search.sort_click"),
         ))) {
             it.isCancelled = true
-            copy(page = 1, sort = sort.next()).open(player)
+            copy(page = 1, sort = sort.next()).open(player, closeOnEmpty = true)
         }, 1, 0)
         val filterMaterial = if (includeOutOfStock) Material.LIME_DYE else Material.GRAY_DYE
         pane.addItem(GuiItem(named(filterMaterial, lang.msg("gui.shop.search.stock_filter_name"), listOf(
@@ -146,14 +153,14 @@ class SearchResultsMenu(
             lang.msg("gui.shop.search.stock_filter_click"),
         ))) {
             it.isCancelled = true
-            copy(page = 1, includeOutOfStock = !includeOutOfStock).open(player)
+            copy(page = 1, includeOutOfStock = !includeOutOfStock).open(player, closeOnEmpty = true)
         }, 3, 0)
         pane.addItem(GuiItem(named(Material.HOPPER, lang.msg("gui.shop.search.direction_filter_name"), listOf(
             lang.msg("gui.shop.search.direction_filter_selected", "mode" to langText(mode.langKey)),
             lang.msg("gui.shop.search.direction_filter_click"),
         ))) {
             it.isCancelled = true
-            copy(page = 1, mode = mode.next()).open(player)
+            copy(page = 1, mode = mode.next()).open(player, closeOnEmpty = true)
         }, 4, 0)
         pane.addItem(GuiItem(tickerIcon(visible.map { it.shop })) { it.isCancelled = true }, 5, 0)
         pane.addItem(GuiItem(named(Material.BARRIER, lang.msg("gui.shop.search.close"))) {
