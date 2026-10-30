@@ -58,7 +58,6 @@ The bridge published cloud commit61513733 as remote headecfb74951680e41cbbe4d26c
 
 This source-only refinement adds the four blank lines, extracts equivalent navigation and current-ID action helpers, and splits fixture setup without changing assertions, constructor/API contracts or permissions. No suppression or rule changes. The previously recorded72 isolated assertions against actual ShopMenuPage.kt remain valid; the bounded proof was rerun for this refinement. Its cached Kotlin2.2/JDK25 compiler targets17, whereas the repository pins Kotlin2.3.20/JVM25; this is pure-helper evidence only. All18 authored repository JVM tests remain unexecuted in cloud. No full-build, architecture, Detekt or native-client pass is claimed. Hosted results must be attributed to their exact remote head; this new cloud refinement has not been published and does not inherit earlier hosted results.
 
-
 ### Initial hosted failure and fixture refinement
 
 Bridge-reported canonical run40943298863/job123691986581 at remote headecfb74951680e41cbbe4d26ce876f34bb1f92214 compiled and completed1037 tests:5 failed,3 skipped. All five failures were the new Bedrock pagination tests, with MockKException -> MockKAgentException -> IllegalArgumentException -> NoClassDefFoundError -> ClassNotFoundException. The short logger did not name the missing class; no application behavior regression is established by those fixture failures.
