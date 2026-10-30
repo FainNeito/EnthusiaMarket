@@ -50,6 +50,11 @@ class ShopManagementPaginationTest {
         com.github.stefvanschie.inventoryframework.gui.type.ChestGui(1, "fixture")
         org.bukkit.event.HandlerList.unregisterAll(plugin)
         server.pluginManager.registerEvents(com.github.stefvanschie.inventoryframework.gui.GuiListener(plugin), plugin)
+        configureFixtures()
+        management = ShopManagementService(repository)
+    }
+
+    private fun configureFixtures() {
         mockkObject(ItemStackSerializer)
         every { ItemStackSerializer.deserialize(any()) } answers { ItemStack(Material.DIAMOND) }
         every { lang.msg(any(), *anyVararg()) } answers {
@@ -63,7 +68,6 @@ class ShopManagementPaginationTest {
         every { repository.upsert(any()) } answers {
             firstArg<Shop>().also { rows[it.id] = it }
         }
-        management = ShopManagementService(repository)
     }
 
     @AfterTest fun tearDown() {

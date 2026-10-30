@@ -2,8 +2,7 @@ package net.badgersmc.em.interaction.bedrock
 
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkStatic
-import io.mockk.unmockkStatic
+import io.mockk.spyk
 import io.mockk.verify
 import net.badgersmc.em.application.ShopManagementService
 import net.badgersmc.em.domain.shop.Shop
@@ -15,10 +14,8 @@ import org.geysermc.cumulus.form.SimpleForm
 import org.geysermc.cumulus.form.impl.simple.SimpleFormImpl
 import org.geysermc.cumulus.response.SimpleFormResponse
 import org.geysermc.cumulus.response.result.ValidFormResponseResult
-import org.geysermc.floodgate.api.FloodgateApi
 import java.util.UUID
 import java.util.logging.Logger
-import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -29,7 +26,6 @@ class BedrockOwnedShopsPaginationTest {
     private val player = mockk<Player>(relaxed = true)
     private val repository = mockk<ShopRepository>()
     private val lang = mockk<LangService>()
-    private val floodgate = mockk<FloodgateApi>(relaxed = true)
     private val rows = linkedMapOf<Long, Shop>()
     private var permitted = true
     private var sent: Form? = null
@@ -43,20 +39,20 @@ class BedrockOwnedShopsPaginationTest {
         }
         every { repository.findByOwner(any()) } answers { rows.values.filter { it.owner == actor }.reversed() }
         every { repository.findById(any()) } answers { rows[firstArg<Long>()] }
-        mockkStatic(FloodgateApi::class)
-        every { FloodgateApi.getInstance() } returns floodgate
-        every { floodgate.sendForm(actor, any<Form>()) } answers { sent = secondArg(); true }
-        menu = BedrockOwnedShopsForm(player, repository, ShopManagementService(repository),
-            Logger.getAnonymousLogger(), lang)
+        menu = captureMenu()
     }
 
-    @AfterTest fun cleanup() { unmockkStatic(FloodgateApi::class) }
+    private fun captureMenu(): BedrockOwnedShopsForm {
+        val form = spyk(BedrockOwnedShopsForm(player, repository, ShopManagementService(repository),
+            Logger.getAnonymousLogger(), lang), recordPrivateCalls = true)
+        every { form["sendForm"](any<Form>()) } answers { sent = firstArg<Form>(); Unit }
+        return form
+    }
 
     @Test fun `Bedrock boundary pages use stable IDs and correct navigation indexes`() {
         for (count in listOf(0, 45, 46, 90, 91)) {
             seed(count)
-            menu = BedrockOwnedShopsForm(player, repository, ShopManagementService(repository),
-                Logger.getAnonymousLogger(), lang)
+            menu = captureMenu()
             var form = menu.buildForm()
             val pages = maxOf(1, (count + 44) / 45)
             val ids = mutableListOf<Int>()

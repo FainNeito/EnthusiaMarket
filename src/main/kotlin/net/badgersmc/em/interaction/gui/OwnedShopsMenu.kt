@@ -16,6 +16,7 @@ import net.badgersmc.em.interaction.ShopMenuPage
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
+import org.bukkit.inventory.meta.ItemMeta
 import java.util.UUID
 
 /** Stable pages of editable shops; click an ID-bound snapshot to open current settings. */
@@ -36,17 +37,7 @@ class OwnedShopsMenu(
         val gui = ChestGui(6, ComponentHolder.of(lang.msg("gui.shop.owned.title")))
         val pane = StaticPane(9, 6)
         page.items.forEachIndexed { idx, shop ->
-            pane.addItem(GuiItem(icon(shop)) {
-                it.isCancelled = true
-                if (!ShopMenuNavigation.allowed(player, owner)) return@GuiItem
-                val current = shopRepository.findById(shop.id)
-                if (current == null || !(management.canEdit(current, player.uniqueId) ||
-                        management.canDelete(current, player.uniqueId))) {
-                    open(player)
-                    return@GuiItem
-                }
-                ShopEditMenu(current, shopRepository, management, lang).open(player)
-            }, idx % 9, idx / 9)
+            pane.addItem(shopButton(player, shop), idx % 9, idx / 9)
         }
         ShopMenuNavigation.add(pane, page, lang) { requested ->
             pageIndex = requested
@@ -57,24 +48,42 @@ class OwnedShopsMenu(
         gui.show(player)
     }
 
+    private fun shopButton(player: Player, shop: Shop): GuiItem = GuiItem(icon(shop)) {
+        it.isCancelled = true
+        if (ShopMenuNavigation.allowed(player, owner)) openCurrentShop(player, shop.id)
+    }
+
+    private fun openCurrentShop(player: Player, shopId: Long) {
+        val current = shopRepository.findById(shopId)
+        if (current == null || !(management.canEdit(current, player.uniqueId) ||
+                management.canDelete(current, player.uniqueId))) {
+            open(player)
+            return
+        }
+        ShopEditMenu(current, shopRepository, management, lang).open(player)
+    }
+
     private fun icon(shop: Shop): ItemStack {
         val base = ItemStackSerializer.deserialize(shop.sellItem) ?: ItemStack(Material.CHEST)
-        val meta = base.itemMeta
+        base.itemMeta?.let { meta ->
+            describeIcon(meta, shop)
+            base.itemMeta = meta
+        }
+        return base
+    }
+
+    private fun describeIcon(meta: ItemMeta, shop: Shop) {
         val dirLabel = ShopDisplay.directionLabel(shop.direction)
         val tradesAvailable = ShopDisplay.tradesAvailable(shop)
         val frozenLabel = if (shop.frozen)
             lang.msg("gui.shop.owned.status_frozen")
         else
             lang.msg("gui.shop.owned.status_active")
-        if (meta != null) {
-            meta.displayName(lang.msg("gui.shop.owned.icon", "sell_amt" to shop.sellAmount, "cost" to shop.costAmount, "world" to shop.signWorld, "x" to shop.signX, "y" to shop.signY, "z" to shop.signZ))
-            meta.lore(listOf(
-                lang.msg("gui.shop.owned.dir_lore", "direction" to dirLabel),
-                lang.msg("gui.shop.owned.stock_lore", "trades" to tradesAvailable),
-                lang.msg("gui.shop.owned.frozen_lore", "frozen" to frozenLabel),
-            ))
-            base.itemMeta = meta
-        }
-        return base
+        meta.displayName(lang.msg("gui.shop.owned.icon", "sell_amt" to shop.sellAmount, "cost" to shop.costAmount, "world" to shop.signWorld, "x" to shop.signX, "y" to shop.signY, "z" to shop.signZ))
+        meta.lore(listOf(
+            lang.msg("gui.shop.owned.dir_lore", "direction" to dirLabel),
+            lang.msg("gui.shop.owned.stock_lore", "trades" to tradesAvailable),
+            lang.msg("gui.shop.owned.frozen_lore", "frozen" to frozenLabel),
+        ))
     }
 }

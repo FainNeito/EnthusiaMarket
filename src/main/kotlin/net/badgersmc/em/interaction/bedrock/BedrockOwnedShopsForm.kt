@@ -35,9 +35,12 @@ class BedrockOwnedShopsForm(player: Player, private val shops: ShopRepository,
         }.build()
     }
 
+    private fun isNavigation(clicked: Int, previous: Int, next: Int): Boolean =
+        clicked >= 0 && (clicked == previous || clicked == next)
+
     private fun handleResponse(page: ShopMenuPage<Shop>, clicked: Int, previous: Int, next: Int) {
         if (!player.hasPermission("enthusiamarket.shop.use")) return
-        if ((clicked == previous && previous >= 0) || (clicked == next && next >= 0)) {
+        if (isNavigation(clicked, previous, next)) {
             pageIndex = if (clicked == previous) page.index - 1 else page.index + 1
             open(player)
             return
