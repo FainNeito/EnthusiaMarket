@@ -76,6 +76,8 @@ class AdminCommands(
     private val pricing: net.badgersmc.em.application.StallVolumePricingService? = null,
     private val websiteSync: WebsiteSyncService? = null,
     private val bulkRentExtension: net.badgersmc.em.application.BulkRentExtensionService? = null,
+    private val mutationGate: net.badgersmc.em.domain.ports.MarketMutationGate =
+        net.badgersmc.em.domain.ports.MarketMutationGate.Open,
 ) {
     /** Pending `/em sellback` confirmations keyed on (player, stall). */
     private val pendingSellbacks =
@@ -664,47 +666,17 @@ class AdminCommands(
         var fixed = 0
         var skipped = 0
         var errors = 0
+        val access = net.badgersmc.em.application.StallRegionAccessService(guildProvider, regionMembers, mutationGate)
         for (stall in stalls.all()) {
-            // Re-apply region flags (idempotent — safe to run on already-correct regions)
-            regionProvisioner.provision(stall.world, stall.regionId, config.market.stallPriority)
-            when (stall.state) {
-                StallState.OWNED, StallState.GRACE -> when (stall.owner.type) {
-                    OwnerType.SOLO -> try {
-                        val uuid = UUID.fromString(stall.owner.id)
-                        // Rebuild full ACL: clear first, set owner, then replay members.
-                        regionMembers.clearOwnersAndMembers(stall.world, stall.regionId)
-                        regionMembers.setOwner(stall.world, stall.regionId, uuid)
-                        for (memberId in stall.members) {
-                            regionMembers.addMember(stall.world, stall.regionId, memberId)
-                        }
-                        fixed++
-                    } catch (_: Exception) {
-                        errors++
-                    }
-                    OwnerType.GUILD -> try {
-                        regionMembers.clearOwnersAndMembers(stall.world, stall.regionId)
-                        val guids = guildProvider.memberIds(stall.owner.id)
-                        if (guids.isNotEmpty()) {
-                            regionMembers.syncGuildMembers(stall.world, stall.regionId, guids)
-                        }
-                        fixed++  // owners/members always cleared above; sync best-effort
-                    } catch (_: Exception) {
-                        errors++
-                    }
-                    OwnerType.NONE -> Unit
-                }
-                StallState.UNOWNED -> try {
-                    regionMembers.clearOwnersAndMembers(stall.world, stall.regionId)
+            try {
+                if (access.sync(stall)) {
+                    regionProvisioner.provision(stall.world, stall.regionId, config.market.stallPriority)
                     fixed++
-                } catch (_: Exception) {
-                    errors++
+                } else {
+                    skipped++
                 }
-                // Active auctions and moderation holds are left alone. Auction ownership is
-                // finalized at settlement, while moderation fencing owns its held-stall ACL.
-                StallState.AUCTIONING,
-                StallState.MODERATION_HOLD,
-                StallState.RE_AUCTIONING,
-                StallState.EMERGENCY_AUCTIONING -> skipped++
+            } catch (_: Exception) {
+                errors++
             }
         }
         sender.sendMessage(lang.msg(

@@ -53,8 +53,16 @@ jobs:
 
       # detekt 1.23.8 does not support running on JDK 25. Keep the production
       # build green on the required 26.2 toolchain; migrate detekt to 2.x separately.
+      - name: Pin TEST artifact version to checked-out source
+        run: |
+          SOURCE_SHA=$(git rev-parse HEAD)
+          echo "MARKET_TEST_VERSION=1.0.53-market-ui.${SOURCE_SHA:0:12}-UNMERGED-TEST" >> "$GITHUB_ENV"
+
       - name: Test and shadowJar
-        run: ./gradlew test shadowJar jacocoTestReport -PuseMavenLocal=true --no-daemon
+        run: >-
+          ./gradlew test shadowJar jacocoTestReport recordTestArtifactDependencies
+          -I .github/scripts/test-artifact.init.gradle
+          -PuseMavenLocal=true -PreleaseVersion="$MARKET_TEST_VERSION" --no-daemon
 
       - name: Verify MariaDB moderation tests executed
         run: |
@@ -93,6 +101,22 @@ jobs:
           if counts["tests"] < 1 or any(counts[name] for name in ("skipped", "failures", "errors")):
               raise SystemExit("Guild-shop XP v2 runtime contract did not execute cleanly")
           PY
+
+      - name: Record verified TEST artifact provenance
+        run: python3 .github/scripts/test-artifact-manifest.py
+
+      - name: Upload successful UNMERGED TEST artifact and reports
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: market-ui-UNMERGED-TEST-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            build/libs/*-UNMERGED-TEST.jar
+            build/test-artifact/*.json
+            build/test-results/test/TEST-*.xml
+            build/reports/tests/test/
+            build/reports/jacoco/test/
 
       - name: Upload coverage to Codacy
         uses: codacy/codacy-coverage-reporter-action@v1

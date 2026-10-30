@@ -104,6 +104,7 @@ open class EnthusiaMarket : JavaPlugin() {
         // i18n service — wired manually since LangService lives outside the EM scan package.
         val lang = LangService(this, Locale(cfg.lang.locale), EnthusiaMarketLang::class.java)
         ctx.registerBean("langService", LangService::class, lang)
+        net.badgersmc.em.interaction.StallAccessUi.configure(lang, logger)
         finderTrail = ctx.getBean<net.badgersmc.em.infrastructure.listeners.FinderTrailService>()
 
         // Database via nexus-persistence
@@ -297,6 +298,7 @@ open class EnthusiaMarket : JavaPlugin() {
         val sched = NexusScheduler(this)
         ctx.registerBean("nexusScheduler", NexusScheduler::class, sched)
         scheduler = sched
+        net.badgersmc.em.interaction.AuctionBidUi.configure(sched, ctx.getBean<net.badgersmc.em.interaction.MenuFactory>())
 
         // Provisioning priority for stall regions (REQ Workstream F) — a
         // plain Int bean so ImportStallsService can be DI-constructed.
@@ -555,6 +557,9 @@ open class EnthusiaMarket : JavaPlugin() {
     }
 
     override fun onDisable() {
+        net.badgersmc.em.interaction.StallAccessUi.reset()
+        net.badgersmc.em.interaction.AuctionBidUi.reset()
+        net.badgersmc.em.interaction.gui.AuctionBidMenu.clearPending()
         stallAccounting?.close()
         shopHistory?.close()
         shopNotifications?.close()

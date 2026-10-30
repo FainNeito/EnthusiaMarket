@@ -84,9 +84,10 @@ class PurchaseMenu(
         }
 
         // --- Row 1: the actual items ---
-        val row = buildRowItems()
+        val summary = summary(shop, player, tradeService)
+        val row = buildRowItems(summary.stockTrades)
         pane.addItem(GuiItem(decorated(row.receiveItem, row.receiveName, row.receiveLore)), 2, 1)
-        pane.addItem(GuiItem(statusItem(PurchaseMenu.summary(shop, player, tradeService))) {
+        pane.addItem(GuiItem(statusItem(summary)) {
             it.isCancelled = true
         }, 4, if (barter) 1 else 0)
         if (shop.direction == SignDirection.TRADE) {
@@ -98,7 +99,7 @@ class PurchaseMenu(
         }
 
         // --- Row 2/3: confirm the selected amount, or select a bulk amount ---
-        buildConfirmButton(pane, player)
+        buildConfirmButton(pane, player, summary)
         pane.addItem(GuiItem(decorated(Material.CHEST, lang.msg("gui.shop.bulk_button"), listOf(
             lang.msg("gui.shop.bulk_button_lore", "trades" to multiplier),
         ))) {
@@ -144,13 +145,12 @@ class PurchaseMenu(
         remainder.values.forEach { player.world.dropItemNaturally(player.location, it) }
     }
 
-    private fun buildConfirmButton(pane: StaticPane, player: Player) {
+    private fun buildConfirmButton(pane: StaticPane, player: Player, summary: Summary) {
         val buttonKey = when (shop.direction) {
             SignDirection.SELL -> "gui.shop.confirm_buy"
             SignDirection.BUY -> "gui.shop.confirm_sell"
             SignDirection.TRADE -> "gui.shop.confirm_trade"
         }
-        val summary = PurchaseMenu.summary(shop, player, tradeService)
         val canPurchase = multiplier <= summary.maxTrades
         val buttonLore = listOf(
             lang.msg("gui.shop.confirm_lore", "dir" to dirLabel, "direction" to dirLabel),
@@ -190,7 +190,7 @@ class PurchaseMenu(
         // Clamp multiplier to actual available trades (stock may have changed
         // since the GUI rendered). Prevents the confusing "bought N, rest failed"
         // experience when denormalized stockCount is stale.
-        val available = if (shop.direction == SignDirection.BUY) multiplier else ShopDisplay.tradesAvailable(shop)
+        val available = tradeService.availableTrades(shop)
         if (available <= 0) {
             player.sendMessage(lang.msg("shop.trade.failure", "reason" to "Out of stock"))
             return
@@ -346,10 +346,9 @@ class PurchaseMenu(
     )
 
     @Suppress("CyclomaticComplexMethod")
-    private fun buildRowItems(): RowItems {
+    private fun buildRowItems(avail: Int): RowItems {
         val totalAmount = shop.sellAmount.toLong() * multiplier
         val totalCost = shop.costAmount.toLong() * multiplier
-        val avail = ShopDisplay.tradesAvailable(shop)
         val stockStr = if (avail == Int.MAX_VALUE) "Unlimited" else avail.toString()
         return when (shop.direction) {
             SignDirection.SELL -> RowItems(
@@ -408,7 +407,7 @@ class PurchaseMenu(
         }
 
         fun summary(shop: Shop, player: Player, tradeService: ContainerTradeService): Summary {
-            val stock = ShopDisplay.tradesAvailable(shop)
+            val stock = tradeService.availableTrades(shop)
             val sell = ItemStackSerializer.deserialize(shop.sellItem)
             val cost = ItemStackSerializer.deserialize(shop.costItem)
             val affordable = when (shop.direction) {

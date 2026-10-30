@@ -116,3 +116,17 @@ native MariaDB retry, unknown stock, inventory interference, access denial,
 command registration and CSV escaping are covered. Java-22 Detekt passes.
 The actual Guilds JAR was frozen during compilation/testing. Hosted CI and live
 Java/Bedrock acceptance are independent gates; no production changes occurred.
+
+## Ownership access recovery — bug-0406 follow-up (2026-10-19)
+
+Spec/evidence and lifecycle matrix: [stall-access-recovery.md](stall-access-recovery.md). Canonical base: 57704f1acfaf8aacfdd65cb4ae74c0f36b55712d, fetched and rechecked before delivery. This extends the earlier STALE-335 investigation with dated read-only DB/WG evidence and reproducible source-level gaps; it does not claim the historical purchase is currently reproducible.
+
+Prove: the actual delayed startup hook produced two expected failures on the previous implementation (solo resync and forfeited ACL clearing missing). A separate 8-test member-service run produced two expected failures: former owner could add a member after emergency forfeiture, and rejected persistence still granted external access.
+
+Engine/arch/refine: shared platform-free access recovery policy, moderation fencing, forfeited management denial, persist-before-grant and retry behavior are described in implementation.md. Real WorldGuard core domains prove UUID/name/group removal; SQLite repository reload proves former delegation is absent after award while later legitimate members survive repeated resync. Automatic recovery touches no region flags or persistent member roster. The existing management tests now use actively OWNED fixtures rather than contradictory UNOWNED rows carrying owners.
+
+Local verification: Java 25 `test shadowJar -PuseMavenLocal=true -PreleaseVersion=1.0.53-access-recovery-UNMERGED-TEST` passed: 1041 tests, 0 failures, 0 errors, 14 skips (13 Docker/MariaDB cases and the opt-in remote-auth route test). Java 22 `detekt -PuseMavenLocal=true` passed. The paired final runtime contract used the explicitly unmerged integrated TEST LumaGuilds JAR; hosted CI separately compiles/tests against its approved hash-pinned 3.0.39 runtime and requires native MariaDB contract execution. The generated JAR is a local unmerged review artifact, not a production release or authorization to activate it.
+
+No repository-local EARS/state helpers or Codacy MCP analysis tools were exposed; manual SPEAR records and Detekt were used, with hosted Codacy/build/security/diagnostic results to be checked on the PR's exact head. Source review and GitHub checks are distinct from live Java/Bedrock re-rental acceptance. No production database repair, region resync, reset, upload, restart or Discord message was performed.
+
+Hosted Codacy refinement: exact-head annotations identified complexity 7 in sync, complexity 6 and 21 lines in resyncStalls. Extracted the system-auction decision and world selection, retaining the same state matrix. 25 affected application/listener/admin tests passed with zero failures/errors/skips after refinement. Hosted CI is rerun on the follow-up head; no CodeRabbit automated review is claimed because its bot reports reviews disabled for this repository.

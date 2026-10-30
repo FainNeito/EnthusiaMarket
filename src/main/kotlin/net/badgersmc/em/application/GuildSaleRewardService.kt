@@ -53,6 +53,6 @@ class GuildSaleRewardService(
     }
 
     private fun isTerminal(result: String): Boolean = result in
-        setOf("ABORTED", "OWN_GUILD", "DISABLED", "COOLDOWN", "CAPPED", "STALE_RUN") ||
+        setOf("ABORTED", "OWN_GUILD", "DISABLED", "COOLDOWN", "CAPPED", "STALE_RUN", "CHAPTER_FROZEN") ||
         (result.startsWith("AWARDED:") && result.substringAfter(':').toIntOrNull()?.let { it > 0 } == true)
 }

@@ -64,6 +64,15 @@ open class ContainerTradeService(
     /** Read-only balance lookup for purchase-menu affordability previews. */
     fun balanceOf(playerUuid: UUID): Long = economy.balance(playerUuid)
 
+    /** Current stock for menu previews; trade execution still performs its own checks. */
+    fun availableTrades(shop: Shop): Int {
+        if (shop.direction == net.badgersmc.em.domain.shop.SignDirection.BUY || shop.adminShop) return Int.MAX_VALUE
+        if (shop.sellAmount <= 0) return 0
+        val item = deserializeStack(shop.sellItem) ?: return 0
+        val container = getContainer(shop) ?: return 0
+        return ItemStackMatch.countSimilar(container.inventory, item) / shop.sellAmount
+    }
+
     fun executeBuy(shop: Shop, playerUuid: UUID): ContainerTradeResult =
         executeBuyBatch(shop, playerUuid, 1)
 

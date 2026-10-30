@@ -9,6 +9,10 @@ Each requirement carries a stable ID. Tasks reference requirements by ID. New re
 
 ---
 
+### REQ-386 - Live purchase stock
+
+**Event-driven.** WHEN a purchase or bulk menu is rendered THE SYSTEM SHALL calculate available sale and barter quantities from the current shop container, fail closed if it cannot read the item or container, and preserve existing buy and administrator shop behavior; transaction checks remain authoritative.
+
 ## Accepted history filters (8 October 2026)
 
 ### REQ-356 - Today and retained history
@@ -690,3 +694,26 @@ WHEN a current guild shop manager requests a stall report THE SYSTEM SHALL verif
 ### REQ-383 — Durable ordered accounting observations
 
 WHEN a captured accounting observation is appended successfully THE SYSTEM SHALL retain it through SQL delivery failure or restart, SHALL apply its immutable recording ID once in a transaction, and SHALL preserve stock lots and receipts after failed writes. Uncertain inventory provenance SHALL replace remaining attribution with unknown stock. Corrupt earlier pending records SHALL block later delivery rather than silently reorder attribution.
+
+### REQ-386 — Private locator navigation
+
+WHEN a player selects a shop result THE SYSTEM SHALL offer one private locator waypoint at the selected shop, using a configurable style and retaining the original stall icon colors with a white tint. With the supported packet adapter installed, the system SHALL allow only that recipient's active selected destination to be tracked and SHALL suppress all player and other tracking waypoints during both idle and active navigation. The system SHALL remove existing online-player markers when installing the filter, SHALL NOT change gamerules, attributes, permissions or world entities, and SHALL fall back to existing particles for unsupported clients or an unavailable packet adapter. Choosing a navigation mode alone SHALL NOT start guidance.
+
+### REQ-387 — Navigation lifecycle and preferences
+
+WHILE a shop guide is active THE SYSTEM SHALL show configurable localized stall, item and distance feedback, SHALL support locator, particles and both modes with a persistent per-player override, and SHALL retain existing outline/range/budget limits. Replacement, arrival, cancellation, timeout, world change, death, disconnect, disable and shutdown SHALL remove the owned waypoint. Missing or declined resource packs SHALL use a vanilla icon rather than a missing texture. Bedrock SHALL use particle guidance until its locator behavior is separately proven.
+
+Command acceptance: WHEN an authorized player executes `/shop trail stop` THE SYSTEM SHALL invoke cancellation without requiring a mode or placeholder argument; `/shop trail mode <locator|particles|both|default>` SHALL retain preference handling without starting guidance. Both routes SHALL retain `enthusiamarket.shop.use` and player-only effects.
+
+### REQ-388 — Routed and animated private guidance
+
+WHEN a guide starts with valid connected configured walkway nodes near both endpoints THE SYSTEM SHALL follow the bounded shortest linked route. Missing, malformed or disconnected routes SHALL retain direct guidance without terrain/chunk loading. Animated pulses SHALL move toward the next route point. Operators SHALL configure LOW/NORMAL/HIGH particle intensity, pulse speed, route attachment radius and arrival sound. Existing mode preferences and global particle limits SHALL remain effective.
+
+### REQ-389 — Private glowing destination
+
+WHEN a destination is within reveal distance THE SYSTEM SHALL show a configurable glowing beam boundary and exact selected sign marker only to the searching player. Temporary displays SHALL be invisible by default before spawn, nonpersistent, noncolliding and bounded per recipient and globally. Replacement, cancellation, expiry, death, disconnect, world change, unloaded geometry and shutdown SHALL remove owned displays. Disabled or unavailable glow SHALL preserve private particle fallback. No blocks, other entities, permissions or ownership SHALL change. Arrival feedback SHALL occur even without region geometry.
+## Ownership access recovery (bug-0406 follow-up)
+
+**Event-driven (REQ-317/318/319/320/321).** WHEN startup, a subsequently loaded world, or an authorized region resync reconciles a stall THE SYSTEM SHALL replace active SOLO access with its current owner and delegated members, replace active guild access with its current guild roster, and clear access for vacant, forfeited emergency, and ownerless system-auction stalls. THE SYSTEM SHALL preserve seller-owned auction access and moderation holds or live reservations, without changing the database, shops, flags, or rent during automatic reconciliation. Missing regions/worlds SHALL be reported as failures rather than successful mutations.
+
+**State-driven (REQ-319/320).** WHILE a stall is vacant, forfeited to an emergency auction, held for moderation, or durably reserved for moderation THE SYSTEM SHALL reject member mutations before granting external region access. WHEN member persistence is rejected THE SYSTEM SHALL grant no new WorldGuard membership. A retained former-owner identifier SHALL NOT grant management authority in vacant, forfeited or held states.

@@ -88,7 +88,7 @@ class StallTest {
 
     @Test fun `solo owner can manage own stall`() {
         val ownerUuid = UUID.randomUUID()
-        val stall = baseStall.copy(owner = OwnerRef.solo(ownerUuid))
+        val stall = baseStall.copy(state = StallState.OWNED, owner = OwnerRef.solo(ownerUuid))
         val guildProvider = mockk<GuildProvider>(relaxed = true)
 
         val result = stall.canManage(ownerUuid, guildProvider)
@@ -99,7 +99,7 @@ class StallTest {
     @Test fun `solo owner cannot manage another player's stall`() {
         val ownerUuid = UUID.randomUUID()
         val otherUuid = UUID.randomUUID()
-        val stall = baseStall.copy(owner = OwnerRef.solo(ownerUuid))
+        val stall = baseStall.copy(state = StallState.OWNED, owner = OwnerRef.solo(ownerUuid))
         val guildProvider = mockk<GuildProvider>(relaxed = true)
 
         val result = stall.canManage(otherUuid, guildProvider)
@@ -110,7 +110,7 @@ class StallTest {
     @Test fun `solo stall member can manage stall`() {
         val ownerUuid = UUID.randomUUID()
         val memberUuid = UUID.randomUUID()
-        val stall = baseStall.copy(owner = OwnerRef.solo(ownerUuid), members = setOf(memberUuid))
+        val stall = baseStall.copy(state = StallState.OWNED, owner = OwnerRef.solo(ownerUuid), members = setOf(memberUuid))
         val guildProvider = mockk<GuildProvider>(relaxed = true)
 
         assertTrue(stall.canManage(memberUuid, guildProvider))
@@ -120,7 +120,7 @@ class StallTest {
     @Test fun `guild member can manage stall`() {
         val playerUuid = UUID.randomUUID()
         val guildId = TEST_GUILD
-        val stall = baseStall.copy(owner = OwnerRef.guild(guildId))
+        val stall = baseStall.copy(state = StallState.OWNED, owner = OwnerRef.guild(guildId))
         val guildProvider = mockk<GuildProvider>()
 
         every { guildProvider.isMember(playerUuid, guildId) } returns true
@@ -136,7 +136,7 @@ class StallTest {
     @Test fun `non-member cannot manage guild stall`() {
         val playerUuid = UUID.randomUUID()
         val guildId = TEST_GUILD
-        val stall = baseStall.copy(owner = OwnerRef.guild(guildId))
+        val stall = baseStall.copy(state = StallState.OWNED, owner = OwnerRef.guild(guildId))
         val guildProvider = mockk<GuildProvider>()
 
         every { guildProvider.isMember(playerUuid, guildId) } returns false
@@ -155,6 +155,18 @@ class StallTest {
         val result = baseStall.canManage(playerUuid, guildProvider)
 
         assertFalse(result)
+    }
+
+    @Test fun `vacant forfeited and held identifiers never grant management authority`() {
+        val player = UUID.randomUUID()
+        val guilds = mockk<GuildProvider>(relaxed = true)
+        listOf(StallState.UNOWNED, StallState.EMERGENCY_AUCTIONING, StallState.MODERATION_HOLD).forEach { state ->
+            val stale = baseStall.copy(state = state, owner = OwnerRef.solo(player), members = setOf(player))
+            assertFalse(stale.canManage(player, guilds))
+            assertFalse(stale.copy(owner = OwnerRef.guild(TEST_GUILD)).canManage(player, guilds))
+        }
+        val seller = baseStall.copy(state = StallState.AUCTIONING, owner = OwnerRef.solo(player))
+        assertTrue(seller.canManage(player, guilds))
     }
 
     // --- member roster tests (REQ-200, REQ-201) ---

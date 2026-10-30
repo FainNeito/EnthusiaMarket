@@ -322,6 +322,7 @@ shop:
       disabled: "<shadow:#000000:1><gray>Break-others mode disabled.</shadow>"
       deleted: "<shadow:#000000:1><green>Admin-broke and deleted that shop.</shadow>"
   delete:
+    failed: "<red>This shop could not be deleted. It may have changed or you no longer have access."
     done: "<shadow:#000000:1><yellow>Shop deleted.</shadow>"
   store:
     url: "<shadow:#000000:1><green>Our web store: <aqua><click:open_url:'<url>'><url></click></shadow>"
@@ -652,12 +653,16 @@ rent_warning:
   guild_funds: "<yellow>The guild bank needs <amount> currency to renew; its current funds are insufficient.</yellow>"
   renew: "<gray>Renew manually by right-clicking your stall purchase sign. Rent is not automatically charged.</gray>"
 finder_trail:
-  click: "<aqua>Click for a private direction trail. Staff: shift-click.</aqua>"
-  started: "<aqua>Follow your private particles for up to <seconds> seconds. This points toward the shop; use safe paths around obstacles. Cancel with /shop trail stop.</aqua>"
+  click: "<aqua>Click for private shop guidance. Staff: shift-click.</aqua>"
+  started: "<aqua>Follow your private shop guide for up to <seconds> seconds. This points toward the shop; use safe paths around obstacles. Cancel with /shop trail stop.</aqua>"
   stopped: "<gray>Shop direction trail stopped.</gray>"
   disabled: "<yellow>Shop direction trails are disabled.</yellow>"
   out_of_range: "<yellow>This shop is too far away or in another world. Use its displayed coordinates.</yellow>"
   busy: "<yellow>Direction trails are busy. Please try again shortly.</yellow>"
+  destination: "<gold><stall></gold> <gray>•</gray> <white><item></white> <gray>•</gray> <yellow><distance>m</yellow>"
+  arrived: "<green>You've arrived</green> <gray>•</gray> <gold><stall></gold> <gray>•</gray> <white><item></white>"
+  mode_usage: "<yellow>/shop trail mode locator|particles|both|default</yellow>"
+  mode_set: "<green>Shop guidance mode: <mode>.</green>"
 accounting:
   denied: "<red>Only current guild stall managers can view this report."
   usage: "<yellow>/guildsales [export] stall [all|today] or /guildsales [export] range stall YYYY-MM-DD YYYY-MM-DD"
@@ -666,3 +671,85 @@ accounting:
   row: "<white><contributor> | <item> | net stocked <stocked> | sold <sold> | gross <gross>"
   failed: "<red>Accounting is unavailable. Try again later."
   exported: "<green>Report saved in the plugin accounting-exports folder: <file>. Ask staff for the file."
+
+# Plain-text stall settings labels; identity values are rendered literally.
+stall_access:
+  section:
+    flags: Visitor access
+    effects: Potion effects
+    blacklist: Blocked players
+    allies: Allied guild access
+    ally: '{name} access'
+  guild:
+    unknown: Unknown guild
+    unknown_entry: Unknown guild {number}
+    configure: '{name}: configure access'
+  player:
+    unknown: Unknown player {number}
+    unblock: Unblock {name}
+  state:
+    allowed: Allowed
+    blocked: Blocked
+  visitor:
+    capability: 'Visitors · {name}: {state}'
+  capability:
+    state: '{name}: {state}'
+    entry: Enter the stall
+    trade: Trade with shops
+    anvil: Use anvils
+    lectern: Use lecterns
+    doors: Open doors
+    buttons: Use buttons
+    levers: Use levers
+    item_pickup: Pick up items
+    chests: Open chests
+    stock: Manage shop stock
+    prices: Change shop prices
+  effect:
+    state: '{name}: {state}'
+    unknown: Unknown effect
+  potions:
+    incoming: 'Incoming splash/lingering potions: {state}'
+  blacklist:
+    add: Add a blocked player (click for command)
+    command: Use /stallaccess blacklist {stall} <player> true to block a player.
+  navigation:
+    previous: Previous page
+    next: Next page
+    flags: Visitor access
+    effects: Potion effects
+    blacklist: Blocked players
+    allies: Allied guilds (access off by default)
+  error:
+    setting_failed: We could not confirm this setting. Reopen the menu to check its
+      current state; contact staff if this continues.
+  title: 'Stall {stall}: {section}'
+  stall:
+    unknown: Unknown stall
+
+auction_payer:
+  title: "Bid on {stall}"
+  personal: "Personal"
+  select_personal: "Select Personal — use your balance"
+  choose_guild: "Choose guild — use its bank"
+  previous: "Previous guild page"
+  next: "Next guild page"
+  page: "Guild page {page}/{pages}"
+  guild: "Guild: {name}"
+  guild_unavailable: "Selected guild unavailable — choose a payer again"
+  personal_funding: "Funding: your personal balance"
+  guild_funding: "Funding: selected guild bank"
+  starting: "Starting bid: {amount}"
+  current: "Current full bid: {amount}"
+  minimum: "Minimum full bid: {amount}"
+  no_higher_bid: "No higher bid available"
+  time: "Time: {time}"
+  custom: "Enter custom full bid"
+  amount: "Review bid {amount}"
+  close: "Close"
+  review_title: "Review your bid"
+  full_bid: "FULL bid: {amount}"
+  destination: "If this bid wins, stall {stall} will belong to {payer}."
+  charge_note: "An increase for the same payer charges only the difference. The service validates funds and authority. Ownership is awarded at settlement."
+  confirm: "Confirm full bid"
+  back: "Back — do not bid"

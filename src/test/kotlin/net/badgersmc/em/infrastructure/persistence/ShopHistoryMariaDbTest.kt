@@ -4,12 +4,11 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import net.badgersmc.em.domain.shop.ShopTransaction
 import net.badgersmc.em.domain.shop.SignDirection
+import net.badgersmc.em.testing.MarketMariaDbFixture
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.testcontainers.containers.MariaDBContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
+import org.junit.jupiter.api.extension.RegisterExtension
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
@@ -17,7 +16,6 @@ import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
-@Testcontainers(disabledWithoutDocker = true)
 class ShopHistoryMariaDbTest {
     private lateinit var source: HikariDataSource
     private lateinit var repository: ShopTransactionRepositorySql
@@ -88,13 +86,7 @@ class ShopHistoryMariaDbTest {
     }
 
     companion object {
-        @Container @JvmStatic
-        val database = HistoryMariaDbContainer("mariadb:11.8.3").apply {
-            withDatabaseName("enthusia_market_test")
-            withUsername("market_test")
-            withPassword("market_test")
-        }
+        @RegisterExtension @JvmField
+        val database = MarketMariaDbFixture("history")
     }
-
-    class HistoryMariaDbContainer(image: String) : MariaDBContainer<HistoryMariaDbContainer>(image)
 }

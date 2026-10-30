@@ -1,0 +1,25 @@
+// CI evidence only: report the artifacts selected by the unchanged dependency graph.
+gradle.projectsEvaluated {
+    rootProject.tasks.register('recordTestArtifactDependencies') {
+        doLast {
+            def rows = []
+            ['compileClasspath', 'runtimeClasspath', 'testRuntimeClasspath'].each { name ->
+                rootProject.configurations.getByName(name).resolvedConfiguration.resolvedArtifacts.each { artifact ->
+                    def digest = java.security.MessageDigest.getInstance('SHA-256')
+                    artifact.file.withInputStream { stream ->
+                        byte[] buffer = new byte[65536]
+                        int count
+                        while ((count = stream.read(buffer)) != -1) digest.update(buffer, 0, count)
+                    }
+                    rows.add([configuration: name, coordinate: artifact.moduleVersion.id.toString(),
+                              file: artifact.file.name, sha256: digest.digest().encodeHex().toString()])
+                }
+            }
+            def target = rootProject.layout.buildDirectory.file('test-artifact/dependencies.json').get().asFile
+            target.parentFile.mkdirs()
+            target.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(rows.sort {
+                a, b -> "${a.configuration}:${a.coordinate}:${a.file}" <=> "${b.configuration}:${b.coordinate}:${b.file}"
+            })) + '\n'
+        }
+    }
+}

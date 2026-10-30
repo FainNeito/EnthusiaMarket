@@ -6,6 +6,7 @@ import net.badgersmc.em.domain.ports.GuildProvider
 import net.badgersmc.em.infrastructure.bedrock.PlayerNameResolver
 import net.badgersmc.em.infrastructure.listeners.StallAccessProjection
 import net.badgersmc.em.interaction.gui.StallAccessMenu
+import net.badgersmc.em.interaction.StallAccessUi
 import net.badgersmc.nexus.commands.annotations.Arg
 import net.badgersmc.nexus.commands.annotations.Command
 import net.badgersmc.nexus.commands.annotations.Context
@@ -21,14 +22,14 @@ class StallAccessCommands(
     private val names: PlayerNameResolver,
     private val projection: StallAccessProjection,
 ) {
-    @Subcommand("settings <stall>")
+    @Subcommand("settings")
     @Permission("enthusiamarket.shop.use")
     fun settings(@Context player: Player, @Arg("stall") id: String) {
         runCatching { service.refreshIfUncertain(id) }
         StallAccessMenu(index, service, guilds, projection).open(player, id)
     }
 
-    @Subcommand("blacklist <stall> <player> <blocked>")
+    @Subcommand("blacklist")
     @Permission("enthusiamarket.shop.use")
     fun blacklist(@Context actor: Player, @Arg("stall") id: String, @Arg("player") name: String, @Arg("blocked") blocked: String) {
         val stall = index.cached(id) ?: return
@@ -42,6 +43,6 @@ class StallAccessCommands(
         runCatching { service.edit(actor.uniqueId, id) {
             it.copy(blacklist = if (value) it.blacklist + target else it.blacklist - target)
         } }.onSuccess { actor.sendMessage("Stall blacklist updated.") }
-            .onFailure { actor.sendMessage("Could not confirm stall setting: ${it.message}") }
+            .onFailure { actor.sendMessage(StallAccessUi.failure("blacklist stall=$id actor=${actor.uniqueId}", it)) }
     }
 }

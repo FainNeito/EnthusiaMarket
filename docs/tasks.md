@@ -1,6 +1,8 @@
 
 # Tasks — EnthusiaMarket
 
+- [~] STOCK-386 — Correct stale purchase and bulk availability after sales; retain authoritative transaction checks. TEST previously reproduced a green confirmation after the final item sold, with the repeated payment safely rejected. Focused interaction tests and full local test suite passed (1,021 tests, 14 skipped); native client acceptance and review remain pending. Project-local EARS and state helpers are absent.
+
 - [x] INTEGRATE-380 — Reconcile #215/#213/#214, distinguish direction no-match from stock shortage, preserve inventory and approved controls, prove nine stock regressions and the clean 899/915-case bundles, refine actionable exact-head static findings and refresh the private mobile preview. Evidence: search-stock-integration.md. Hosted workflow approval, maintainer merge, network pins and Minecraft acceptance remain separate gates.
 
 - [~] **TDD-340** Guild stall read API (REQ-340/341): API, current-member authority shared with PR #197, ownership filtering, offline roster freshness, denied/failed reads, held stalls and asynchronous boundaries implemented. Evidence: docs/guild-stall-api.md, GuildStallQueryTest and GuildStallReadProviderTest; clean full and focused local checks passed. Deliver as dependent canonical PR; hosted final-head/live acceptance remain separate. No merge or production change. Project-local EARS/state helpers are absent.
@@ -1168,3 +1170,20 @@ See [guild-shop-xp.md](guild-shop-xp.md) for policy, payment boundary, journal s
 
 - [x] STALL-ACCOUNTING — REQ-384, REQ-385 and REQ-383: approved FIFO attribution and read-only contributor/gross-sales reports, conservative unknown stock, durable ordered observation delivery, date windows and optional server-local CSV.
   - Tag: TDD; Evidence: docs/stall-accounting.md. Full paired clean suite: 895 tests, zero failures/errors, 12 unrelated skips; new native MariaDB accounting case executed without skips. Detekt passed on analyzer Java 22, bytecode/tests on Java 25/Paper 26.2. No local EARS/state helpers exist; manual records maintained. Exact-head hosted results, canonical dependency integration and real client acceptance remain separate. Payouts, XP and production remain unchanged.
+
+- [x] FINDER-386 — REQ-386/387 source implementation and authorized TEST deployment: private locator transport, namespaced existing stall icon, resource-pack/Bedrock fallback, destination feedback, persistent mode preference and existing guide lifecycle. Manual SPEAR evidence: finder-locator-verification.md. Full 1,032-case suite, architecture, Detekt and focused refinement checks pass. TEST `.2` is active with offline backup and downloaded icon verified. Native selected-marker appearance/privacy, ordinary-player permission testing, human review, merging and production remain separate gates.
+
+- [x] FINDER-386 privacy correction: suppress native player and other waypoint tracking with a per-recipient active-stall allowlist; preserve explicit command/search-result start and all cleanup paths. Evidence and remaining native acceptance gates: finder-privacy-verification.md. Interactive mobile preview includes idle, arrival, cancel and expiry states.
+
+- [x] FINDER-COMMAND-387 — Repair the native-acceptance `/shop trail stop` dispatch failure with explicit stop/mode routes and a real Nexus registrar regression. The five-case native Java 25 run produced three expected failures before the adapter correction and zero failures/errors/skips afterward. Manual SPEAR evidence: finder-privacy-verification.md. Existing permissions, player scope, lifecycle service and mode semantics are retained; final-head CI and new-build native client validation remain separate gates.
+
+- [x] FINDER-388/389 — source implementation: bounded route graph and moving clustered pulses/intensity; private glowing beams, exact sign and cleanup. Final 1,045-case suite, architecture, shadowJar/JaCoCo and Java 22 Detekt pass; 14 external skips remain. Mobile interactive preview published. Manual SPEAR evidence in finder-enhancements-verification.md; local EARS/state helpers absent. Exact-head CI/TEST receipt is recorded in the PR handoff; native appearance/privacy, route survey and ordinary-player acceptance remain separate.
+## Ownership access recovery — bug-0406 follow-up (2026-10-19)
+
+- [x] Spec: inspect authoritative main 57704f1 and ticket 406; ordinary award already clears DB members.
+- [x] Evidence: read-only comparison of the 2026-10-18 database backup and 2026-10-19 saved WorldGuard regions shows stale solo ACLs; stall48 itself is clean in that backup. These are different capture times, not live client proof.
+- [x] Prove: both actual delayed-startup regressions failed before the recovery change; both former-owner member-grant/save-failure regressions failed before authority/write-order changes.
+- [x] Engine: share lifecycle-aware access reconciliation; deny forfeited/held management; fence member mutations and persist before grants; preserve moderation and current members.
+- [x] Arch/refine: 1041 local tests (0 failures/errors, 14 environment-dependent skips), shadowJar and Java-22 Detekt passed; tested source prepared for PR delivery with hosted exact-head CI/review and live acceptance tracked separately. No production repair or deployment authorized.
+
+No repository-local EARS validator or SPEAR state helper was found; requirements, this task record and verification evidence track the workflow manually.
