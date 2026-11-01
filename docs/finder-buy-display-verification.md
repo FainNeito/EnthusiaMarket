@@ -48,6 +48,10 @@ Staff-session safety must be established before a client reconnection.
 
 The original isolated change was cherry-picked onto fork main `0e0c771`, after
 the auction-size merge. The documentation conflicts retained both requirements;
-the original branch was preserved. The four finder-display tests remain
-unexecuted until the exact integrated head runs through CI. The finder preview
+the original branch was preserved. The finder preview
 above remains a simulation, and authenticated mobile access is unverified.
+
+Hosted run `41362955302` ran 1,162 tests with one failure and one skip. The
+custom-title assertion attempted to open an empty SELL fixture, which correctly
+left the previous inventory open. The fixture now supplies one stocked item;
+the original failure and corrected test must be checked on the revised head.

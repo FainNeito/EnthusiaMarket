@@ -97,7 +97,7 @@ class SearchResultsDisplayTest {
             "gui:\n  shop:\n    search:\n      title: '<red>Shops selling <query>'\n" +
                 "      results_title: '<gold>Find <query>'\n")
         lang = locale()
-        show(shop())
+        show(shop().copy(stockCount = 1))
         assertEquals("Find redstone", plain(player.openInventory.title()))
     }
 
