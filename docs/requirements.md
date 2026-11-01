@@ -741,3 +741,6 @@ WHEN the owned-shop menu renders an entry, Market SHALL display its localized Ac
 ## REQ-397 — Auction stall bounds
 
 WHEN Market displays an auction listing, it SHALL show the stall region's inclusive bounding-box width, length and height in blocks and the bounding-box volume. WHEN bounds are missing, invalid or volume overflows, it SHALL display size unavailable instead of fabricated values. Bounding volume SHALL NOT be described as guaranteed empty or usable space. Resolving the region SHALL use the main thread; auction bidding, ownership, sorting and permissions SHALL remain unchanged.
+## REQ-396 — Accurate finder results for buying and selling
+
+WHEN the finder displays mixed shop directions, Market SHALL use a neutral localized results title. WHEN a non-admin BUY shop appears, Market SHALL identify it as a buying shop and state that capacity and funds are checked when trading, without promising stock or unlimited trades. Admin shops SHALL retain their unlimited stock label and SELL/TRADE shops SHALL retain their finite complete-trade stock labels and stock status. Existing search, sort, filter, navigation and transaction behavior SHALL remain unchanged. New locale keys SHALL permit customization without overwriting existing locale files.

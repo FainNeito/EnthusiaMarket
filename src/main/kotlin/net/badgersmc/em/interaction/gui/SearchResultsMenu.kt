@@ -9,6 +9,7 @@ import net.badgersmc.em.application.ItemStackSerializer
 import net.badgersmc.em.application.ShopSearchService.SearchMode
 import net.badgersmc.em.domain.shop.PriceTicker
 import net.badgersmc.em.domain.shop.Shop
+import net.badgersmc.em.domain.shop.SignDirection
 import net.badgersmc.em.domain.stall.StallId
 import net.badgersmc.em.domain.stall.StallRepository
 import net.badgersmc.em.interaction.Menu
@@ -58,7 +59,7 @@ class SearchResultsMenu(
         val stallNames = stallRepository.findByIds(pageItems.map { StallId(it.shop.stallId) }.distinct())
             .mapValues { it.value.regionId }
 
-        val gui = ChestGui(ROWS, ComponentHolder.of(lang.msg("gui.shop.search.title", "query" to query)))
+        val gui = ChestGui(ROWS, ComponentHolder.of(lang.msg("gui.shop.search.results_title", "query" to query)))
         val pane = StaticPane(9, ROWS)
         addControls(pane, player, current, totalPages, visible)
         addResultIcons(pane, player, pageItems, stallNames)
@@ -94,7 +95,12 @@ class SearchResultsMenu(
             val owner = Bukkit.getOfflinePlayer(shop.owner).name ?: langText("gui.shop.search.unknown")
             val stall = stallNames[StallId(shop.stallId)] ?: shop.stallId
             val trades = ShopDisplay.tradesAvailable(shop)
-            val statusKey = if (trades > 0) "gui.shop.search.in_stock" else "gui.shop.search.out_of_stock"
+            val buying = !shop.adminShop && shop.direction == SignDirection.BUY
+            val statusKey = when {
+                buying -> "gui.shop.search.buying"
+                trades > 0 -> "gui.shop.search.in_stock"
+                else -> "gui.shop.search.out_of_stock"
+            }
             meta.displayName(lang.msg(statusKey, "item" to pretty(result.matchedMaterial)))
             val stock = if (trades == Int.MAX_VALUE) langText("gui.shop.search.unlimited") else trades.toString()
             val lore = mutableListOf(
@@ -104,7 +110,8 @@ class SearchResultsMenu(
                 lang.msg("gui.shop.search.owner", "owner" to owner),
                 lang.msg("gui.shop.search.stall", "stall" to stall),
                 lang.msg("gui.shop.search.price", "cost" to shop.costAmount, "amount" to shop.sellAmount),
-                lang.msg("gui.shop.search.stock", "stock" to stock),
+                if (buying) lang.msg("gui.shop.search.buy_availability")
+                else lang.msg("gui.shop.search.stock", "stock" to stock),
                 lang.msg("gui.shop.search.direction", "direction" to ShopDisplay.directionLabel(shop.direction)),
             )
             if (result.nested) lore += lang.msg("gui.shop.search.contains", "item" to pretty(result.matchedMaterial))
