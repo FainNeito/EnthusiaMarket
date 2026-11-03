@@ -36,19 +36,19 @@ Each requirement carries a stable ID. Tasks reference requirements by ID. New re
 
 ## Product (what the system is for)
 
-### REQ-398 — Capture sale-time attribution
+### REQ-402 — Capture sale-time attribution
 
 **Event-driven.** WHEN an eligible completed shop sale is recorded THE SYSTEM SHALL retain its sale-time stall identifier and verified guild identifier without consulting future ownership.
 
-### REQ-399 — Preserve legacy sale history
+### REQ-403 — Preserve legacy sale history
 
 **Unwanted.** IF a historical transaction or pending version-one outbox record has no sale-time attribution THEN THE SYSTEM SHALL retain it without inventing stall or guild attribution.
 
-### REQ-400 — Durable attributed delivery
+### REQ-404 — Durable attributed delivery
 
 **Event-driven.** WHEN an attributed sale is retried after an interrupted history delivery THE SYSTEM SHALL preserve its attribution and existing idempotent receipt semantics.
 
-### REQ-401 — Restrict public sales projection
+### REQ-405 — Restrict public sales projection
 
 **Unwanted.** IF a transaction's currency, eligibility or attribution is unverified THEN THE SYSTEM SHALL exclude unsupported fields or records from the public sales feed.
 
@@ -757,3 +757,10 @@ WHEN the owned-shop menu renders an entry, Market SHALL display its localized Ac
 ## REQ-397 — Auction stall bounds
 
 WHEN Market displays an auction listing, it SHALL show the stall region's inclusive bounding-box width, length and height in blocks and the bounding-box volume. WHEN bounds are missing, invalid or volume overflows, it SHALL display size unavailable instead of fabricated values. Bounding volume SHALL NOT be described as guaranteed empty or usable space. Resolving the region SHALL use the main thread; auction bidding, ownership, sorting and permissions SHALL remain unchanged.
+
+
+## REQ-398 - Guild shop bank counterparty
+
+**Event-driven.** WHEN Market records a guild shop payment or its reversal THE SYSTEM SHALL preserve system-bank settlement and include the sale-time buyer or seller name in the bank transaction description when that name is safe to display.
+
+**Unwanted.** IF a name is unsafe or unavailable THEN THE SYSTEM SHALL omit the name without changing payment behavior or exposing a raw identifier. Existing records and automatic non-shop operations remain unchanged.

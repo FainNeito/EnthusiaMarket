@@ -1,7 +1,9 @@
 
 # Tasks — EnthusiaMarket
 
-- [~] WEBSITE-SALES-ATTRIBUTION — REQ-398/399/400/401: preserve sale-time stall and guild IDs through history and legacy-compatible outbox; prepare a bounded authenticated public exporter without guessing historical ownership. Solo-only feed is incomplete; assess binary compatibility, guild eligibility and restore handling before delivery. Evidence: website-sale-attribution-plan.md.
+- [~] WEBSITE-SALES-ATTRIBUTION — REQ-402/403/404/405: preserve sale-time stall and guild IDs through history and legacy-compatible outbox; prepare a bounded authenticated public exporter without guessing historical ownership. Solo-only feed is incomplete; assess binary compatibility, guild eligibility and restore handling before delivery. Evidence: website-sale-attribution-plan.md.
+- [~] SHOP-398 — Add safe sale-time counterparty context to guild shop system payments and reversals; preserve XP, permission, old-record, rollback, and runtime compatibility. Source and draft tests in progress; local and hosted tests, review, mobile preview QA, and native acceptance pending. See shop-counterparty-evidence.md.
+
 - [~] STOCK-386 — Correct stale purchase and bulk availability after sales; retain authoritative transaction checks. TEST previously reproduced a green confirmation after the final item sold, with the repeated payment safely rejected. Focused interaction tests and full local test suite passed (1,021 tests, 14 skipped); native client acceptance and review remain pending. Project-local EARS and state helpers are absent.
 
 - [x] INTEGRATE-380 — Reconcile #215/#213/#214, distinguish direction no-match from stock shortage, preserve inventory and approved controls, prove nine stock regressions and the clean 899/915-case bundles, refine actionable exact-head static findings and refresh the private mobile preview. Evidence: search-stock-integration.md. Hosted workflow approval, maintainer merge, network pins and Minecraft acceptance remain separate gates.

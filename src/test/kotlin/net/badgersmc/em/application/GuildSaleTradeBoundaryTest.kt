@@ -54,13 +54,15 @@ class GuildSaleTradeBoundaryTest {
         val player = mockk<Player>(relaxed = true)
         every { player.inventory } returns inventory
         every { player.uniqueId } returns buyer
+        every { player.name } returns "TestShopper"
         every { Bukkit.getPlayer(buyer) } returns player
         every { Bukkit.getPluginManager() } returns mockk(relaxed = true)
         every { Bukkit.getLogger() } returns java.util.logging.Logger.getAnonymousLogger()
         every { stalls.findById(any()) } returns Stall(StallId("guild"), "guild", "world", StallState.OWNED, OwnerRef.guild(guild.toString()), Instant.now(), 1000, RentTerms.formula(0.01))
         every { economy.balance(buyer) } returns 1000
         every { economy.withdraw(buyer, any()) } returns true
-        every { guilds.bankDeposit(guild.toString(), any()) } returns true
+        every { guilds.shopBankDeposit(guild.toString(), any(), "TestShopper", false) } returns true
+        every { guilds.shopBankWithdraw(guild.toString(), any(), "TestShopper", true) } returns true
         configureStock()
         every { rewards.prepare(guild, buyer, shop.id) } returns id
         val container = mockk<Container>()
@@ -83,7 +85,7 @@ class GuildSaleTradeBoundaryTest {
             access.allows("guild", buyer, StallCapability.TRADE)
             rewards.prepare(guild, buyer, shop.id)
             economy.withdraw(buyer, 10)
-            guilds.bankDeposit(guild.toString(), 10)
+            guilds.shopBankDeposit(guild.toString(), 10, "TestShopper", false)
             inventory.addItem(any())
             rewards.completed(id)
         }
@@ -111,7 +113,7 @@ class GuildSaleTradeBoundaryTest {
 
     @Test fun `BUY direction cannot prepare sale reward`() {
         every { guilds.bankBalance(any()) } returns 1000
-        every { guilds.bankWithdraw(any(), any()) } returns true
+        every { guilds.shopBankWithdraw(any(), any(), "TestShopper", false) } returns true
         every { inventory.containsAtLeast(any(), any()) } returns true
         service.executeBuy(shop.copy(direction = SignDirection.BUY), buyer)
         verify(exactly = 0) { rewards.prepare(any(), any(), any()); rewards.completed(any()) }
