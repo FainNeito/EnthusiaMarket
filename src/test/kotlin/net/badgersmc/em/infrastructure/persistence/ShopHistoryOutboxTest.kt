@@ -14,6 +14,7 @@ import java.nio.file.Path
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.io.DataInputStream
+import java.io.ByteArrayInputStream
 import java.security.MessageDigest
 import java.util.UUID
 import kotlin.test.assertEquals
@@ -27,8 +28,22 @@ class ShopHistoryOutboxTest {
     @Test fun `unattributed records retain version one format for older readers`() {
         val repository = mockk<ShopTransactionRepository>()
         val id = ShopHistoryOutbox(directory, repository).append(sale)
-        DataInputStream(Files.newInputStream(directory.resolve("$id.pending"))).use { input ->
+        val bytes = Files.readAllBytes(directory.resolve("$id.pending"))
+        val payload = bytes.copyOfRange(0, bytes.size - 32)
+        assertEquals(true, MessageDigest.isEqual(MessageDigest.getInstance("SHA-256").digest(payload), bytes.takeLast(32).toByteArray()))
+        DataInputStream(ByteArrayInputStream(payload)).use { input ->
             assertEquals(1, input.readInt())
+            assertEquals(id.toString(), input.readUTF())
+            assertEquals(sale.shopId, input.readLong())
+            assertEquals(sale.owner.toString(), input.readUTF())
+            assertEquals(sale.buyer.toString(), input.readUTF())
+            assertEquals(sale.direction.name, input.readUTF())
+            assertEquals(sale.item, input.readUTF())
+            assertEquals(sale.quantity, input.readInt())
+            assertEquals(sale.totalPrice, input.readLong())
+            assertEquals(sale.createdAt, input.readLong())
+            assertEquals(sale.notified, input.readBoolean())
+            assertEquals(0, input.available(), "legacy records must not contain trailing attribution")
         }
         every { repository.recordOnce(id, sale) } returns Unit
         ShopHistoryOutbox(directory, repository).drain()
