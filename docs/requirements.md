@@ -38,7 +38,7 @@ Each requirement carries a stable ID. Tasks reference requirements by ID. New re
 
 ### REQ-402 — Capture sale-time attribution
 
-**Event-driven.** WHEN an eligible completed shop sale is recorded THE SYSTEM SHALL retain its sale-time stall identifier and verified guild identifier without consulting future ownership.
+**Event-driven.** WHEN archive capture is enabled and an eligible completed shop sale is recorded THE SYSTEM SHALL retain its sale-time stall identifier and verified guild identifier without consulting future ownership.
 
 ### REQ-403 — Preserve legacy sale history
 
@@ -51,6 +51,10 @@ Each requirement carries a stable ID. Tasks reference requirements by ID. New re
 ### REQ-405 — Restrict public sales projection
 
 **Unwanted.** IF a transaction's currency, eligibility or attribution is unverified THEN THE SYSTEM SHALL exclude unsupported fields or records from the public sales feed.
+
+### REQ-406 — Default-off attributed capture
+
+**State-driven.** WHILE archive capture is disabled THE SYSTEM SHALL record shop history through the legacy unattributed version-one outbox path, even if the completed trade event contains sale-time attribution. Enabling the HTTP listener alone SHALL NOT enable capture. Existing attributed pending records SHALL remain readable and SHALL NOT be rewritten or discarded.
 
 ### REQ-001 — Stall marketplace as core product
 

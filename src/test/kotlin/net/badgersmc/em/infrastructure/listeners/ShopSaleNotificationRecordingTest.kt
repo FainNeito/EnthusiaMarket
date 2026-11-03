@@ -36,10 +36,25 @@ class ShopSaleNotificationRecordingTest {
         event.stallId = "stall17"
         event.publicCashEligible = true
         event.grossPayment = 9_007_199_254_740_993L
-        ShopTransactionRecorder(storage, EnthusiaMarketConfig()).onTransaction(event)
+        val config = EnthusiaMarketConfig().also { it.shop.archiveCaptureEnabled = true }
+        ShopTransactionRecorder(storage, config).onTransaction(event)
         assertEquals(ShopSaleAttribution("stall17", null, publicCashEligible = true), attribution.captured)
         assertEquals(9_007_199_254_740_993L, transaction.captured.totalPrice)
         verify(exactly = 0) { storage.record(any()) }
+    }
+
+    @Test fun `archive capture defaults off and records legacy history even when sale has attribution`() {
+        val storage = mockk<ShopHistoryStorage>()
+        val transaction = slot<ShopTransaction>()
+        every { storage.record(capture(transaction)) } returns Unit
+        val event = PostShopTransactionEvent(server.addPlayer(), UUID.randomUUID(), ItemStack(Material.DIAMOND), 1, 100.0)
+        event.stallId = "stall17"
+        event.publicCashEligible = true
+        event.grossPayment = 9_007_199_254_740_993L
+        ShopTransactionRecorder(storage, EnthusiaMarketConfig()).onTransaction(event)
+        assertEquals(9_007_199_254_740_993L, transaction.captured.totalPrice)
+        verify(exactly = 1) { storage.record(any()) }
+        verify(exactly = 0) { storage.recordAttributed(any(), any()) }
     }
 
     @Test fun `online delivery records only its sale notified without mass acknowledgement`() {

@@ -34,7 +34,7 @@ open class ShopTransactionRecorder(
                     createdAt = System.currentTimeMillis(),
                     notified = config.shop.notifyEnabled && Bukkit.getPlayer(event.landlordId)?.isOnline == true,
                 )
-            if (event.stallId == null && event.guildId == null) transactions.record(transaction)
+            if (!config.shop.archiveCaptureEnabled || (event.stallId == null && event.guildId == null)) transactions.record(transaction)
             else transactions.recordAttributed(transaction, ShopSaleAttribution(event.stallId, event.guildId, event.publicCashEligible))
         } catch (e: Exception) {
             // History is best-effort: a log write must never disturb the completed trade.
