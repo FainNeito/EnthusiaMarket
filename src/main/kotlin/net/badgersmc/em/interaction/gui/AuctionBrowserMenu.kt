@@ -10,6 +10,7 @@ import com.github.stefvanschie.inventoryframework.pane.util.Slot
 import net.badgersmc.em.application.AuctionLifecycleService
 import net.badgersmc.em.domain.auction.Auction
 import net.badgersmc.em.domain.auction.AuctionRepository
+import net.badgersmc.em.domain.ports.RegionProvider
 import net.badgersmc.em.domain.stall.Stall
 import net.badgersmc.em.domain.stall.StallRepository
 import net.badgersmc.nexus.i18n.LangService
@@ -35,8 +36,8 @@ import java.util.concurrent.atomic.AtomicReference
  * - [prefetch]: read `auctions.allOpen()`, resolve each stall + bidder
  *   name via [OfflinePlayerNameCache], publish into [latest]. Off main
  *   thread.
- * - [render]: read the latest snapshot, paint the chest GUI. Main thread,
- *   no I/O.
+ * - [render]: read the latest snapshot and resolve visible region bounds on
+ *   the main thread before painting; no database or player-name I/O.
  *
  * The sort mode is a `@Volatile` flag flipped by the controls row; the
  * next render call picks it up.
@@ -47,6 +48,7 @@ class AuctionBrowserMenu(
     private val auctionService: AuctionLifecycleService,
     scheduler: NexusScheduler,
     private val lang: LangService,
+    private val regions: RegionProvider,
     private val nameCache: OfflinePlayerNameCache = OfflinePlayerNameCache()
 ) : LivePollingMenu(scheduler, rows = ROWS, refreshTicks = REFRESH_TICKS) {
 
@@ -61,9 +63,8 @@ class AuctionBrowserMenu(
     }
 
     /**
-     * Pre-rendered data for one auction entry. Built off the main thread so
-     * the main-thread repaint doesn't touch JDBC, WorldGuard, or
-     * `OfflinePlayer.name` calls.
+     * Pre-rendered auction and stall identifiers are built off the main thread;
+     * region bounds are resolved separately on the main thread.
      */
     private data class EntryView(
         val auction: Auction,
@@ -147,7 +148,16 @@ class AuctionBrowserMenu(
             val pagePane = OutlinePane(9, 5, Pane.Priority.LOWEST)
             val slice = sorted.drop(pageIdx * ITEMS_PER_PAGE).take(ITEMS_PER_PAGE)
             for (entry in slice) {
-                pagePane.addItem(GuiItem(entryIcon(entry, now)) { event ->
+                val size = if (pageIdx == currentPage && entry.stallWorld != null && entry.stallRegion != null) {
+                    // WorldGuard/Bukkit world lookup must occur on the main-thread renderer.
+                    val bounds = try {
+                        regions.bounds(entry.stallWorld, entry.stallRegion)
+                    } catch (_: Exception) {
+                        null
+                    }
+                    AuctionRegionSize.from(bounds)
+                } else null
+                pagePane.addItem(GuiItem(entryIcon(entry, now, size)) { event ->
                     event.isCancelled = true
                     val player = event.whoClicked as? Player ?: return@GuiItem
                     AuctionBidMenu(entry.auction, auctionService, lang).open(player)
@@ -236,7 +246,7 @@ class AuctionBrowserMenu(
         aParts.size.compareTo(bParts.size)
     }
 
-    private fun entryIcon(entry: EntryView, now: Instant): ItemStack {
+    private fun entryIcon(entry: EntryView, now: Instant, size: AuctionRegionSize?): ItemStack {
         val auction = entry.auction
         val currentBid = auction.highBid?.amount ?: auction.startingBid
         val timerNotStarted = auction.endAt == Instant.MAX
@@ -269,6 +279,13 @@ class AuctionBrowserMenu(
                     "world" to (entry.stallWorld ?: "?"),
                     "region" to (entry.stallRegion ?: "?")
                 ).decoration(TextDecoration.ITALIC, false),
+                if (size == null) lang.msg("gui.auctions.entry_lore_size_unavailable")
+                    .decoration(TextDecoration.ITALIC, false)
+                else lang.msg("gui.auctions.entry_lore_dimensions", "width" to size.width,
+                    "length" to size.length, "height" to size.height).decoration(TextDecoration.ITALIC, false),
+                if (size == null) Component.empty()
+                else lang.msg("gui.auctions.entry_lore_volume", "volume" to size.volume)
+                    .decoration(TextDecoration.ITALIC, false),
                 bidLine,
                 lang.msg("gui.auctions.entry_lore_starting", KEY_AMOUNT to auction.startingBid)
                     .decoration(TextDecoration.ITALIC, false),

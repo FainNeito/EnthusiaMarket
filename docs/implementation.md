@@ -284,3 +284,25 @@ V033 stores receipt IDs, remaining lots, stock events and sale attribution.
 Reporting adapters authorize through the existing GuildProvider and reuse date
 window values. No economic write path or XP policy is added by reporting.
 See [stall-accounting.md](stall-accounting.md) for proof and release boundaries.
+
+## Routed finder and glowing displays (REQ-388/389)
+
+REQ-386 privacy refinement: FinderWaypointPrivacy filters outgoing waypoint packets at the optional PacketEvents infrastructure boundary. A concurrent per-viewer UUID allowlist admits only the explicitly selected destination; UNTRACK remains unconditional and unrelated packets are untouched. Player/named/other waypoints are blocked while idle and active. Initialization removes already cached online-player markers; shutdown clears guide output before unregistering the filter. No Bukkit queries run on the packet thread, and no gamerules, attributes, schema or companion APIs change. See finder-privacy-verification.md for regression and delivery evidence.
+
+REQ-387 command dispatch uses explicit `trail stop` and `trail mode` Nexus subcommands. The pinned Paper registrar attaches execution only after the final declared argument and does not honor Kotlin parameter defaults; stop therefore declares no arguments, while mode declares one required value. The existing finder service owns all cleanup and preference validation. A regression test scans the actual command class and executes the actual Nexus-built Brigadier tree, including permission denial and console behavior.
+
+FinderRoutePlanner owns bounded explicit-graph shortest paths; FinderPulsePlanner samples the remaining polyline with a time phase. FinderTrailTracker advances route points and preserves the selected shop as its arrival target. FinderBeamPlanner emits complete footprint edges/pillars plus an exact-sign box. FinderGlowRenderer owns private, nonpersistent Paper display lifecycle and global/per-recipient caps; owned UUIDs are excluded from EntityLimitListener rescans. Existing particles remain the fallback. FinderClientSupport centralizes optional Floodgate detection with a null-safe absent-runtime path. No domain imports Bukkit, no schema or companion API changes. Configuration and operator route examples: finder-enhancements.md. SPEAR evidence: finder-enhancements-verification.md.
+
+## Ownership access recovery
+
+StallRegionAccessService shares lifecycle-aware region access replacement between the startup/world-load listener and administrative resync. The database remains authoritative; automatic recovery touches no rent, shops, flags or member records. Moderation holds/reservations and seller-owned auctions are preserved. See [stall-access-recovery.md](stall-access-recovery.md) for ticket evidence, the state matrix, dated-snapshot limits and verification.
+
+Management rejects forfeited, vacant and held ownership provenance. StallMemberService consults the durable moderation gate and saves additions before external grants; repeating a persisted addition retries its projection. Existing seller-auction access and current legitimate members are retained.
+
+## Native management UI corrections
+
+ShopCommands registers an explicit zero-argument delete handler alongside the existing mode handler. SearchResultsMenu distinguishes a new command search from an in-menu filter transition so empty filters close previous results without closing unrelated inventories on initial empty searches. BulkTrustMenu supplies localized selection text through the compatible `sel` placeholder; confirmation remains the persistence boundary. Requirements390–392 and evidence: [native-ui-fixes-verification.md](native-ui-fixes-verification.md).
+
+REQ-393 similarly registers an explicit player-name-only trust handler that delegates to the existing `menu` path. The mode overload preserves explicit menu/all behavior; no GUI, application service or permission policy changes. Evidence: [trust-command-verification.md](trust-command-verification.md).
+
+REQ-395 keeps owner-list availability presentation separate from trade eligibility: BUY entries explain live capacity/funds checks, admin entries use localized Unlimited stock, and finite SELL/TRADE counts retain stock division. Localized status components are serialized as MiniMessage before entering Nexus's parsed string placeholder, preserving existing styles and templates without component debug output. See [owner-display-verification.md](owner-display-verification.md).

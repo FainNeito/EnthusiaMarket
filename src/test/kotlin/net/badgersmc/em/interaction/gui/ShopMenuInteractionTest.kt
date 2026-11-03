@@ -12,6 +12,7 @@ import io.mockk.unmockkStatic
 import io.mockk.verify
 import net.badgersmc.em.application.ContainerTradeResult
 import net.badgersmc.em.application.ContainerTradeService
+import net.badgersmc.em.application.ContainerTradeServiceHarness
 import net.badgersmc.em.application.ItemStackSerializer
 import net.badgersmc.em.application.ShopManagementService
 import net.badgersmc.em.domain.shop.Shop
@@ -35,6 +36,38 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ShopMenuInteractionTest : ShopMenuFixture() {
+    @Test fun `stock preview reads current container and fails closed when missing`() {
+        val container = mockk<org.bukkit.block.Container>()
+        val inventory = MockBukkit.getMock()!!.createInventory(null, 9)
+        every { container.inventory } returns inventory
+        val service = ContainerTradeServiceHarness(mockk(relaxed = true),
+            mockItemStack = ItemStack(Material.DIAMOND), mockContainer = container)
+        inventory.addItem(ItemStack(Material.DIAMOND, 16))
+        assertEquals(2, service.availableTrades(current))
+        inventory.clear()
+        assertEquals(0, service.availableTrades(current))
+        assertEquals(0, ContainerTradeServiceHarness(mockk(relaxed = true),
+            mockItemStack = ItemStack(Material.DIAMOND), mockContainer = null).availableTrades(current))
+        assertEquals(Int.MAX_VALUE, service.availableTrades(current.copy(direction = SignDirection.BUY)))
+        assertEquals(Int.MAX_VALUE, service.availableTrades(current.copy(adminShop = true)))
+    }
+    @Test fun `last sale refreshes confirm and bulk stock`() {
+        var stock = 1
+        every { trades.availableTrades(any()) } answers { stock }
+        every { trades.executeSellBatch(any(), any(), any()) } answers {
+            stock = 0
+            ContainerTradeResult.Success("done")
+        }
+        PurchaseMenu(current, trades, lang).open(player)
+        assertEquals(Material.LIME_CONCRETE, item(23)?.type)
+        click(23)
+        assertEquals(Material.RED_CONCRETE, item(23)?.type)
+        assertTrue(lore(23).contains("unavailable_stock"), lore(23))
+        click(23)
+        verify(exactly = 1) { trades.executeSellBatch(any(), any(), any()) }
+        click(21)
+        assertEquals(Material.RED_CONCRETE, item(10)?.type)
+    }
     @Test fun `money purchase fits three rows and bulk selection does not trade`() {
         PurchaseMenu(current, trades, lang).open(player)
         assertEquals(27, player.openInventory.topInventory.size)
@@ -216,6 +249,10 @@ abstract class ShopMenuFixture {
         }
         every { lang.raw(any()) } answers { firstArg() }
         every { trades.balanceOf(any()) } returns 1_000L
+        every { trades.availableTrades(any()) } answers {
+            val shop = firstArg<Shop>()
+            ShopDisplay.tradesAvailable(shop)
+        }
         every { trades.executeSellBatch(any(), any(), any()) } returns ContainerTradeResult.Success("done")
         current = shop()
         every { repository.findById(1) } answers { current }

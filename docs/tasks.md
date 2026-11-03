@@ -1,7 +1,8 @@
 
 # Tasks — EnthusiaMarket
 
-- [~] WEBSITE-SALES-ATTRIBUTION — REQ-386/387/388/389: preserve sale-time stall and guild IDs through history and legacy-compatible outbox, then implement a bounded authenticated public exporter without guessing historical ownership. Local changes and tests are incomplete and unrun; assess binary compatibility, eligibility and durable retention before delivery. Evidence: website-sale-attribution-plan.md.
+- [~] WEBSITE-SALES-ATTRIBUTION — REQ-398/399/400/401: preserve sale-time stall and guild IDs through history and legacy-compatible outbox; prepare a bounded authenticated public exporter without guessing historical ownership. Solo-only feed is incomplete; assess binary compatibility, guild eligibility and restore handling before delivery. Evidence: website-sale-attribution-plan.md.
+- [~] STOCK-386 — Correct stale purchase and bulk availability after sales; retain authoritative transaction checks. TEST previously reproduced a green confirmation after the final item sold, with the repeated payment safely rejected. Focused interaction tests and full local test suite passed (1,021 tests, 14 skipped); native client acceptance and review remain pending. Project-local EARS and state helpers are absent.
 
 - [x] INTEGRATE-380 — Reconcile #215/#213/#214, distinguish direction no-match from stock shortage, preserve inventory and approved controls, prove nine stock regressions and the clean 899/915-case bundles, refine actionable exact-head static findings and refresh the private mobile preview. Evidence: search-stock-integration.md. Hosted workflow approval, maintainer merge, network pins and Minecraft acceptance remain separate gates.
 
@@ -1170,3 +1171,52 @@ See [guild-shop-xp.md](guild-shop-xp.md) for policy, payment boundary, journal s
 
 - [x] STALL-ACCOUNTING — REQ-384, REQ-385 and REQ-383: approved FIFO attribution and read-only contributor/gross-sales reports, conservative unknown stock, durable ordered observation delivery, date windows and optional server-local CSV.
   - Tag: TDD; Evidence: docs/stall-accounting.md. Full paired clean suite: 895 tests, zero failures/errors, 12 unrelated skips; new native MariaDB accounting case executed without skips. Detekt passed on analyzer Java 22, bytecode/tests on Java 25/Paper 26.2. No local EARS/state helpers exist; manual records maintained. Exact-head hosted results, canonical dependency integration and real client acceptance remain separate. Payouts, XP and production remain unchanged.
+
+- [x] FINDER-386 — REQ-386/387 source implementation and authorized TEST deployment: private locator transport, namespaced existing stall icon, resource-pack/Bedrock fallback, destination feedback, persistent mode preference and existing guide lifecycle. Manual SPEAR evidence: finder-locator-verification.md. Full 1,032-case suite, architecture, Detekt and focused refinement checks pass. TEST `.2` is active with offline backup and downloaded icon verified. Native selected-marker appearance/privacy, ordinary-player permission testing, human review, merging and production remain separate gates.
+
+- [x] FINDER-386 privacy correction: suppress native player and other waypoint tracking with a per-recipient active-stall allowlist; preserve explicit command/search-result start and all cleanup paths. Evidence and remaining native acceptance gates: finder-privacy-verification.md. Interactive mobile preview includes idle, arrival, cancel and expiry states.
+
+- [x] FINDER-COMMAND-387 — Repair the native-acceptance `/shop trail stop` dispatch failure with explicit stop/mode routes and a real Nexus registrar regression. The five-case native Java 25 run produced three expected failures before the adapter correction and zero failures/errors/skips afterward. Manual SPEAR evidence: finder-privacy-verification.md. Existing permissions, player scope, lifecycle service and mode semantics are retained; final-head CI and new-build native client validation remain separate gates.
+
+- [x] FINDER-388/389 — source implementation: bounded route graph and moving clustered pulses/intensity; private glowing beams, exact sign and cleanup. Final 1,045-case suite, architecture, shadowJar/JaCoCo and Java 22 Detekt pass; 14 external skips remain. Mobile interactive preview published. Manual SPEAR evidence in finder-enhancements-verification.md; local EARS/state helpers absent. Exact-head CI/TEST receipt is recorded in the PR handoff; native appearance/privacy, route survey and ordinary-player acceptance remain separate.
+
+## Ownership access recovery — bug-0406 follow-up (2026-10-19)
+
+- [x] Spec: inspect authoritative main 57704f1 and ticket 406; ordinary award already clears DB members.
+- [x] Evidence: read-only comparison of the 2026-10-18 database backup and 2026-10-19 saved WorldGuard regions shows stale solo ACLs; stall48 itself is clean in that backup. These are different capture times, not live client proof.
+- [x] Prove: both actual delayed-startup regressions failed before the recovery change; both former-owner member-grant/save-failure regressions failed before authority/write-order changes.
+- [x] Engine: share lifecycle-aware access reconciliation; deny forfeited/held management; fence member mutations and persist before grants; preserve moderation and current members.
+- [x] Arch/refine: 1041 local tests (0 failures/errors, 14 environment-dependent skips), shadowJar and Java-22 Detekt passed; tested source prepared for PR delivery with hosted exact-head CI/review and live acceptance tracked separately. No production repair or deployment authorized.
+
+No repository-local EARS validator or SPEAR state helper was found; requirements, this task record and verification evidence track the workflow manually.
+
+# Native management UI corrections (2026-10-30)
+
+- [x] **OWNER-DISPLAY-395** — REQ-395: reproduce and correct native owner-list component debug status and BUY sentinel stock; preserve localized styling/templates, finite stock arithmetic, admin stock, navigation and trade policy. Evidence: actual TEST screenshot34 and Roundtable2977; `OwnedShopsMenu.describeIcon`, `ShopDisplay.tradesAvailable`, bundled `lang/en_US.yml`; on-disk Nexus `LangService` bytecode confirms parsed placeholders call `Object.toString`; existing `ShopManagementPaginationTest` and `ShopTutorialLocaleTest` demonstrate MockBukkit GUI and real locale adapters. Uses existing `net.kyori.adventure.text.minimessage.MiniMessage`, `net.badgersmc.nexus.i18n.LangHost`/`LangService`/`Locale`, `EnthusiaMarketLang`, InventoryFramework, MockK, MockBukkit and JUnit fixtures. No new dependencies or companion API changes. Native acceptance of the corrected build remains separate. Manual SPEAR record: owner-display-verification.md (repository-local EARS/state helpers absent).
+
+- [x] MARKET-15 / REQ-390/391/392 spec and native failure evidence: bare-delete parse failure, stale SELL results after BUY filter, raw trust boolean.
+- [x] Engine/architecture: explicit no-argument command route; filter-transition-only empty-menu closure; localized trust labels. No schema, economy, companion API or permission policy changes.
+- [x] Refine implementation: actual-registrar/GUI regressions and responsive interactive preview; first hosted suite identified the help contract's single-handler assumption, now corrected for valid overloads. Evidence: native-ui-fixes-verification.md.
+- Hosted delivery gate: final-head canonical build, test counts and actionable review results are recorded on [PR226](https://github.com/BadgersMC/EnthusiaMarket/pull/226); source completion alone does not establish this gate.
+- [x] Separate acceptance: authorized TEST activation and native pass2529 verified all three fixes; pass2549 verified 91-entry management pagination and zero-stock feedback. See market-release-acceptance.md for exact pins and limits.
+
+## Trust command shorthand follow-up (REQ-393)
+
+- [x] Spec/prove: pass2549 reproduced the advertised player-name-only trust command failing while explicit `menu` worked; current canonical main and clean ongoing PR head rechecked.
+- [x] Engine/architecture: explicit no-mode trust overload delegates to the existing menu path; preserve explicit modes, resolver, permissions and confirmation boundary.
+- [x] Refine authored: real registrar regression covers shorthand, explicit modes, invalid input, permission and console paths. Evidence: trust-command-verification.md.
+- [x] Verify source615fff9 canonical CI41115116315, required checks and hash-pinned artifact13004399521; CodeRabbit skipped the draft and human review remains outstanding.
+- [x] Deploy to TEST under fresh ownership acknowledgments and verify the shorthand with FainNeito, pass2556. Menu canceled without Confirm; database/config unchanged. Production unchanged.
+- [ ] Complete the remaining scoped native acceptance and review/release gates in market-release-acceptance.md; do not treat historical passes or automated tests as current-client acceptance.
+
+## History default-page registration follow-up (REQ-394)
+
+- [x] Spec: preserve the advertised optional history page and existing date/filter/authority semantics.
+- [x] Prove: four omitted-page forms failed through the actual pinned Nexus registrar; explicit-page, permission and argument cases passed. The previous test checked path presence only.
+- [x] Engine/refine locally: four explicit page-one adapters; 15 registrar/history/date/help cases passed without skips. Evidence: history-command-verification.md.
+- [ ] Inspect exact-head canonical CI/review and separately deploy/verify the history correction on TEST; the activated934279 build does not contain it.
+
+## Auction stall dimensions (REQ-397)
+
+- [x] Spec: user approved showing dimensions and volume in auction results; region bounds are inclusive and may be a polygon's bounding box, so label bounds/volume accurately rather than claim usable interior.
+- [ ] Prove/refine: verify 5 × 5 × 10 = 250, negative coordinates, one block, missing/invalid bounds and overflow; resolve Bukkit/WorldGuard on the main render thread. Build, hosted checks and live Java/Bedrock acceptance remain separate; manual evidence because project-local EARS/state tools are absent.

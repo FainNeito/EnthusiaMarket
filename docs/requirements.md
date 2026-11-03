@@ -1,6 +1,13 @@
 
 # Requirements — EnthusiaMarket
 
+## REQ-394 - Optional history pages
+
+**Event-driven.** WHEN a player invokes shop history, all, today, or a complete
+date range without an explicit page THE SYSTEM SHALL dispatch the existing
+history reader with page one while retaining explicit pages, required range
+dates, ownership scope, permission checks and player-only validation.
+
 **Date:** 2026-05-24
 **Status:** Bootstrap (emitted by `/spear:init`; extend via `/spear:spec`)
 **EARS subset enforced:** Ubiquitous, Event-driven, State-driven, Unwanted. Optional Feature pattern (`WHERE …`) accepted without validation.
@@ -8,6 +15,10 @@
 Each requirement carries a stable ID. Tasks reference requirements by ID. New requirements append at the next free integer ID (three-digit padded); IDs are never re-used or renumbered.
 
 ---
+
+## REQ-386 - Live purchase stock
+
+**Event-driven.** WHEN a purchase or bulk menu is rendered THE SYSTEM SHALL calculate available sale and barter quantities from the current shop container, fail closed if it cannot read the item or container, and preserve existing buy and administrator shop behavior; transaction checks remain authoritative.
 
 ## Accepted history filters (8 October 2026)
 
@@ -25,19 +36,19 @@ Each requirement carries a stable ID. Tasks reference requirements by ID. New re
 
 ## Product (what the system is for)
 
-### REQ-386 — Capture sale-time attribution
+### REQ-398 — Capture sale-time attribution
 
 **Event-driven.** WHEN an eligible completed shop sale is recorded THE SYSTEM SHALL retain its sale-time stall identifier and verified guild identifier without consulting future ownership.
 
-### REQ-387 — Preserve legacy sale history
+### REQ-399 — Preserve legacy sale history
 
 **Unwanted.** IF a historical transaction or pending version-one outbox record has no sale-time attribution THEN THE SYSTEM SHALL retain it without inventing stall or guild attribution.
 
-### REQ-388 — Durable attributed delivery
+### REQ-400 — Durable attributed delivery
 
 **Event-driven.** WHEN an attributed sale is retried after an interrupted history delivery THE SYSTEM SHALL preserve its attribution and existing idempotent receipt semantics.
 
-### REQ-389 — Restrict public sales projection
+### REQ-401 — Restrict public sales projection
 
 **Unwanted.** IF a transaction's currency, eligibility or attribution is unverified THEN THE SYSTEM SHALL exclude unsupported fields or records from the public sales feed.
 
@@ -706,3 +717,43 @@ WHEN a current guild shop manager requests a stall report THE SYSTEM SHALL verif
 ### REQ-383 — Durable ordered accounting observations
 
 WHEN a captured accounting observation is appended successfully THE SYSTEM SHALL retain it through SQL delivery failure or restart, SHALL apply its immutable recording ID once in a transaction, and SHALL preserve stock lots and receipts after failed writes. Uncertain inventory provenance SHALL replace remaining attribution with unknown stock. Corrupt earlier pending records SHALL block later delivery rather than silently reorder attribution.
+
+### REQ-386 — Private locator navigation
+
+WHEN a player selects a shop result THE SYSTEM SHALL offer one private locator waypoint at the selected shop, using a configurable style and retaining the original stall icon colors with a white tint. With the supported packet adapter installed, the system SHALL allow only that recipient's active selected destination to be tracked and SHALL suppress all player and other tracking waypoints during both idle and active navigation. The system SHALL remove existing online-player markers when installing the filter, SHALL NOT change gamerules, attributes, permissions or world entities, and SHALL fall back to existing particles for unsupported clients or an unavailable packet adapter. Choosing a navigation mode alone SHALL NOT start guidance.
+
+### REQ-387 — Navigation lifecycle and preferences
+
+WHILE a shop guide is active THE SYSTEM SHALL show configurable localized stall, item and distance feedback, SHALL support locator, particles and both modes with a persistent per-player override, and SHALL retain existing outline/range/budget limits. Replacement, arrival, cancellation, timeout, world change, death, disconnect, disable and shutdown SHALL remove the owned waypoint. Missing or declined resource packs SHALL use a vanilla icon rather than a missing texture. Bedrock SHALL use particle guidance until its locator behavior is separately proven.
+
+Command acceptance: WHEN an authorized player executes `/shop trail stop` THE SYSTEM SHALL invoke cancellation without requiring a mode or placeholder argument; `/shop trail mode <locator|particles|both|default>` SHALL retain preference handling without starting guidance. Both routes SHALL retain `enthusiamarket.shop.use` and player-only effects.
+
+### REQ-388 — Routed and animated private guidance
+
+WHEN a guide starts with valid connected configured walkway nodes near both endpoints THE SYSTEM SHALL follow the bounded shortest linked route. Missing, malformed or disconnected routes SHALL retain direct guidance without terrain/chunk loading. Animated pulses SHALL move toward the next route point. Operators SHALL configure LOW/NORMAL/HIGH particle intensity, pulse speed, route attachment radius and arrival sound. Existing mode preferences and global particle limits SHALL remain effective.
+
+### REQ-389 — Private glowing destination
+
+WHEN a destination is within reveal distance THE SYSTEM SHALL show a configurable glowing beam boundary and exact selected sign marker only to the searching player. Temporary displays SHALL be invisible by default before spawn, nonpersistent, noncolliding and bounded per recipient and globally. Replacement, cancellation, expiry, death, disconnect, world change, unloaded geometry and shutdown SHALL remove owned displays. Disabled or unavailable glow SHALL preserve private particle fallback. No blocks, other entities, permissions or ownership SHALL change. Arrival feedback SHALL occur even without region geometry.
+
+## Ownership access recovery (bug-0406 follow-up)
+
+**Event-driven (REQ-317/318/319/320/321).** WHEN startup, a subsequently loaded world, or an authorized region resync reconciles a stall THE SYSTEM SHALL replace active SOLO access with its current owner and delegated members, replace active guild access with its current guild roster, and clear access for vacant, forfeited emergency, and ownerless system-auction stalls. THE SYSTEM SHALL preserve seller-owned auction access and moderation holds or live reservations, without changing the database, shops, flags, or rent during automatic reconciliation. Missing regions/worlds SHALL be reported as failures rather than successful mutations.
+
+**State-driven (REQ-319/320).** WHILE a stall is vacant, forfeited to an emergency auction, held for moderation, or durably reserved for moderation THE SYSTEM SHALL reject member mutations before granting external region access. WHEN member persistence is rejected THE SYSTEM SHALL grant no new WorldGuard membership. A retained former-owner identifier SHALL NOT grant management authority in vacant, forfeited or held states.
+
+# Native management UI corrections (2026-10-30)
+
+- **REQ-390** WHEN a player with shop-use permission runs `/shop delete`, Market SHALL open the existing owner-scoped deletion menu without requiring a mode argument; explicit `menu` and permission-gated `all` SHALL retain their behavior.
+- **REQ-391** WHEN an open search menu changes its direction or stock filter to an empty result set, Market SHALL close the previous results inventory and send the corresponding localized no-match or out-of-stock feedback. A new empty command search SHALL preserve an unrelated open inventory.
+- **REQ-392** WHEN the bulk-trust menu renders a shop, Market SHALL display localized Selected or Not selected text through the existing `sel` placeholder, and SHALL persist trust changes only after confirmation.
+
+- **REQ-393** WHEN a player with shop-use permission runs `/shop trust <player>`, Market SHALL dispatch the existing owner-scoped trust menu without a mode argument. Explicit `menu` and `all` routes, player-name resolution, player-only restrictions and confirmation-only menu persistence SHALL retain their behavior.
+
+## REQ-395 — Readable owner-shop status and availability
+
+WHEN the owned-shop menu renders an entry, Market SHALL display its localized Active or Frozen status without component implementation text, preserving the configured status styling and outer status template. Normal SELL/TRADE entries SHALL show complete stocked trades; admin entries SHALL show localized Unlimited stock; non-admin BUY entries SHALL explain that capacity and funds are checked when trading rather than exposing an internal unlimited sentinel or promising affordability. This presentation SHALL NOT change stock, prices, permissions, pagination or transaction eligibility.
+
+## REQ-397 — Auction stall bounds
+
+WHEN Market displays an auction listing, it SHALL show the stall region's inclusive bounding-box width, length and height in blocks and the bounding-box volume. WHEN bounds are missing, invalid or volume overflows, it SHALL display size unavailable instead of fabricated values. Bounding volume SHALL NOT be described as guaranteed empty or usable space. Resolving the region SHALL use the main thread; auction bidding, ownership, sorting and permissions SHALL remain unchanged.

@@ -1,0 +1,12 @@
+{
+  "test_methods_authored_not_run": 23,
+  "yaml_parsed": true,
+  "literal_ui_keys_present": true,
+  "preview_js_syntax": true,
+  "preview_sha256": "c62f6fcd8ea5d73ca2d1fc72642bad513ad8022cbefb7195b4ea14786a84813f",
+  "preview_bytes": 14376,
+  "preview_js_minimal_dom_fixture_assertions": 23,
+  "preview_check_scope": "Actual preview JS exercised with lightweight synthetic DOM; not a browser/render/native/Kotlin test",
+  "backend_mutation_source_unchanged": true,
+  "constructors_and_pending_map_contract": "AuctionBidMenu and AuctionChatListener parameter signatures, and public pendingCustomBids map type retained"
+}

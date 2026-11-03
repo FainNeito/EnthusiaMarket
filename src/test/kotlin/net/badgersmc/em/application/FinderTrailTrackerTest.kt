@@ -58,4 +58,20 @@ class FinderTrailTrackerTest {
         tracker.clear()
         assertEquals(0, tracker.count())
     }
+
+    @Test fun `routed guide advances corners and does not arrive through an adjacent wall`() {
+        val start = FinderTrailTracker.Point(0.0, 64.0, 0.0)
+        val corner = start.copy(z = 20.0)
+        val nearbyTarget = start.copy(x = 2.0)
+        tracker.start(player, trail.copy(target = nearbyTarget, route = listOf(start, corner, nearbyTarget)), 1)
+        val settings = FinderTrailTracker.RenderSettings(200, 256.0, FinderOutlineOptions(), feedbackWithoutOutline = true)
+        val first = tracker.renderFrames(now, settings) { "world" to start }.getValue(player)
+        assertFalse(first.arrived)
+        assertEquals(corner, first.waypoint)
+        assertTrue(first.remainingDistance!! > 40.0)
+        tracker.renderFrames(now.plusSeconds(1), settings) { "world" to corner }
+        val arrived = tracker.renderFrames(now.plusSeconds(2), settings) { "world" to nearbyTarget }.getValue(player)
+        assertTrue(arrived.arrived)
+        assertTrue(tracker.renderFrames(now.plusSeconds(3), settings) { "world" to nearbyTarget }.isEmpty())
+    }
 }

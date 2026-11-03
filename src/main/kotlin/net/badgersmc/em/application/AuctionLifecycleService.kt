@@ -287,6 +287,9 @@ class AuctionLifecycleService(
             it.hasShopPermission(actor, guildId, net.badgersmc.em.domain.ports.GuildProvider.GuildPermission.MANAGE_SHOPS)
     } ?: false
 
+    /** Fresh read for bid review; preserves the existing ID/stall fallback. No mutation. */
+    fun auctionForBid(auctionId: AuctionId): Auction? = findAuction(auctionId)
+
     data class BidRequest(val actor: UUID, val amount: Long, val ip: String, val guildId: String? = null)
 
     fun placeBid(auctionId: AuctionId, playerUuid: UUID, amount: Long, ip: String): AuctionResult =

@@ -1,0 +1,66 @@
+# Trust command shorthand correction
+
+## Spec and prove
+
+REQ-393 restores the advertised `/shop trust <player>` route. Native TEST pass2549 on
+PR226 head967a30c reproduced `Unknown or incomplete command` for
+`/shop trust FainNoir`; the explicit `menu` suffix opened the existing menu and
+passed three-page navigation and canceled selection checks. This is observed
+pre-fix failure evidence, not a claimed historical unit-test run.
+
+Before editing, the isolated worktree was clean at967a30c and canonical main was
+fetched again as57704f1acfaf8aacfdd65cb4ae74c0f36b55712d, unchanged from the
+ongoing candidate's last base inspection. The existing TEST candidate remains
+the integration scope; none of its accepted changes are replaced with an older
+main-only JAR. Roundtable source intent2552 records the bounded continuation.
+
+## Engine and architecture
+
+The pinned Nexus registrar does not dispatch Kotlin default arguments. An
+explicit player-name-only handler delegates to the same `menu` path as the
+existing mode handler. The mode is required only on that second overload.
+Name resolution, owner scope, base permission, console rejection, explicit
+`all`, menu selection and confirmation-only persistence remain in their
+existing adapters/services. No GUI layout, language, schema, companion API,
+inventory or economy behavior changes.
+
+## Refine and delivery
+
+ShopTrustCommandRegistrationTest scans the real command class and invokes the
+actual pinned Nexus-built Brigadier tree. It covers the shorthand and explicit
+menu reaching the same unknown-player validation without persistence, explicit
+all with the resolved target, permission denial, console rejection, missing
+player and excess arguments. Existing GUI tests cover opening, selection and
+confirmation behavior; native acceptance of the new build is a separate gate.
+
+Local and canonical CI results, source/artifact pins, review and TEST deployment
+receipts are recorded on PR226 and in the local bridge evidence. Pending checks
+are not implied to have passed. No repository-local EARS validator or SPEAR
+state helper exists; these requirement/task/evidence files track the workflow.
+Production and merging remain outside the authorized TEST deployment.
+
+The local Java25 focused run passed all six cases (four new registrar cases and
+two help-contract cases), with zero failures/errors/skips. The first local
+attempt lacked the configured companion path. After selecting the cached,
+workflow-hash-verified LumaGuilds3.0.39 JAR, an actor-UUID matcher mistake in the
+new test was corrected and the focused run passed. No pre-patch unit red run is
+claimed. Canonical CI and the deployed companion contract remain separate.
+
+The unchanged menu can be explored in the existing
+[interactive pagination simulation](https://enthusia-market-pagination-review.awareyak.chatgpt.site/).
+It is a simulation and does not prove command registration or native rendering.
+
+## Verified TEST follow-up
+
+Source615fff9 passed canonical run41115116315: 1,146 tests executed, zero
+failures/errors, one unchanged opt-in remote-authentication skip. All four new
+registrar cases executed. Artifact13004399521 was independently verified and
+activated under fresh Staff/Guilds acknowledgments in pass2556. A fresh runtime
+receipt confirms the enabled artifact hash recorded in market-release-acceptance.md.
+
+FainNeito ran `/shop trust FainNoir` without a mode argument on TEST. The existing
+one-shop trust menu opened, then was canceled with Escape without selection or
+Confirm. Exact database bytes, all 33 table fingerprints and configuration
+matched the offline pre-deployment backup afterward. This proves command routing
+and cancellation, not a trust-confirmation or ordinary-player permission test.
+Source remains unmerged and production unchanged.

@@ -57,6 +57,18 @@ class EnthusiaMarketConfig {
 
     class FinderTrail {
         var enabled: Boolean = true
+        @Comment("LOCATOR, PARTICLES or BOTH. Unsupported locator clients always retain particles.")
+        var mode: String = "BOTH"
+        var showDistance: Boolean = true
+        var arrivalSound: Boolean = true
+        var arrivalSoundName: String = "BLOCK_NOTE_BLOCK_PLING"
+        var arrivalVolume: Double = 0.4
+        var arrivalPitch: Double = 1.5
+        @Comment("LOW, NORMAL or HIGH; all remain subject to the shared particle budget.")
+        var intensity: String = "NORMAL"
+        var pulseSpeed: Double = 2.0
+        var routing: FinderRouting = FinderRouting()
+        var locator: FinderLocator = FinderLocator()
         var durationSeconds: Long = 60
         var maxRange: Double = 256.0
         var maxActive: Int = 64
@@ -65,14 +77,34 @@ class EnthusiaMarketConfig {
         var outline: FinderOutline = FinderOutline()
     }
 
+    class FinderRouting {
+        var enabled: Boolean = true
+        var attachmentDistance: Double = 12.0
+        @Comment("At most 128 nodes per world. Explicit links are bidirectional; coordinates must describe safe walkways.")
+        var nodes: MutableList<Any> = mutableListOf()
+    }
+
+    class FinderLocator {
+        var enabled: Boolean = true
+        @Comment("Use minecraft:default without a custom pack. Install the supplied Nexo add-on for enthusiamarket:stall.")
+        var style: String = "minecraft:default"
+        @Comment("Custom styles require a successfully loaded resource pack; otherwise use a vanilla gold icon.")
+        var requireResourcePack: Boolean = true
+    }
+
     class FinderOutline {
         var enabled: Boolean = true
+        @Comment("Private full-bright glowing display beams. False restores the original particle outline.")
+        var glow: Boolean = true
+        var beamWidth: Double = 0.04
+        var maxDisplaysPerPlayer: Int = 48
+        var maxDisplays: Int = 512
         var revealDistance: Double = 24.0
         var arrivalSeconds: Long = 10
         var height: Double = 3.0
         var spacing: Double = 1.0
         var maxParticlesPerPlayer: Int = 64
-        @Comment("RGB hex color; invalid values fall back to gold. Particle renderer, not entity glow.")
+        @Comment("RGB hex color; invalid values fall back to gold. Used by glow and particle fallback.")
         var color: String = "#FFC857"
         var particleSize: Double = 1.0
         var showShopMarker: Boolean = true

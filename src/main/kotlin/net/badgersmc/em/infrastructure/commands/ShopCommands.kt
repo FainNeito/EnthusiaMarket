@@ -70,7 +70,14 @@ class ShopCommands(
     fun trust(
         @Context sender: CommandSender,
         @net.badgersmc.nexus.commands.annotations.Arg("player") name: String,
-        @net.badgersmc.nexus.commands.annotations.Arg("mode") mode: String = "menu",
+    ) = trust(sender, name, "menu")
+
+    @Subcommand("trust")
+    @Permission("enthusiamarket.shop.use")
+    fun trust(
+        @Context sender: CommandSender,
+        @net.badgersmc.nexus.commands.annotations.Arg("player") name: String,
+        @net.badgersmc.nexus.commands.annotations.Arg("mode") mode: String,
     ) {
         val player = sender as? Player ?: run { sender.sendMessage(lang.msg("shop.cmd.players_only")); return }
         val target = playerNameResolver.resolve(name) ?: run {
@@ -117,9 +124,13 @@ class ShopCommands(
 
     @Subcommand("delete")
     @Permission("enthusiamarket.shop.use")
+    fun delete(@Context sender: CommandSender) = delete(sender, "menu")
+
+    @Subcommand("delete")
+    @Permission("enthusiamarket.shop.use")
     fun delete(
         @Context sender: CommandSender,
-        @net.badgersmc.nexus.commands.annotations.Arg("mode") mode: String = "menu",
+        @net.badgersmc.nexus.commands.annotations.Arg("mode") mode: String,
     ) {
         val player = sender as? Player ?: run { sender.sendMessage(lang.msg("shop.cmd.players_only")); return }
         if (mode.equals("all", ignoreCase = true)) {
@@ -171,28 +182,31 @@ class ShopCommands(
                 net.badgersmc.em.interaction.gui.SearchResultsMenu.Result(shop, it.material, it.nested)
             }
         }
-        showSearchResults(player, query.value, results)
-    }
-
-    private fun showSearchResults(player: Player, query: String, results: List<net.badgersmc.em.interaction.gui.SearchResultsMenu.Result>) {
         if (results.isNotEmpty()) {
-            val ticker = shopSearchService.tickerMaterial(query)?.let {
+            val ticker = shopSearchService.tickerMaterial(query.value)?.let {
                 net.badgersmc.em.application.PriceTickerService.compute(it.name, transactions)
             }
             net.badgersmc.em.interaction.gui.SearchResultsMenu(
-                results, query, lang, stallRepository, ticker,
+                results, query.value, lang, stallRepository, ticker,
                 navigate = { finder, shop -> finderTrail?.start(finder, shop) },
             ).open(player)
             return
         }
-        player.sendMessage(lang.msg("shop.cmd.search.none", "query" to query))
+        player.sendMessage(lang.msg("shop.cmd.search.none", "query" to query.value))
     }
 
     @Subcommand("trail stop")
     @Permission("enthusiamarket.shop.use")
-    fun stopTrail(@Context sender: CommandSender) {
+    fun trailStop(@Context sender: CommandSender) {
         val player = sender as? Player ?: return
         finderTrail?.stop(player)
+    }
+
+    @Subcommand("trail mode")
+    @Permission("enthusiamarket.shop.use")
+    fun trailMode(@Context sender: CommandSender, @Arg("mode") mode: String) {
+        val player = sender as? Player ?: return
+        finderTrail?.setMode(player, mode)
     }
 
     private val historyMessages: ShopHistoryMessages
@@ -205,19 +219,31 @@ class ShopCommands(
 
     @Subcommand("history")
     @Permission("enthusiamarket.shop.use")
-    fun history(@Context sender: CommandSender, @Arg("page") page: Int = 1) {
+    fun history(@Context sender: CommandSender) = history(sender, 1)
+
+    @Subcommand("history")
+    @Permission("enthusiamarket.shop.use")
+    fun history(@Context sender: CommandSender, @Arg("page") page: Int) {
         historyMessages.read(sender, page, ShopHistorySelection(null, "/shop history", "all"))
     }
 
     @Subcommand("history all")
     @Permission("enthusiamarket.shop.use")
-    fun historyAll(@Context sender: CommandSender, @Arg("page") page: Int = 1) {
+    fun historyAll(@Context sender: CommandSender) = historyAll(sender, 1)
+
+    @Subcommand("history all")
+    @Permission("enthusiamarket.shop.use")
+    fun historyAll(@Context sender: CommandSender, @Arg("page") page: Int) {
         historyMessages.read(sender, page, ShopHistorySelection(null, "/shop history all", "all"))
     }
 
     @Subcommand("history today")
     @Permission("enthusiamarket.shop.use")
-    fun historyToday(@Context sender: CommandSender, @Arg("page") page: Int = 1) {
+    fun historyToday(@Context sender: CommandSender) = historyToday(sender, 1)
+
+    @Subcommand("history today")
+    @Permission("enthusiamarket.shop.use")
+    fun historyToday(@Context sender: CommandSender, @Arg("page") page: Int) {
         val window = net.badgersmc.em.application.ShopHistoryDates.today(historyClock, historyZone)
         historyMessages.read(sender, page, ShopHistorySelection(window, "/shop history today", "today"))
     }
@@ -228,7 +254,15 @@ class ShopCommands(
         @Context sender: CommandSender,
         @Arg("from") from: String,
         @Arg("to") to: String,
-        @Arg("page") page: Int = 1,
+    ) = historyRange(sender, from, to, 1)
+
+    @Subcommand("history range")
+    @Permission("enthusiamarket.shop.use")
+    fun historyRange(
+        @Context sender: CommandSender,
+        @Arg("from") from: String,
+        @Arg("to") to: String,
+        @Arg("page") page: Int,
     ) {
         val window = try {
             net.badgersmc.em.application.ShopHistoryDates.range(from, to, historyZone)

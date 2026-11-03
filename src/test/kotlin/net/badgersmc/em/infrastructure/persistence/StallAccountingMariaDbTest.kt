@@ -4,31 +4,24 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import net.badgersmc.em.domain.shop.*
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
-import java.sql.DriverManager
+import org.junit.jupiter.api.extension.RegisterExtension
+import net.badgersmc.em.testing.MarketMariaDbFixture
 import java.util.UUID
 import kotlin.test.*
 
-@EnabledIfEnvironmentVariable(named = "MARKET_ACCOUNTING_TEST_MARIA_PORT", matches = "[0-9]+")
 internal class StallAccountingMariaDbTest {
+    companion object {
+        @JvmField @RegisterExtension
+        val database = MarketMariaDbFixture("stall_accounting")
+    }
+
     @Test fun nativeFifoReplayAndRollback() {
-        val port = System.getenv("MARKET_ACCOUNTING_TEST_MARIA_PORT").toInt()
-        require(port in 1024..65535 && port != 3306)
-        val schema = "em_accounting_" + UUID.randomUUID().toString().replace("-", "")
-        val user = requireNotNull(System.getenv("MARKET_ACCOUNTING_TEST_MARIA_USER"))
-        val password = requireNotNull(System.getenv("MARKET_ACCOUNTING_TEST_MARIA_PASSWORD"))
-        require(user.isNotBlank() && password.isNotBlank())
-        val admin = "jdbc:mariadb://127.0.0.1:$port/"
-        DriverManager.getConnection(admin, user, password).use { c ->
-            c.createStatement().use { it.execute("CREATE DATABASE $schema") }
-            try {
-                HikariDataSource(HikariConfig().apply {
-                    jdbcUrl = admin + schema; username = user; this.password = password; maximumPoolSize = 2
-                }).use { ds ->
-                    verifyContracts(ds)
-                }
-            } finally { c.createStatement().use { it.execute("DROP DATABASE $schema") } }
-        }
+        HikariDataSource(HikariConfig().apply {
+            jdbcUrl = database.jdbcUrl
+            username = database.username
+            password = database.password
+            maximumPoolSize = 2
+        }).use(::verifyContracts)
     }
 
     private fun verifyContracts(ds: HikariDataSource) {
