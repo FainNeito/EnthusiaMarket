@@ -1221,3 +1221,8 @@ No repository-local EARS validator or SPEAR state helper was found; requirements
 
 - [x] Spec: user approved showing dimensions and volume in auction results; region bounds are inclusive and may be a polygon's bounding box, so label bounds/volume accurately rather than claim usable interior.
 - [ ] Prove/refine: verify 5 × 5 × 10 = 250, negative coordinates, one block, missing/invalid bounds and overflow; resolve Bukkit/WorldGuard on the main render thread. Build, hosted checks and live Java/Bedrock acceptance remain separate; manual evidence because project-local EARS/state tools are absent.
+## Finder BUY result presentation (REQ-396)
+
+- [x] Spec/prove: native TEST screenshot `11-search-guild-buy.jpg` showed a non-admin BUY shop called In Stock with Unlimited trades, and an existing server locale override named the mixed list Shops selling. Bundled default title is already neutral, so changing only the bundled existing key cannot fix the observed override. Keep the old key/file intact and introduce a separately customizable neutral results key.
+- [ ] Engine/refine: render BUY as buying with a capacity/funds check; preserve admin and finite stock behavior and all search/transaction semantics. Add real locale GUI regressions and an interactive mobile preview. No project-local EARS/state helpers exist; maintain manual evidence.
+- [ ] Run appropriate tests, exact-head hosted checks and review. TEST/Bedrock/client acceptance remains separate; do not claim it from static or mocked tests.
