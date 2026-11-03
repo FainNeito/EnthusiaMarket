@@ -2,6 +2,7 @@ package net.badgersmc.em.infrastructure.lumaguilds
 
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import net.lumalyte.lg.api.GuildLookup
 import net.lumalyte.lg.api.GuildSummary
 import net.lumalyte.lg.api.GuildBannerDesignSummary
@@ -229,6 +230,27 @@ class LumaGuildsGuildProviderTest {
     @Test
     fun `bankDeposit returns false for invalid guild ID`() {
         assertFalse(provider.bankDeposit(INVALID_UUID, 500L))
+    }
+
+    @Test
+    fun `shop payments preserve system settlement and identify parties and reversals`() {
+        every { lookup.systemBankDeposit(guildId, any(), any()) } returns true
+        every { lookup.systemBankWithdraw(guildId, any(), any()) } returns true
+        assertTrue(provider.shopBankDeposit(guildId.toString(), 11, "FainNoir", false))
+        assertTrue(provider.shopBankWithdraw(guildId.toString(), 2, "FainNoir", false))
+        assertTrue(provider.shopBankWithdraw(guildId.toString(), 11, "FainNoir", true))
+        assertTrue(provider.shopBankDeposit(guildId.toString(), 2, "FainNoir", true))
+        verify { lookup.systemBankDeposit(guildId, 11, "Shop payment | Buyer: FainNoir | EnthusiaMarket") }
+        verify { lookup.systemBankWithdraw(guildId, 2, "Shop payment | Seller: FainNoir | EnthusiaMarket") }
+        verify { lookup.systemBankWithdraw(guildId, 11, "Shop payment reversal | Buyer: FainNoir | EnthusiaMarket") }
+        verify { lookup.systemBankDeposit(guildId, 2, "Shop payment reversal | Seller: FainNoir | EnthusiaMarket") }
+    }
+
+    @Test
+    fun `invalid names are omitted without preventing settlement`() {
+        every { lookup.systemBankDeposit(guildId, 11, any()) } returns true
+        assertTrue(provider.shopBankDeposit(guildId.toString(), 11, "bad\nname", false))
+        verify { lookup.systemBankDeposit(guildId, 11, "Shop payment | EnthusiaMarket") }
     }
 
     // --- onDissolved / handleDisbanded ---

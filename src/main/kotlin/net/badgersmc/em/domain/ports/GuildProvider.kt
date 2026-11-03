@@ -61,6 +61,13 @@ interface GuildProvider {
     fun bankWithdraw(guildId: String, amount: Long): Boolean
     fun bankDeposit(guildId: String, amount: Long): Boolean
 
+    /** Shop settlement context is separate from the system bank actor. */
+    fun shopBankWithdraw(guildId: String, amount: Long, playerName: String, reversal: Boolean = false): Boolean =
+        bankWithdraw(guildId, amount)
+
+    fun shopBankDeposit(guildId: String, amount: Long, playerName: String, reversal: Boolean = false): Boolean =
+        bankDeposit(guildId, amount)
+
     /** Every guild known to the backing system (for pickers). */
     fun listGuilds(): List<GuildRef>
 
