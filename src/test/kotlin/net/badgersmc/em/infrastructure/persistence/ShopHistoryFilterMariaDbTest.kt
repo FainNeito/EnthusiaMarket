@@ -62,7 +62,8 @@ class ShopHistoryFilterMariaDbTest {
                     id BIGINT PRIMARY KEY AUTO_INCREMENT, shop_id BIGINT NOT NULL,
                     owner VARCHAR(36) NOT NULL, buyer VARCHAR(36) NOT NULL,
                     direction VARCHAR(10) NOT NULL, item TEXT NOT NULL, quantity INT NOT NULL,
-                    total_price BIGINT NOT NULL, created_at BIGINT NOT NULL, notified INT NOT NULL DEFAULT 0
+                    total_price BIGINT NOT NULL, created_at BIGINT NOT NULL, notified INT NOT NULL DEFAULT 0,
+                    sale_stall_id TEXT, sale_guild_id TEXT
                 )"""
 
         @RegisterExtension @JvmField

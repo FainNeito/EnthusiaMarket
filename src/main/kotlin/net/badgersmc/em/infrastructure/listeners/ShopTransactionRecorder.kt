@@ -1,6 +1,7 @@
 package net.badgersmc.em.infrastructure.listeners
 
 import net.badgersmc.em.domain.shop.ShopTransaction
+import net.badgersmc.em.domain.shop.ShopSaleAttribution
 import net.badgersmc.em.events.PostShopTransactionEvent
 import net.badgersmc.nexus.annotations.Component
 import org.bukkit.event.EventHandler
@@ -21,7 +22,7 @@ open class ShopTransactionRecorder(
     @Suppress("TooGenericExceptionCaught")
     fun onTransaction(event: PostShopTransactionEvent) {
         try {
-            transactions.record(
+            val transaction =
                 ShopTransaction(
                     shopId = event.shopId,
                     owner = event.landlordId,
@@ -29,11 +30,12 @@ open class ShopTransactionRecorder(
                     direction = event.direction,
                     item = event.item.type.name.lowercase(),
                     quantity = event.quantity,
-                    totalPrice = event.pricePaid.toLong(),
+                    totalPrice = event.grossPayment ?: event.pricePaid.toLong(),
                     createdAt = System.currentTimeMillis(),
                     notified = config.shop.notifyEnabled && Bukkit.getPlayer(event.landlordId)?.isOnline == true,
                 )
-            )
+            if (!config.shop.archiveCaptureEnabled || (event.stallId == null && event.guildId == null)) transactions.record(transaction)
+            else transactions.recordAttributed(transaction, ShopSaleAttribution(event.stallId, event.guildId, event.publicCashEligible))
         } catch (e: Exception) {
             // History is best-effort: a log write must never disturb the completed trade.
             org.bukkit.Bukkit.getLogger().warning("Failed to record shop transaction: ${e.message}")
