@@ -18,6 +18,54 @@ MAX_RECORD_BYTES = 4096
 MAX_ENTRIES = 100_000
 
 
+class PayloadReader:
+    def __init__(self, payload):
+        self.payload = payload
+        self.offset = 0
+
+    def take(self, length):
+        end = self.offset + length
+        if end > len(self.payload):
+            raise ValueError("truncated_payload")
+        data = self.payload[self.offset:end]
+        self.offset = end
+        return data
+
+    def boolean(self):
+        return self.take(1)[0] != 0  # DataInputStream.readBoolean
+
+    def utf(self):
+        length = struct.unpack(">H", self.take(2))[0]
+        data = self.take(length)
+        index = 0
+        while index < len(data):
+            first = data[index]
+            if first <= 0x7f:
+                index += 1
+            elif 0xc0 <= first <= 0xdf:
+                if index + 1 >= len(data) or data[index + 1] & 0xc0 != 0x80:
+                    raise ValueError("invalid_modified_utf")
+                index += 2
+            elif 0xe0 <= first <= 0xef:
+                if (index + 2 >= len(data) or data[index + 1] & 0xc0 != 0x80
+                        or data[index + 2] & 0xc0 != 0x80):
+                    raise ValueError("invalid_modified_utf")
+                index += 3
+            else:
+                raise ValueError("invalid_modified_utf")
+        return data
+
+
+def read_uuid(raw):
+    try:
+        text = raw.decode("ascii")
+        if str(uuid.UUID(text)) != text:
+            raise ValueError("noncanonical_uuid")
+        return text
+    except (UnicodeDecodeError, ValueError) as error:
+        raise ValueError("invalid_uuid") from error
+
+
 def signature(info):
     return (info.st_dev, info.st_ino, info.st_mode, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
 
@@ -56,18 +104,29 @@ def inspect_pending(path):
     payload, checksum = data[:-32], data[-32:]
     if hashlib.sha256(payload).digest() != checksum:
         raise ValueError("checksum_mismatch")
-    if len(payload) < 6:
-        raise ValueError("invalid_header")
-    version, id_size = struct.unpack(">iH", payload[:6])
-    if id_size != 36 or len(payload) < 6 + id_size:
-        raise ValueError("invalid_record_id")
-    try:
-        identifier = payload[6:6 + id_size].decode("ascii")
-        if str(uuid.UUID(identifier)) != identifier or path.name != f"{identifier}.pending":
-            raise ValueError("record_id_mismatch")
-    except (UnicodeDecodeError, ValueError) as error:
-        raise ValueError("invalid_record_id") from error
-    return f"version_{version}" if version in (1, 2, 3) else "unknown_version"
+    reader = PayloadReader(payload)
+    version = struct.unpack(">i", reader.take(4))[0]
+    identifier = read_uuid(reader.utf())
+    if path.name != f"{identifier}.pending":
+        raise ValueError("record_id_mismatch")
+    if version not in (1, 2, 3):
+        return "unknown_version"
+    reader.take(8)  # shop ID
+    read_uuid(reader.utf())  # owner
+    read_uuid(reader.utf())  # buyer
+    if reader.utf() not in (b"BUY", b"SELL", b"TRADE"):
+        raise ValueError("invalid_direction")
+    reader.utf()  # item key, using Java's modified UTF framing
+    reader.take(4 + 8 + 8)  # quantity, total price, creation time
+    reader.boolean()  # notified
+    stall = reader.utf() if version >= 2 and reader.boolean() else None
+    guild = read_uuid(reader.utf()) if version >= 2 and reader.boolean() else None
+    eligible = reader.boolean() if version >= 3 else False
+    if eligible and (stall is None or guild is not None):
+        raise ValueError("invalid_public_attribution")
+    if reader.offset != len(payload):
+        raise ValueError("unexpected_trailing_data")
+    return f"version_{version}"
 
 
 def audit(directory):
@@ -108,7 +167,7 @@ def main():
         return 2
     print(json.dumps({"status": "review_required" if any(counts.values()) else "no_entries_observed",
                       "counts": counts,
-                      "note": "Header and checksum inventory only; does not prove server quiescence, complete payload validity, or database rollback safety."}))
+                      "note": "Conservative structure and checksum inventory only; does not prove server quiescence, semantic validity, or database rollback safety."}))
     return 2 if any(counts.values()) else 0
 
 

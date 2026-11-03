@@ -20,8 +20,16 @@ spec.loader.exec_module(audit)
 
 def write_record(directory, version, identifier=None):
     identifier = identifier or str(uuid.uuid4())
-    raw_id = identifier.encode("ascii")
-    payload = struct.pack(">iH", version, len(raw_id)) + raw_id + b"fixture"
+    def utf(value):
+        raw = value.encode("ascii")
+        return struct.pack(">H", len(raw)) + raw
+    payload = (struct.pack(">i", version) + utf(identifier) + struct.pack(">q", 42)
+               + utf(str(uuid.uuid4())) + utf(str(uuid.uuid4())) + utf("SELL") + utf("redstone")
+               + struct.pack(">iqq?", 3, 300, 12345, False))
+    if version >= 2:
+        payload += b"\x01" + utf("stall17") + b"\x00"
+    if version >= 3:
+        payload += b"\x01"
     path = directory / f"{identifier}.pending"
     path.write_bytes(payload + hashlib.sha256(payload).digest())
     return path
@@ -67,6 +75,34 @@ class OutboxAuditTest(unittest.TestCase):
             renamed = write_record(root, 3)
             renamed.rename(root / f"{uuid.uuid4()}.pending")
             self.assertEqual(2, audit.audit(root)["invalid"])
+
+    def test_checksummed_truncated_or_trailing_known_payload_is_invalid(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for suffix in (b"", b"extra"):
+                path = write_record(root, 3)
+                payload = path.read_bytes()[:-32]
+                payload = payload[:-5] if not suffix else payload + suffix
+                path.write_bytes(payload + hashlib.sha256(payload).digest())
+            self.assertEqual(2, audit.audit(root)["invalid"])
+
+    def test_checksummed_invalid_modified_utf_is_invalid(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = write_record(Path(temp), 1)
+            payload = path.read_bytes()[:-32]
+            payload = payload.replace(b"redstone", b"redston\xff")
+            path.write_bytes(payload + hashlib.sha256(payload).digest())
+            self.assertEqual(1, audit.audit(temp)["invalid"])
+
+    def test_public_eligibility_without_stall_is_invalid(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = write_record(Path(temp), 3)
+            payload = path.read_bytes()[:-32]
+            tail = b"\x01\x00\x07stall17\x00\x01"
+            self.assertTrue(payload.endswith(tail))
+            payload = payload[:-len(tail)] + b"\x00\x00\x01"
+            path.write_bytes(payload + hashlib.sha256(payload).digest())
+            self.assertEqual(1, audit.audit(temp)["invalid"])
 
     def test_descriptor_creation_time_precision_can_differ_from_path(self):
         with tempfile.TemporaryDirectory() as temp:
