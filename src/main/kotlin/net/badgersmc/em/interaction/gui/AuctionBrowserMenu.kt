@@ -148,20 +148,7 @@ class AuctionBrowserMenu(
             val pagePane = OutlinePane(9, 5, Pane.Priority.LOWEST)
             val slice = sorted.drop(pageIdx * ITEMS_PER_PAGE).take(ITEMS_PER_PAGE)
             for (entry in slice) {
-                val size = if (pageIdx == currentPage && entry.stallWorld != null && entry.stallRegion != null) {
-                    // WorldGuard/Bukkit world lookup must occur on the main-thread renderer.
-                    val bounds = try {
-                        regions.bounds(entry.stallWorld, entry.stallRegion)
-                    } catch (_: Exception) {
-                        null
-                    }
-                    AuctionRegionSize.from(bounds)
-                } else null
-                pagePane.addItem(GuiItem(entryIcon(entry, now, size)) { event ->
-                    event.isCancelled = true
-                    val player = event.whoClicked as? Player ?: return@GuiItem
-                    AuctionBidMenu(entry.auction, auctionService, lang).open(player)
-                })
+                pagePane.addItem(auctionItem(entry, now, pageIdx == currentPage))
             }
             itemsPane.addPane(pageIdx, Slot.fromXY(0, 0), pagePane)
         }
@@ -169,6 +156,23 @@ class AuctionBrowserMenu(
         gui.addPane(Slot.fromXY(0, 0), itemsPane)
 
         gui.addPane(Slot.fromXY(0, 5), buildControls(gui, pageCount, sorted.size))
+    }
+
+    private fun auctionItem(entry: EntryView, now: Instant, visible: Boolean): GuiItem {
+        val size = if (visible && entry.stallWorld != null && entry.stallRegion != null) {
+            // WorldGuard/Bukkit world lookup must occur on the main-thread renderer.
+            val bounds = try {
+                regions.bounds(entry.stallWorld, entry.stallRegion)
+            } catch (_: Exception) {
+                null
+            }
+            AuctionRegionSize.from(bounds)
+        } else null
+        return GuiItem(entryIcon(entry, now, size)) { event ->
+            event.isCancelled = true
+            val player = event.whoClicked as? Player ?: return@GuiItem
+            AuctionBidMenu(entry.auction, auctionService, lang).open(player)
+        }
     }
 
     private fun buildControls(gui: ChestGui, pageCount: Int, total: Int): StaticPane {
@@ -248,58 +252,63 @@ class AuctionBrowserMenu(
 
     private fun entryIcon(entry: EntryView, now: Instant, size: AuctionRegionSize?): ItemStack {
         val auction = entry.auction
-        val currentBid = auction.highBid?.amount ?: auction.startingBid
         val timerNotStarted = auction.endAt == Instant.MAX
         val remaining = if (timerNotStarted) Duration.ZERO else Duration.between(now, auction.endAt)
 
-        val bidLine: Component = if (auction.highBid != null) {
-            val bidder = entry.bidderName ?: lang.raw("common.unknown_player")
-            lang.msg(
-                "gui.auctions.entry_lore_current_with_bidder",
-                KEY_AMOUNT to currentBid,
-                "bidder" to bidder
-            ).decoration(TextDecoration.ITALIC, false)
-        } else {
-            lang.msg("gui.auctions.entry_lore_current_no_bids", KEY_AMOUNT to currentBid)
-                .decoration(TextDecoration.ITALIC, false)
-        }
-
-        val material = when {
-            auction.highBid == null -> Material.GRAY_DYE
-            remaining <= auction.antiSnipeWindow -> Material.RED_DYE
-            else -> Material.CYAN_DYE
-        }
-
-        return itemStack(material) {
+        return itemStack(entryMaterial(auction, remaining)) {
             name(lang.msg("gui.auctions.entry_name", KEY_STALL to auction.stallId.value)
                 .decoration(TextDecoration.ITALIC, false))
             lore(
-                lang.msg(
-                    "gui.auctions.entry_lore_region",
-                    "world" to (entry.stallWorld ?: "?"),
-                    "region" to (entry.stallRegion ?: "?")
-                ).decoration(TextDecoration.ITALIC, false),
-                if (size == null) lang.msg("gui.auctions.entry_lore_size_unavailable")
-                    .decoration(TextDecoration.ITALIC, false)
-                else lang.msg("gui.auctions.entry_lore_dimensions", "width" to size.width,
-                    "length" to size.length, "height" to size.height).decoration(TextDecoration.ITALIC, false),
-                if (size == null) Component.empty()
-                else lang.msg("gui.auctions.entry_lore_volume", "volume" to size.volume)
-                    .decoration(TextDecoration.ITALIC, false),
-                bidLine,
+                regionLine(entry),
+                dimensionsLine(size),
+                volumeLine(size),
+                bidLine(entry, auction.highBid?.amount ?: auction.startingBid),
                 lang.msg("gui.auctions.entry_lore_starting", KEY_AMOUNT to auction.startingBid)
                     .decoration(TextDecoration.ITALIC, false),
-                if (timerNotStarted)
-                    lang.msg("gui.auctions.entry_lore_awaiting_first_bid")
-                        .decoration(TextDecoration.ITALIC, false)
-                else
-                    lang.msg("gui.auctions.entry_lore_time_left", "time" to formatRemaining(remaining))
-                        .decoration(TextDecoration.ITALIC, false),
+                timeLine(timerNotStarted, remaining),
                 lang.msg("gui.auctions.entry_lore_click")
                     .decoration(TextDecoration.ITALIC, false)
             )
         }
     }
+
+    private fun entryMaterial(auction: Auction, remaining: Duration): Material = when {
+        auction.highBid == null -> Material.GRAY_DYE
+        remaining <= auction.antiSnipeWindow -> Material.RED_DYE
+        else -> Material.CYAN_DYE
+    }
+
+    private fun regionLine(entry: EntryView): Component =
+        lang.msg("gui.auctions.entry_lore_region", "world" to (entry.stallWorld ?: "?"),
+            "region" to (entry.stallRegion ?: "?")).decoration(TextDecoration.ITALIC, false)
+
+    private fun timeLine(timerNotStarted: Boolean, remaining: Duration): Component {
+        val message = if (timerNotStarted) lang.msg("gui.auctions.entry_lore_awaiting_first_bid")
+        else lang.msg("gui.auctions.entry_lore_time_left", "time" to formatRemaining(remaining))
+        return message.decoration(TextDecoration.ITALIC, false)
+    }
+
+    private fun bidLine(entry: EntryView, currentBid: Long): Component {
+        val message = if (entry.auction.highBid != null) {
+            val bidder = entry.bidderName ?: lang.raw("common.unknown_player")
+            lang.msg("gui.auctions.entry_lore_current_with_bidder", KEY_AMOUNT to currentBid, "bidder" to bidder)
+        } else {
+            lang.msg("gui.auctions.entry_lore_current_no_bids", KEY_AMOUNT to currentBid)
+        }
+        return message.decoration(TextDecoration.ITALIC, false)
+    }
+
+    private fun dimensionsLine(size: AuctionRegionSize?): Component {
+        val message = if (size == null) lang.msg("gui.auctions.entry_lore_size_unavailable")
+        else lang.msg("gui.auctions.entry_lore_dimensions", "width" to size.width,
+            "length" to size.length, "height" to size.height)
+        return message.decoration(TextDecoration.ITALIC, false)
+    }
+
+    private fun volumeLine(size: AuctionRegionSize?): Component =
+        if (size == null) Component.empty()
+        else lang.msg("gui.auctions.entry_lore_volume", "volume" to size.volume)
+            .decoration(TextDecoration.ITALIC, false)
 
     private fun formatRemaining(d: Duration): String {
         if (d.isNegative || d.isZero) return lang.raw("gui.auctions.time_ended")

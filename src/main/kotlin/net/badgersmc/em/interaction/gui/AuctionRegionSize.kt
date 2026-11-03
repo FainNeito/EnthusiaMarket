@@ -10,7 +10,7 @@ internal data class AuctionRegionSize(val width: Long, val length: Long, val hei
             val width = bounds.maxX.toLong() - bounds.minX.toLong() + 1
             val length = bounds.maxZ.toLong() - bounds.minZ.toLong() + 1
             val height = bounds.maxY.toLong() - bounds.minY.toLong() + 1
-            if (width <= 0 || length <= 0 || height <= 0) return null
+            if (minOf(width, length, height) <= 0) return null
             val volume = try {
                 Math.multiplyExact(Math.multiplyExact(width, length), height)
             } catch (_: ArithmeticException) {

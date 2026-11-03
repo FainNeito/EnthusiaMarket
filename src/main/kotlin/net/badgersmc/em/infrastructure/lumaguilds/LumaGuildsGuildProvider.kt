@@ -196,10 +196,13 @@ class LumaGuildsGuildProvider : GuildProvider {
 
     private fun shopPaymentReason(role: String, playerName: String, reversal: Boolean): String {
         // Bound and sanitize player-controlled text before persisting it in the shared ledger.
-        val safeName = playerName.takeIf { it.length in 1..32 && it.all { c -> c.isLetterOrDigit() || c == '_' || c == '.' || c == ' ' } }
+        val safeName = playerName.takeIf { it.length in 1..32 && it.all(::isSafeShopNameCharacter) }
         val operation = if (reversal) "Shop payment reversal" else "Shop payment"
         return if (safeName == null) "$operation | EnthusiaMarket" else "$operation | $role: $safeName | EnthusiaMarket"
     }
+
+    private fun isSafeShopNameCharacter(character: Char): Boolean =
+        character.isLetterOrDigit() || character == '_' || character == '.' || character == ' '
 
     override fun onDissolved(handler: (String) -> Unit) {
         dissolveHandlers.add(handler)
