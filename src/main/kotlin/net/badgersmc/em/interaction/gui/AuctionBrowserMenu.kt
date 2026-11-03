@@ -252,18 +252,6 @@ class AuctionBrowserMenu(
         val timerNotStarted = auction.endAt == Instant.MAX
         val remaining = if (timerNotStarted) Duration.ZERO else Duration.between(now, auction.endAt)
 
-        val bidLine: Component = if (auction.highBid != null) {
-            val bidder = entry.bidderName ?: lang.raw("common.unknown_player")
-            lang.msg(
-                "gui.auctions.entry_lore_current_with_bidder",
-                KEY_AMOUNT to currentBid,
-                "bidder" to bidder
-            ).decoration(TextDecoration.ITALIC, false)
-        } else {
-            lang.msg("gui.auctions.entry_lore_current_no_bids", KEY_AMOUNT to currentBid)
-                .decoration(TextDecoration.ITALIC, false)
-        }
-
         val material = when {
             auction.highBid == null -> Material.GRAY_DYE
             remaining <= auction.antiSnipeWindow -> Material.RED_DYE
@@ -279,14 +267,9 @@ class AuctionBrowserMenu(
                     "world" to (entry.stallWorld ?: "?"),
                     "region" to (entry.stallRegion ?: "?")
                 ).decoration(TextDecoration.ITALIC, false),
-                if (size == null) lang.msg("gui.auctions.entry_lore_size_unavailable")
-                    .decoration(TextDecoration.ITALIC, false)
-                else lang.msg("gui.auctions.entry_lore_dimensions", "width" to size.width,
-                    "length" to size.length, "height" to size.height).decoration(TextDecoration.ITALIC, false),
-                if (size == null) Component.empty()
-                else lang.msg("gui.auctions.entry_lore_volume", "volume" to size.volume)
-                    .decoration(TextDecoration.ITALIC, false),
-                bidLine,
+                dimensionsLine(size),
+                volumeLine(size),
+                bidLine(entry, currentBid),
                 lang.msg("gui.auctions.entry_lore_starting", KEY_AMOUNT to auction.startingBid)
                     .decoration(TextDecoration.ITALIC, false),
                 if (timerNotStarted)
@@ -300,6 +283,28 @@ class AuctionBrowserMenu(
             )
         }
     }
+
+    private fun bidLine(entry: EntryView, currentBid: Long): Component {
+        val message = if (entry.auction.highBid != null) {
+            val bidder = entry.bidderName ?: lang.raw("common.unknown_player")
+            lang.msg("gui.auctions.entry_lore_current_with_bidder", KEY_AMOUNT to currentBid, "bidder" to bidder)
+        } else {
+            lang.msg("gui.auctions.entry_lore_current_no_bids", KEY_AMOUNT to currentBid)
+        }
+        return message.decoration(TextDecoration.ITALIC, false)
+    }
+
+    private fun dimensionsLine(size: AuctionRegionSize?): Component {
+        val message = if (size == null) lang.msg("gui.auctions.entry_lore_size_unavailable")
+        else lang.msg("gui.auctions.entry_lore_dimensions", "width" to size.width,
+            "length" to size.length, "height" to size.height)
+        return message.decoration(TextDecoration.ITALIC, false)
+    }
+
+    private fun volumeLine(size: AuctionRegionSize?): Component =
+        if (size == null) Component.empty()
+        else lang.msg("gui.auctions.entry_lore_volume", "volume" to size.volume)
+            .decoration(TextDecoration.ITALIC, false)
 
     private fun formatRemaining(d: Duration): String {
         if (d.isNegative || d.isZero) return lang.raw("gui.auctions.time_ended")
