@@ -6,6 +6,7 @@ import io.mockk.slot
 import io.mockk.verify
 import net.badgersmc.em.config.EnthusiaMarketConfig
 import net.badgersmc.em.domain.shop.ShopTransaction
+import net.badgersmc.em.domain.shop.ShopSaleAttribution
 import net.badgersmc.em.domain.shop.ShopTransactionRepository
 import net.badgersmc.em.events.PostShopTransactionEvent
 import net.badgersmc.nexus.i18n.LangService
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Test
 import org.mockbukkit.mockbukkit.MockBukkit
 import org.mockbukkit.mockbukkit.ServerMock
 import kotlin.test.assertFalse
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import java.util.UUID
 
@@ -24,6 +26,21 @@ class ShopSaleNotificationRecordingTest {
     private lateinit var server: ServerMock
     @BeforeEach fun setup() { server = MockBukkit.mock() }
     @AfterEach fun cleanup() { MockBukkit.unmock() }
+
+    @Test fun `event captures sale-time stall and guild separately from transaction`() {
+        val storage = mockk<ShopHistoryStorage>()
+        val attribution = slot<ShopSaleAttribution>()
+        val transaction = slot<ShopTransaction>()
+        every { storage.recordAttributed(capture(transaction), capture(attribution)) } returns Unit
+        val event = PostShopTransactionEvent(server.addPlayer(), UUID.randomUUID(), ItemStack(Material.DIAMOND), 1, 100.0)
+        event.stallId = "stall17"
+        event.publicCashEligible = true
+        event.grossPayment = 9_007_199_254_740_993L
+        ShopTransactionRecorder(storage, EnthusiaMarketConfig()).onTransaction(event)
+        assertEquals(ShopSaleAttribution("stall17", null, publicCashEligible = true), attribution.captured)
+        assertEquals(9_007_199_254_740_993L, transaction.captured.totalPrice)
+        verify(exactly = 0) { storage.record(any()) }
+    }
 
     @Test fun `online delivery records only its sale notified without mass acknowledgement`() {
         val owner = server.addPlayer()

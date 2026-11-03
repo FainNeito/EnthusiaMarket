@@ -25,6 +25,22 @@ Each requirement carries a stable ID. Tasks reference requirements by ID. New re
 
 ## Product (what the system is for)
 
+### REQ-386 — Capture sale-time attribution
+
+**Event-driven.** WHEN an eligible completed shop sale is recorded THE SYSTEM SHALL retain its sale-time stall identifier and verified guild identifier without consulting future ownership.
+
+### REQ-387 — Preserve legacy sale history
+
+**Unwanted.** IF a historical transaction or pending version-one outbox record has no sale-time attribution THEN THE SYSTEM SHALL retain it without inventing stall or guild attribution.
+
+### REQ-388 — Durable attributed delivery
+
+**Event-driven.** WHEN an attributed sale is retried after an interrupted history delivery THE SYSTEM SHALL preserve its attribution and existing idempotent receipt semantics.
+
+### REQ-389 — Restrict public sales projection
+
+**Unwanted.** IF a transaction's currency, eligibility or attribution is unverified THEN THE SYSTEM SHALL exclude unsupported fields or records from the public sales feed.
+
 ### REQ-001 — Stall marketplace as core product
 
 **Ubiquitous.** THE SYSTEM SHALL expose WorldGuard regions as rentable or ownable market stalls for individual players and guilds.

@@ -1,6 +1,8 @@
 
 # Tasks — EnthusiaMarket
 
+- [~] WEBSITE-SALES-ATTRIBUTION — REQ-386/387/388/389: preserve sale-time stall and guild IDs through history and legacy-compatible outbox, then implement a bounded authenticated public exporter without guessing historical ownership. Local changes and tests are incomplete and unrun; assess binary compatibility, eligibility and durable retention before delivery. Evidence: website-sale-attribution-plan.md.
+
 - [x] INTEGRATE-380 — Reconcile #215/#213/#214, distinguish direction no-match from stock shortage, preserve inventory and approved controls, prove nine stock regressions and the clean 899/915-case bundles, refine actionable exact-head static findings and refresh the private mobile preview. Evidence: search-stock-integration.md. Hosted workflow approval, maintainer merge, network pins and Minecraft acceptance remain separate gates.
 
 - [~] **TDD-340** Guild stall read API (REQ-340/341): API, current-member authority shared with PR #197, ownership filtering, offline roster freshness, denied/failed reads, held stalls and asynchronous boundaries implemented. Evidence: docs/guild-stall-api.md, GuildStallQueryTest and GuildStallReadProviderTest; clean full and focused local checks passed. Deliver as dependent canonical PR; hosted final-head/live acceptance remain separate. No merge or production change. Project-local EARS/state helpers are absent.

@@ -5,11 +5,15 @@ import io.mockk.mockk
 import io.mockk.verify
 import net.badgersmc.em.domain.shop.ShopTransaction
 import net.badgersmc.em.domain.shop.ShopTransactionRepository
+import net.badgersmc.em.domain.shop.ShopSaleAttribution
 import net.badgersmc.em.domain.shop.SignDirection
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
 import java.nio.file.Path
+import java.io.ByteArrayOutputStream
+import java.io.DataOutputStream
+import java.security.MessageDigest
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -18,6 +22,54 @@ class ShopHistoryOutboxTest {
     @TempDir lateinit var directory: Path
     private val sale = ShopTransaction(shopId = 42, owner = UUID.randomUUID(), buyer = UUID.randomUUID(),
         direction = SignDirection.SELL, item = "diamond", quantity = 3, totalPrice = 300, createdAt = 12345)
+
+    @Test fun `sale attribution survives outbox retries`() {
+        val repository = mockk<ShopTransactionRepository>()
+        val attributed = ShopSaleAttribution(stallId = "stall17", guildId = null, publicCashEligible = true)
+        val outbox = ShopHistoryOutbox(directory, repository)
+        val id = outbox.appendAttributed(sale, attributed)
+        every { repository.recordAttributedOnce(id, sale, attributed) } throws IllegalStateException("offline")
+        assertFailsWith<IllegalStateException> { outbox.drain() }
+        every { repository.recordAttributedOnce(id, sale, attributed) } returns Unit
+        ShopHistoryOutbox(directory, repository).drain()
+        verify(exactly = 2) { repository.recordAttributedOnce(id, sale, attributed) }
+    }
+
+    @Test fun `legacy version one record remains readable without guessed attribution`() {
+        val repository = mockk<ShopTransactionRepository>()
+        val id = UUID.randomUUID()
+        val payload = ByteArrayOutputStream().also { bytes ->
+            DataOutputStream(bytes).use { output ->
+                output.writeInt(1); output.writeUTF(id.toString()); output.writeLong(sale.shopId)
+                output.writeUTF(sale.owner.toString()); output.writeUTF(sale.buyer.toString())
+                output.writeUTF(sale.direction.name); output.writeUTF(sale.item); output.writeInt(sale.quantity)
+                output.writeLong(sale.totalPrice); output.writeLong(sale.createdAt); output.writeBoolean(sale.notified)
+            }
+        }.toByteArray()
+        Files.write(directory.resolve("$id.pending"), payload + MessageDigest.getInstance("SHA-256").digest(payload))
+        every { repository.recordOnce(id, sale) } returns Unit
+        ShopHistoryOutbox(directory, repository).drain()
+        verify(exactly = 1) { repository.recordOnce(id, sale) }
+    }
+
+    @Test fun `legacy version two attribution stays ineligible for public archive`() {
+        val repository = mockk<ShopTransactionRepository>()
+        val id = UUID.randomUUID()
+        val payload = ByteArrayOutputStream().also { bytes ->
+            DataOutputStream(bytes).use { output ->
+                output.writeInt(2); output.writeUTF(id.toString()); output.writeLong(sale.shopId)
+                output.writeUTF(sale.owner.toString()); output.writeUTF(sale.buyer.toString())
+                output.writeUTF(sale.direction.name); output.writeUTF(sale.item); output.writeInt(sale.quantity)
+                output.writeLong(sale.totalPrice); output.writeLong(sale.createdAt); output.writeBoolean(sale.notified)
+                output.writeBoolean(true); output.writeUTF("stall17"); output.writeBoolean(false)
+            }
+        }.toByteArray()
+        Files.write(directory.resolve("$id.pending"), payload + MessageDigest.getInstance("SHA-256").digest(payload))
+        val legacy = ShopSaleAttribution("stall17", null, publicCashEligible = false)
+        every { repository.recordAttributedOnce(id, sale, legacy) } returns Unit
+        ShopHistoryOutbox(directory, repository).drain()
+        verify(exactly = 1) { repository.recordAttributedOnce(id, sale, legacy) }
+    }
 
     @Test fun `SQL outage retains forced record and restart retries identical id and payload`() {
         val repository = mockk<ShopTransactionRepository>()

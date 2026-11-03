@@ -2,6 +2,7 @@ package net.badgersmc.em.infrastructure.persistence
 
 import net.badgersmc.em.domain.shop.ShopTransaction
 import net.badgersmc.em.domain.shop.ShopTransactionRepository
+import net.badgersmc.em.domain.shop.ShopSaleAttribution
 import net.badgersmc.em.domain.shop.SignDirection
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -25,11 +26,14 @@ internal class ShopHistoryOutbox(
 ) {
     init { Files.createDirectories(directory) }
 
-    fun append(tx: ShopTransaction): UUID {
+    fun append(tx: ShopTransaction): UUID = write(tx, null)
+    fun appendAttributed(tx: ShopTransaction, attribution: ShopSaleAttribution): UUID = write(tx, attribution)
+
+    private fun write(tx: ShopTransaction, attribution: ShopSaleAttribution?): UUID {
         val id = UUID.randomUUID()
         val payload = ByteArrayOutputStream().also { buffer ->
             DataOutputStream(buffer).use { output ->
-                output.writeInt(1)
+                output.writeInt(3)
                 output.writeUTF(id.toString())
                 output.writeLong(tx.shopId)
                 output.writeUTF(tx.owner.toString())
@@ -40,6 +44,11 @@ internal class ShopHistoryOutbox(
                 output.writeLong(tx.totalPrice)
                 output.writeLong(tx.createdAt)
                 output.writeBoolean(tx.notified)
+                output.writeBoolean(attribution?.stallId != null)
+                if (attribution?.stallId != null) output.writeUTF(attribution.stallId)
+                output.writeBoolean(attribution?.guildId != null)
+                if (attribution?.guildId != null) output.writeUTF(attribution.guildId.toString())
+                output.writeBoolean(attribution?.publicCashEligible == true)
             }
         }.toByteArray()
         val bytes = ByteBuffer.wrap(payload + digest(payload))
@@ -64,17 +73,18 @@ internal class ShopHistoryOutbox(
     }
 
     private fun deliver(path: Path) {
-        val (id, tx) = readPending(path) ?: return
-        repository.recordOnce(id, tx)
+        val (id, tx, attribution) = readPending(path) ?: return
+        if (attribution == null) repository.recordOnce(id, tx)
+        else repository.recordAttributedOnce(id, tx, attribution)
         acknowledge(path)
     }
 
-    private fun readPending(path: Path): Pair<UUID, ShopTransaction>? = try { read(path) }
+    private fun readPending(path: Path): Triple<UUID, ShopTransaction, ShopSaleAttribution?>? = try { read(path) }
         catch (failure: IllegalArgumentException) { quarantine(path, failure) }
         catch (failure: java.io.EOFException) { quarantine(path, failure) }
         catch (failure: java.io.UTFDataFormatException) { quarantine(path, failure) }
 
-    private fun quarantine(path: Path, failure: Exception): Pair<UUID, ShopTransaction>? {
+    private fun quarantine(path: Path, failure: Exception): Triple<UUID, ShopTransaction, ShopSaleAttribution?>? {
         // Keep immutable bytes without letting a poisoned record starve later sales.
         Files.move(path, path.resolveSibling(path.fileName.toString().removeSuffix(".pending") + ".corrupt"),
             StandardCopyOption.ATOMIC_MOVE)
@@ -82,7 +92,7 @@ internal class ShopHistoryOutbox(
         return null
     }
 
-    private fun read(path: Path): Pair<UUID, ShopTransaction> {
+    private fun read(path: Path): Triple<UUID, ShopTransaction, ShopSaleAttribution?> {
         require(Files.size(path) in 33..4096) { "Invalid history record size: ${path.fileName}" }
         val bytes = Files.readAllBytes(path)
         val payload = bytes.copyOfRange(0, bytes.size - 32)
@@ -90,16 +100,22 @@ internal class ShopHistoryOutbox(
             "History checksum mismatch: ${path.fileName}"
         }
         return DataInputStream(ByteArrayInputStream(payload)).use { input ->
-            require(input.readInt() == 1) { "Unsupported history record version" }
+            val version = input.readInt()
+            require(version in 1..3) { "Unsupported history record version" }
             val id = UUID.fromString(input.readUTF())
             require(path.fileName.toString() == "$id.pending") { "History recording id mismatch" }
-            val tx = ShopTransaction(
+            val base = ShopTransaction(
                 shopId = input.readLong(), owner = UUID.fromString(input.readUTF()), buyer = UUID.fromString(input.readUTF()),
                 direction = SignDirection.valueOf(input.readUTF()), item = input.readUTF(), quantity = input.readInt(),
                 totalPrice = input.readLong(), createdAt = input.readLong(), notified = input.readBoolean(),
             )
+            val stall = if (version >= 2 && input.readBoolean()) input.readUTF() else null
+            val guild = if (version >= 2 && input.readBoolean()) UUID.fromString(input.readUTF()) else null
+            val eligible = version >= 3 && input.readBoolean()
+            require(!eligible || (stall != null && guild == null)) { "Invalid public attribution" }
+            val attribution = if (stall == null && guild == null) null else ShopSaleAttribution(stall, guild, eligible)
             require(input.available() == 0) { "Unexpected trailing history data" }
-            id to tx
+            Triple(id, base, attribution)
         }
     }
 

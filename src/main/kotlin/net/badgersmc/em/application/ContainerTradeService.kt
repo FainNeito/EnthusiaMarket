@@ -31,14 +31,18 @@ internal data class TransactionEventData(
     val cost: Long,
     val shopId: Long,
     val direction: net.badgersmc.em.domain.shop.SignDirection,
-    val guildId: UUID? = null
+    val guildId: UUID? = null,
+    val stallId: String? = null,
+    val publicCashEligible: Boolean = false,
 )
 
 private data class TradeContext(
     val ownerUuid: UUID,
     val guildId: UUID?,
     val player: Player,
-    val containerInv: Inventory
+    val containerInv: Inventory,
+    val ownerType: OwnerType,
+    val stallOwnerId: UUID?,
 )
 
 /**
@@ -106,7 +110,7 @@ open class ContainerTradeService(
             return BuyPreconditions(result = ContainerTradeResult.Failure("You don't have the items to sell"))
         val container = getContainer(shop)
             ?: return BuyPreconditions(result = ContainerTradeResult.Failure("Container missing"))
-        return BuyPreconditions(TradeContext(shop.owner, resolveGuildUuid(stall), player, container.inventory), sellStack)
+        return BuyPreconditions(TradeContext(shop.owner, resolveGuildUuid(stall), player, container.inventory, stall.owner.type, ownerUuid(stall)), sellStack)
     }
 
     private fun executeBuyTransaction(
@@ -143,7 +147,7 @@ open class ContainerTradeService(
                 return buyPaymentDepositFailed(ctx, sellStack, guildId, cost)
             }
         }
-        publishShopTransaction(TransactionEventData(ctx.player, ctx.ownerUuid, sellStack, sellStack.amount, cost, shop.id, shop.direction, ctx.guildId))
+        publishShopTransaction(TransactionEventData(ctx.player, ctx.ownerUuid, sellStack, sellStack.amount, cost, shop.id, shop.direction, ctx.guildId, shop.stallId))
         return ContainerTradeResult.Success("Sold ${sellStack.amount}x for $cost")
     }
 
@@ -214,7 +218,7 @@ open class ContainerTradeService(
             ?: return SellPreconditions(result = ContainerTradeResult.Failure("Container missing"))
         if (!inventoryHasAtLeast(container.inventory, sellStack, shop.sellAmount))
             return SellPreconditions(result = ContainerTradeResult.Failure("Out of stock"))
-        return SellPreconditions(TradeContext(shop.owner, resolveGuildUuid(stall), player, container.inventory), sellStack)
+        return SellPreconditions(TradeContext(shop.owner, resolveGuildUuid(stall), player, container.inventory, stall.owner.type, ownerUuid(stall)), sellStack)
     }
 
     @Suppress("ReturnCount", "CyclomaticComplexMethod")
@@ -253,7 +257,17 @@ open class ContainerTradeService(
             else saleRewards?.aborted(intent)
         }
         if (result is ContainerTradeResult.Success) {
-            publishShopTransaction(TransactionEventData(ctx.player, ctx.ownerUuid, sellStack, scaledSell, cost, shop.id, shop.direction, ctx.guildId))
+            val publicCashEligible = runCatching {
+                net.badgersmc.em.domain.shop.WebsiteSaleEligibility.accepts(
+                    net.badgersmc.em.domain.shop.WebsiteSaleFacts(
+                        shop.direction, cost, scaledSell, shop.stallId,
+                        System.getenv("ENTHUSIA_MARKET_SALES_CURRENCY") == "RAW_GOLD",
+                        shop.adminShop, ctx.stallOwnerId?.let { ctx.player.uniqueId == it || ctx.player.uniqueId == ctx.ownerUuid }, sellStack.hasItemMeta(),
+                        ctx.ownerType != OwnerType.SOLO, null,
+                    )
+                )
+            }.getOrDefault(false)
+            publishShopTransaction(TransactionEventData(ctx.player, ctx.ownerUuid, sellStack, scaledSell, cost, shop.id, shop.direction, ctx.guildId, shop.stallId, publicCashEligible))
         }
         return result
     }
@@ -374,6 +388,9 @@ open class ContainerTradeService(
         } else null
     }
 
+    private fun ownerUuid(stall: net.badgersmc.em.domain.stall.Stall): UUID? =
+        runCatching { UUID.fromString(stall.owner.id) }.getOrNull()
+
     // --- Barter trade (TRADE direction) ---
 
     private data class BarterPreconditions(
@@ -394,7 +411,7 @@ open class ContainerTradeService(
         val container = validateBarterStock(shop, player, stacks.first, stacks.second)
             ?: return BarterPreconditions(result = ContainerTradeResult.Failure("Out of stock"))
         return BarterPreconditions(
-            TradeContext(shop.owner, resolveGuildUuid(stall), player, container.inventory),
+            TradeContext(shop.owner, resolveGuildUuid(stall), player, container.inventory, stall.owner.type, ownerUuid(stall)),
             stacks.first, stacks.second
         )
     }
@@ -483,7 +500,7 @@ open class ContainerTradeService(
         } catch (e: Exception) {
             return rollbackBarterAfterVaultFailure(ctx, sellStack, costStack, collectedItems, e)
         }
-        publishShopTransaction(TransactionEventData(ctx.player, ctx.ownerUuid, sellStack, shop.sellAmount, 0, shop.id, shop.direction, ctx.guildId))
+        publishShopTransaction(TransactionEventData(ctx.player, ctx.ownerUuid, sellStack, shop.sellAmount, 0, shop.id, shop.direction, ctx.guildId, shop.stallId))
         return ContainerTradeResult.Success("Traded ${shop.sellAmount}x for ${shop.costAmount}x")
     }
 
@@ -638,7 +655,7 @@ open class ContainerTradeService(
             compensationAlerts.alert("placement-barter-vault-deposit", detail, ctx.player.uniqueId, amounts.cost.toLong())
             return ContainerTradeResult.CompensationFailed("Barter vault persistence failed", detail)
         }
-        publishShopTransaction(TransactionEventData(ctx.player, ctx.ownerUuid, ctx.sellStack, amounts.sell, 0, shop.id, shop.direction))
+        publishShopTransaction(TransactionEventData(ctx.player, ctx.ownerUuid, ctx.sellStack, amounts.sell, 0, shop.id, shop.direction, stallId = shop.stallId))
         return ContainerTradeResult.Success("Traded ${amounts.sell}x for ${amounts.cost}x")
     }
 
