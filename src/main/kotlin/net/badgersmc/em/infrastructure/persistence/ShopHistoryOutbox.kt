@@ -33,7 +33,7 @@ internal class ShopHistoryOutbox(
         val id = UUID.randomUUID()
         val payload = ByteArrayOutputStream().also { buffer ->
             DataOutputStream(buffer).use { output ->
-                output.writeInt(3)
+                output.writeInt(if (attribution == null) 1 else 3)
                 output.writeUTF(id.toString())
                 output.writeLong(tx.shopId)
                 output.writeUTF(tx.owner.toString())
@@ -44,11 +44,13 @@ internal class ShopHistoryOutbox(
                 output.writeLong(tx.totalPrice)
                 output.writeLong(tx.createdAt)
                 output.writeBoolean(tx.notified)
-                output.writeBoolean(attribution?.stallId != null)
-                if (attribution?.stallId != null) output.writeUTF(attribution.stallId)
-                output.writeBoolean(attribution?.guildId != null)
-                if (attribution?.guildId != null) output.writeUTF(attribution.guildId.toString())
-                output.writeBoolean(attribution?.publicCashEligible == true)
+                if (attribution != null) {
+                    output.writeBoolean(attribution.stallId != null)
+                    if (attribution.stallId != null) output.writeUTF(attribution.stallId)
+                    output.writeBoolean(attribution.guildId != null)
+                    if (attribution.guildId != null) output.writeUTF(attribution.guildId.toString())
+                    output.writeBoolean(attribution.publicCashEligible)
+                }
             }
         }.toByteArray()
         val bytes = ByteBuffer.wrap(payload + digest(payload))

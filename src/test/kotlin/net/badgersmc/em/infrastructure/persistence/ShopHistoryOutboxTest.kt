@@ -13,6 +13,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
+import java.io.DataInputStream
 import java.security.MessageDigest
 import java.util.UUID
 import kotlin.test.assertEquals
@@ -22,6 +23,17 @@ class ShopHistoryOutboxTest {
     @TempDir lateinit var directory: Path
     private val sale = ShopTransaction(shopId = 42, owner = UUID.randomUUID(), buyer = UUID.randomUUID(),
         direction = SignDirection.SELL, item = "diamond", quantity = 3, totalPrice = 300, createdAt = 12345)
+
+    @Test fun `unattributed records retain version one format for older readers`() {
+        val repository = mockk<ShopTransactionRepository>()
+        val id = ShopHistoryOutbox(directory, repository).append(sale)
+        DataInputStream(Files.newInputStream(directory.resolve("$id.pending"))).use { input ->
+            assertEquals(1, input.readInt())
+        }
+        every { repository.recordOnce(id, sale) } returns Unit
+        ShopHistoryOutbox(directory, repository).drain()
+        verify(exactly = 1) { repository.recordOnce(id, sale) }
+    }
 
     @Test fun `sale attribution survives outbox retries`() {
         val repository = mockk<ShopTransactionRepository>()
