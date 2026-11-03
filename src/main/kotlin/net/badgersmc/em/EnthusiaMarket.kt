@@ -597,8 +597,13 @@ open class EnthusiaMarket : JavaPlugin() {
             if (!settings.getBoolean("enabled", false)) return
             require(System.getenv("ENTHUSIA_MARKET_SALES_CURRENCY") == "RAW_GOLD")
             val token = System.getenv("ENTHUSIA_MARKET_SALES_TOKEN") ?: ""
+            val generationPath = System.getenv("ENTHUSIA_MARKET_SALES_GENERATION_FILE")
+                ?.takeIf { it.isNotBlank() } ?: error("Missing sales generation control file")
+            val generation = net.badgersmc.em.infrastructure.website.SalesGenerationFile(java.nio.file.Path.of(generationPath))
+            generation.read() // Fail startup closed when control state is missing or malformed.
             val server = net.badgersmc.em.infrastructure.website.WebsiteSalesHttpServer(
                 settings.getInt("port", 8124), token,
+                generation::read,
                 net.badgersmc.em.infrastructure.persistence.WebsiteSalesArchiveSql(ds),
             )
             try { server.start(); websiteSales = server } catch (failure: Exception) { server.close(); throw failure }

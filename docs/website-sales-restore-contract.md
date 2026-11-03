@@ -4,6 +4,8 @@ The current producer exposes numeric sale IDs and checkpoints. The website consu
 
 The following is a joint design target informed by website owner review, not a claim of deployed behavior or safe recovery. Market PR #6 remains draft and the public feed remains incomplete.
 
+**Prototype requirement (REQ-407, event-driven).** WHEN an authenticated v2 consumer requests a page, Market SHALL require its expected external generation and exclusive numeric cursor, return original recording UUIDs as event identities, and reject missing or mismatched generations and legacy requests. The isolated producer prototype is untested and does not establish safe recovery. The external generation requires correct operator rotation, and checking it before and after a read cannot detect an ABA transition, a rotation after the last check, or an omitted rotation. A consumer must still fence the whole write transaction, and both systems need an explicit paused, fenced reconciliation procedure.
+
 ## Required behavior
 
 1. A producer generation identifies one continuous archive lineage. It stays stable across ordinary restarts and is replaced with a new globally unique generation before a restored or forked archive is served. A value stored only inside the restored database cannot independently detect restoration; generation storage and rotation must be outside that restored state and must be included in the operator procedure.

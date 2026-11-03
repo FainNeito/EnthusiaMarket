@@ -37,7 +37,7 @@ internal class WebsiteSalesArchiveSql(private val ds: DataSource) : WebsitePubli
                 statement.executeQuery().use { rows -> if (rows.next()) rows.getLong(1) else 0L }
             }
             require(after <= maximum) { "Cursor is beyond the retained archive" }
-            connection.prepareStatement("""SELECT sale_id,stall_id,guild_name,item_key,quantity,raw_gold,occurred_at
+            connection.prepareStatement("""SELECT sale_id,stall_id,guild_name,item_key,quantity,raw_gold,occurred_at,recording_id
                 FROM website_public_sales WHERE sale_id>? ORDER BY sale_id ASC LIMIT 251""".trimIndent()).use { statement ->
                 statement.setLong(1, after)
                 statement.executeQuery().use { rows ->
@@ -46,7 +46,8 @@ internal class WebsiteSalesArchiveSql(private val ds: DataSource) : WebsitePubli
                     while (rows.next()) {
                         if (items.size == 250) { more = true; break }
                         items += WebsitePublicSale(rows.getLong(1), rows.getString(2), rows.getString(3),
-                            rows.getString(4), rows.getInt(5), rows.getLong(6), rows.getLong(7))
+                            rows.getString(4), rows.getInt(5), rows.getLong(6), rows.getLong(7),
+                            UUID.fromString(rows.getString(8)))
                     }
                     WebsitePublicSalePage(items, if (more) items.last().id else null, items.lastOrNull()?.id ?: after)
                 }

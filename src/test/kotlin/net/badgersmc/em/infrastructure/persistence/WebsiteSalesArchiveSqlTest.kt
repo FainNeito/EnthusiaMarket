@@ -34,14 +34,16 @@ class WebsiteSalesArchiveSqlTest {
         }
         val page = archive.readAfter(0)
         assertEquals(1, page.items.size)
+        assertEquals(receipt, page.items.single().recordingId)
         assertEquals("stall1", page.items.single().stall)
         assertEquals(42L, page.items.single().gold)
         val port = ServerSocket(0).use { it.localPort }
         val token = "test-only-" + "a".repeat(32)
-        val listener = WebsiteSalesHttpServer(port, token, archive)
+        val generation = UUID.randomUUID()
+        val listener = WebsiteSalesHttpServer(port, token, { generation }, archive)
         listener.start()
         try {
-            val request = HttpRequest.newBuilder(URI.create("http://127.0.0.1:$port/api/community/sales"))
+            val request = HttpRequest.newBuilder(URI.create("http://127.0.0.1:$port/api/community/sales?protocol=2&after=0&generation=$generation"))
                 .header("Authorization", "Bearer $token").GET().build()
             val response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString())
             assertEquals(200, response.statusCode())
@@ -83,7 +85,7 @@ class WebsiteSalesArchiveSqlTest {
             val last = archive.readAfter(first.nextCursor!!)
             assertEquals(listOf(251L), last.items.map { it.id })
             assertEquals(null, last.nextCursor)
-            assertEquals(setOf("id", "stall", "guild", "item", "quantity", "gold", "occurredAt"),
+            assertEquals(setOf("id", "stall", "guild", "item", "quantity", "gold", "occurredAt", "recordingId"),
                 first.items.first().javaClass.declaredFields.filterNot { it.isSynthetic }.map { it.name }.toSet())
         } finally { (ds as? AutoCloseable)?.close() }
     }
