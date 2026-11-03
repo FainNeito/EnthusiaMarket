@@ -23,6 +23,10 @@ class PostShopTransactionEvent(
 ) : Event() {
     var guildId: UUID? = null
         internal set
+    var stallId: String? = null
+        internal set
+    var publicCashEligible: Boolean = false
+        internal set
     var grossPayment: Long? = null
         internal set
     override fun getHandlers(): HandlerList = handlerList

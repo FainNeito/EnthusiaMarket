@@ -23,6 +23,10 @@ interface ShopTransactionRepository {
     fun recordOnce(recordingId: UUID, tx: ShopTransaction) {
         throw UnsupportedOperationException("Replay-safe history is not supported by this repository")
     }
+    /** Atomically stores a receipt, history and immutable sale-time attribution. */
+    fun recordAttributedOnce(recordingId: UUID, tx: ShopTransaction, attribution: ShopSaleAttribution) {
+        throw UnsupportedOperationException("Attributed history is not supported by this repository")
+    }
     /** Newest-first, paged. */
     fun findByOwner(owner: UUID, limit: Int, offset: Int): List<ShopTransaction>
     /** Transactions where player was owner OR buyer (for members). */
