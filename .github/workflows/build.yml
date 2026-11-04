@@ -22,6 +22,9 @@ jobs:
       - name: Verify offline history outbox audit
         run: python3 -B -m unittest discover -s scripts/tests -p test_audit_shop_history_outbox.py -v
 
+      - name: Verify offline generation inspection
+        run: python3 -B -m unittest discover -s scripts/tests -p test_inspect_sales_generation.py -v
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
