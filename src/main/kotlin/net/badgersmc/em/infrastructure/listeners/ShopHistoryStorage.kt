@@ -2,6 +2,7 @@ package net.badgersmc.em.infrastructure.listeners
 
 import net.badgersmc.em.domain.shop.ShopTransaction
 import net.badgersmc.em.domain.shop.ShopTransactionRepository
+import net.badgersmc.em.domain.shop.ShopSaleAttribution
 import net.badgersmc.em.infrastructure.persistence.ShopHistoryOutbox
 import net.badgersmc.nexus.annotations.Component
 import org.bukkit.plugin.Plugin
@@ -36,6 +37,12 @@ open class ShopHistoryStorage(repository: ShopTransactionRepository, plugin: Plu
     open fun record(tx: ShopTransaction) {
         check(!closed) { "Shop history storage is closed" }
         outbox.append(tx)
+    }
+
+    @Synchronized
+    open fun recordAttributed(tx: ShopTransaction, attribution: ShopSaleAttribution) {
+        check(!closed) { "Shop history storage is closed" }
+        outbox.appendAttributed(tx, attribution)
     }
 
     @Synchronized

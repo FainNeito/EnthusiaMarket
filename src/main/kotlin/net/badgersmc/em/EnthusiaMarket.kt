@@ -35,6 +35,7 @@ open class EnthusiaMarket : JavaPlugin() {
     private var shopHistory: net.badgersmc.em.infrastructure.listeners.ShopHistoryStorage? = null
     private var scheduler: NexusScheduler? = null
     private var websiteSync: net.badgersmc.em.websync.WebsiteSyncService? = null
+    private var websiteSales: net.badgersmc.em.infrastructure.website.WebsiteSalesHttpServer? = null
     private var bedrockHeadStore: net.badgersmc.em.websync.heads.BedrockHeadStore? = null
     private var geyserHeadIntegration: AutoCloseable? = null
     private var floodgateHeadIntegration: AutoCloseable? = null
@@ -121,6 +122,7 @@ open class EnthusiaMarket : JavaPlugin() {
         val ds = DatabaseFactory.open(dbSpec)
         MigrationRunner(ds, resourcePrefix = "migrations", classLoader = this::class.java.classLoader).runAll()
         ctx.registerBean("dataSource", DataSource::class, ds as DataSource)
+        startWebsiteSales(ds)
         shopNotifications = ctx.getBean<net.badgersmc.em.infrastructure.listeners.ShopNotificationStorage>()
         shopHistory = ctx.getBean<net.badgersmc.em.infrastructure.listeners.ShopHistoryStorage>()
         stallAccounting = ctx.getBean<net.badgersmc.em.infrastructure.listeners.StallAccountingStorage>()
@@ -557,6 +559,7 @@ open class EnthusiaMarket : JavaPlugin() {
     }
 
     override fun onDisable() {
+        runCatching { websiteSales?.close() }
         net.badgersmc.em.interaction.StallAccessUi.reset()
         net.badgersmc.em.interaction.AuctionBidUi.reset()
         net.badgersmc.em.interaction.gui.AuctionBidMenu.clearPending()
@@ -585,4 +588,25 @@ open class EnthusiaMarket : JavaPlugin() {
         service: net.badgersmc.em.application.StallAccessSettingsService,
         projection: net.badgersmc.em.infrastructure.listeners.StallAccessProjection,
     ) { stalls.all().forEach { projection.apply(it, service.current(it)) } }
+
+    private fun startWebsiteSales(ds: DataSource) {
+        try {
+            val file = File(dataFolder, "website-sales.yml")
+            if (!file.exists()) saveResource("website-sales.yml", false)
+            val settings = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(file)
+            if (!settings.getBoolean("enabled", false)) return
+            require(System.getenv("ENTHUSIA_MARKET_SALES_CURRENCY") == "RAW_GOLD")
+            val token = System.getenv("ENTHUSIA_MARKET_SALES_TOKEN") ?: ""
+            val generationPath = System.getenv("ENTHUSIA_MARKET_SALES_GENERATION_FILE")
+                ?.takeIf { it.isNotBlank() } ?: error("Missing sales generation control file")
+            val generation = net.badgersmc.em.infrastructure.website.SalesGenerationFile(java.nio.file.Path.of(generationPath))
+            generation.read() // Fail startup closed when control state is missing or malformed.
+            val server = net.badgersmc.em.infrastructure.website.WebsiteSalesHttpServer(
+                settings.getInt("port", 8124), token,
+                generation::read,
+                net.badgersmc.em.infrastructure.persistence.WebsiteSalesArchiveSql(ds),
+            )
+            try { server.start(); websiteSales = server } catch (failure: Exception) { server.close(); throw failure }
+        } catch (_: Exception) { logger.warning("Website sales feed disabled: invalid configuration or unavailable listener") }
+    }
 }
