@@ -4,4 +4,6 @@ The production screenshot shows `guildpolicy.announce.tariff` in chat. Inspectio
 
 The regression exercises the real `LangService` with an existing partial server locale, checks tariff, embargo and clear announcements and both entry warnings, and verifies that an existing override remains in effect. Test and hosted CI results must be recorded separately. A real client and the server's actual locale/configuration remain separate acceptance checks.
 
+The notification presentation follows the user's message-theme selection: the Market label uses the soft copper gradient `#E4AB65` to `#F2B66D`, sentences use cream `#FFF6E0`, names and rates use gold `#FFCF1F`, and embargo emphasis uses the selected crimson `#C0261D`. This applies only to the five new notification strings. The preview is a simulation and does not establish Minecraft client rendering.
+
 No project-local EARS validator or SPEAR state helper was identified in this checkout. No production deployment or mutation is part of this fix.

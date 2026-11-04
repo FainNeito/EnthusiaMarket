@@ -644,12 +644,12 @@ guildpolicy:
   not_in_guild: "<shadow:#000000:1><red>You must be in a guild to manage trade policy.</red></shadow>"
   no_permission: "<shadow:#000000:1><red>You need the MANAGE_SHOPS guild permission for that.</red></shadow>"
   announce:
-    tariff: "<gold><owner></gold> <gray>set a</gray> <yellow><rate>% tariff</yellow> <gray>for</gray> <gold><target></gold><gray>.</gray>"
-    embargo: "<gold><owner></gold> <gray>embargoed</gray> <gold><target></gold> <gray>from its shops.</gray>"
-    cleared: "<gold><owner></gold> <gray>removed its trade policy for</gray> <gold><target></gold><gray>.</gray>"
+    tariff: "<gradient:#E4AB65:#F2B66D>[Market]</gradient> <#FFF6E0><#FFCF1F><owner></#FFCF1F> set a <#FFCF1F><rate>% tariff</#FFCF1F> for <#FFCF1F><target></#FFCF1F>.</#FFF6E0>"
+    embargo: "<gradient:#E4AB65:#F2B66D>[Market]</gradient> <#FFF6E0><#FFCF1F><owner></#FFCF1F> <#C0261D>embargoed</#C0261D> <#FFCF1F><target></#FFCF1F> from its shops.</#FFF6E0>"
+    cleared: "<gradient:#E4AB65:#F2B66D>[Market]</gradient> <#FFF6E0><#FFCF1F><owner></#FFCF1F> removed its trade policy for <#FFCF1F><target></#FFCF1F>.</#FFF6E0>"
   entry:
-    tariff: "<yellow><owner> charges your guild a <rate>% tariff at its shops.</yellow>"
-    embargo: "<red><owner> has embargoed your guild from trading at its shops.</red>"
+    tariff: "<gradient:#E4AB65:#F2B66D>[Market]</gradient> <#FFF6E0><#FFCF1F><owner></#FFCF1F> charges your guild a <#FFCF1F><rate>% tariff</#FFCF1F> at its shops.</#FFF6E0>"
+    embargo: "<gradient:#E4AB65:#F2B66D>[Market]</gradient> <#FFF6E0><#FFCF1F><owner></#FFCF1F> has <#C0261D>embargoed</#C0261D> your guild from trading at its shops.</#FFF6E0>"
 
 rent_warning:
   more: "<yellow><count> additional stalls need rent renewal. Check your stall list.</yellow>"
