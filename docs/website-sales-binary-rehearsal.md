@@ -1,6 +1,6 @@
 # Planned old/new binary rollback rehearsal
 
-Status: design only. No old binary or complete downgrade has been tested. This document does not authorize a server or production operation.
+Status: the full server rehearsal below remains a design and has not been run. A narrower automated fixture has exercised the SHA-verified official v1.0.52 repository and migration-runner classes against disposable upgraded SQLite, including later outbox replay; it did not start the older server or prove a complete downgrade. This document does not authorize a server or production operation.
 
 ## Pins and isolation
 
