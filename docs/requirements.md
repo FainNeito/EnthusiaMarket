@@ -671,6 +671,10 @@ Detailed taxonomy, proof and delivery boundaries: expanded-search-verification.m
 
 **Event-driven.** WHEN a Market item search has shops matching the selected direction but no entries visible under the default stock filter THE SYSTEM SHALL send localized feedback naming the query as not in stock without opening or replacing the player's inventory.
 
+### REQ-409 — Guild policy notification text
+
+WHEN a guild trade policy is set, embargoed or cleared, or a targeted player enters a guild stall, THE SYSTEM SHALL render the applicable localized notification with the relevant guild names and tariff instead of exposing an untranslated key. Existing locale overrides SHALL remain usable and missing entries SHALL fall back to bundled text. Policy enforcement, permissions and announcement cooldowns SHALL remain unchanged.
+
 ### REQ-381 — Private destination outline
 
 WHEN a player selects a shop search result THE SYSTEM SHALL retain its existing private direction guide and highlight only that destination stall within a configurable distance, using its actual cuboid or polygon footprint and a bounded shop-height outline. The highlight SHALL be private, replace the prior destination and never load terrain or alter blocks/permissions. Missing or unsupported geometry SHALL preserve the direction guide without inventing a region boundary.
@@ -690,7 +694,3 @@ WHEN a current guild shop manager requests a stall report THE SYSTEM SHALL verif
 ### REQ-383 — Durable ordered accounting observations
 
 WHEN a captured accounting observation is appended successfully THE SYSTEM SHALL retain it through SQL delivery failure or restart, SHALL apply its immutable recording ID once in a transaction, and SHALL preserve stock lots and receipts after failed writes. Uncertain inventory provenance SHALL replace remaining attribution with unknown stock. Corrupt earlier pending records SHALL block later delivery rather than silently reorder attribution.
-
-### REQ-409 — Guild policy notification text
-
-WHEN a guild trade policy is set, embargoed or cleared, or a targeted player enters a guild stall, THE SYSTEM SHALL render the applicable localized notification with the relevant guild names and tariff instead of exposing an untranslated key. Existing locale overrides SHALL remain usable and missing entries SHALL fall back to bundled text. Policy enforcement, permissions and announcement cooldowns SHALL remain unchanged.
