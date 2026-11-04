@@ -45,6 +45,24 @@ class LegacyReleaseRepositoryRehearsalTest {
             val before = Files.readAllBytes(pending)
 
             LegacyClassLoader(path.toUri().toURL(), javaClass.classLoader).use { loader ->
+                val runnerClass = loader.loadClass("net.badgersmc.nexus.persistence.MigrationRunner")
+                assertEquals(loader, runnerClass.classLoader, "migration runner must come from the verified release")
+                val runner = runnerClass.getConstructor(DataSource::class.java, String::class.java, ClassLoader::class.java)
+                    .newInstance(ds, "migrations", loader)
+                val discovered = runnerClass.getMethod("discover").invoke(runner) as List<*>
+                val versions = discovered.map { entry ->
+                    entry!!.javaClass.getMethod("getVersion").invoke(entry) as Int
+                }
+                assertTrue(versions.isNotEmpty(), "the legacy runner must discover its bundled migrations")
+                assertEquals(29, versions.maxOrNull(), "legacy discovery must not use newer classpath migrations")
+                val applied = runnerClass.getMethod("runAll").invoke(runner) as List<*>
+                assertTrue(applied.isEmpty(), "older runner must not rerun migrations on upgraded database")
+                ds.connection.use { connection -> connection.createStatement().use { statement ->
+                    statement.executeQuery("SELECT COUNT(*) FROM schema_migration WHERE version >= 30").use { rows ->
+                        assertTrue(rows.next())
+                        assertTrue(rows.getInt(1) > 0, "older runner must preserve newer migration records")
+                    }
+                } }
                 val directionClass = loader.loadClass("net.badgersmc.em.domain.shop.SignDirection")
                 val sell = directionClass.enumConstants.single { (it as Enum<*>).name == "SELL" }
                 val saleClass = loader.loadClass("net.badgersmc.em.domain.shop.ShopTransaction")
@@ -70,12 +88,19 @@ class LegacyReleaseRepositoryRehearsalTest {
 
     private class LegacyClassLoader(url: URL, parent: ClassLoader) : URLClassLoader(arrayOf(url), parent) {
         override fun loadClass(name: String, resolve: Boolean): Class<*> {
-            if (!name.startsWith("net.badgersmc.em.")) return super.loadClass(name, resolve)
+            if (!name.startsWith("net.badgersmc.em.") &&
+                !name.startsWith("net.badgersmc.nexus.persistence.MigrationRunner")) return super.loadClass(name, resolve)
             synchronized(getClassLoadingLock(name)) {
                 val loaded = findLoadedClass(name) ?: findClass(name)
                 if (resolve) resolveClass(loaded)
                 return loaded
             }
         }
+
+        override fun getResources(name: String): java.util.Enumeration<URL> =
+            if (name == "migrations" || name.startsWith("migrations/")) findResources(name) else super.getResources(name)
+
+        override fun getResource(name: String): URL? =
+            if (name == "migrations" || name.startsWith("migrations/")) findResource(name) else super.getResource(name)
     }
 }
