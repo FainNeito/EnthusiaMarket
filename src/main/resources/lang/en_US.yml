@@ -643,6 +643,13 @@ container_sign:
 guildpolicy:
   not_in_guild: "<shadow:#000000:1><red>You must be in a guild to manage trade policy.</red></shadow>"
   no_permission: "<shadow:#000000:1><red>You need the MANAGE_SHOPS guild permission for that.</red></shadow>"
+  announce:
+    tariff: "<gold><owner></gold> <gray>set a</gray> <yellow><rate>% tariff</yellow> <gray>for</gray> <gold><target></gold><gray>.</gray>"
+    embargo: "<gold><owner></gold> <gray>embargoed</gray> <gold><target></gold> <gray>from its shops.</gray>"
+    cleared: "<gold><owner></gold> <gray>removed its trade policy for</gray> <gold><target></gold><gray>.</gray>"
+  entry:
+    tariff: "<yellow><owner> charges your guild a <rate>% tariff at its shops.</yellow>"
+    embargo: "<red><owner> has embargoed your guild from trading at its shops.</red>"
 
 rent_warning:
   more: "<yellow><count> additional stalls need rent renewal. Check your stall list.</yellow>"

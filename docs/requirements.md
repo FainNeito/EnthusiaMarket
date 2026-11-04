@@ -690,3 +690,7 @@ WHEN a current guild shop manager requests a stall report THE SYSTEM SHALL verif
 ### REQ-383 — Durable ordered accounting observations
 
 WHEN a captured accounting observation is appended successfully THE SYSTEM SHALL retain it through SQL delivery failure or restart, SHALL apply its immutable recording ID once in a transaction, and SHALL preserve stock lots and receipts after failed writes. Uncertain inventory provenance SHALL replace remaining attribution with unknown stock. Corrupt earlier pending records SHALL block later delivery rather than silently reorder attribution.
+
+### REQ-409 — Guild policy notification text
+
+WHEN a guild trade policy is set, embargoed or cleared, or a targeted player enters a guild stall, THE SYSTEM SHALL render the applicable localized notification with the relevant guild names and tariff instead of exposing an untranslated key. Existing locale overrides SHALL remain usable and missing entries SHALL fall back to bundled text. Policy enforcement, permissions and announcement cooldowns SHALL remain unchanged.
