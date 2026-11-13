@@ -9,6 +9,7 @@ import net.badgersmc.em.infrastructure.listeners.SignPlaceListener
 import net.badgersmc.em.infrastructure.scheduler.AuctionScheduler
 import net.badgersmc.em.infrastructure.scheduler.RentScheduler
 import net.badgersmc.em.infrastructure.scheduler.ShopAuditScheduler
+import net.badgersmc.em.infrastructure.website.StallWeekExpansion
 import net.badgersmc.nexus.core.NexusContext
 import net.badgersmc.nexus.i18n.LangService
 import net.badgersmc.nexus.i18n.Locale
@@ -36,6 +37,7 @@ open class EnthusiaMarket : JavaPlugin() {
     private var scheduler: NexusScheduler? = null
     private var websiteSync: net.badgersmc.em.websync.WebsiteSyncService? = null
     private var websiteSales: net.badgersmc.em.infrastructure.website.WebsiteSalesHttpServer? = null
+    private var stallWeekExpansion: AutoCloseable? = null
     private var bedrockHeadStore: net.badgersmc.em.websync.heads.BedrockHeadStore? = null
     private var geyserHeadIntegration: AutoCloseable? = null
     private var floodgateHeadIntegration: AutoCloseable? = null
@@ -374,6 +376,9 @@ open class EnthusiaMarket : JavaPlugin() {
             classLoader = this::class.java.classLoader,
             nexus = ctx,
         )
+        if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            stallWeekExpansion = StallWeekExpansion.start(this)
+        }
 
         pruneTransactionHistory(ctx, cfg)
 
@@ -565,6 +570,7 @@ open class EnthusiaMarket : JavaPlugin() {
     }
 
     override fun onDisable() {
+        stallWeekExpansion?.close()
         runCatching { websiteSales?.close() }
         net.badgersmc.em.interaction.StallAccessUi.reset()
         net.badgersmc.em.interaction.AuctionBidUi.reset()

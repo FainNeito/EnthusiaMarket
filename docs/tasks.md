@@ -1230,3 +1230,8 @@ No repository-local EARS validator or SPEAR state helper was found; requirements
 ## Finder BUY result presentation (REQ-396)
 
 - Source and regression evidence: [finder-buy-display-verification.md](finder-buy-display-verification.md).
+
+## Stall of the Week
+
+- [x] Bind the display to the website award and verify pending, complete, empty, invalid-week and unavailable responses.
+- [ ] Verify the paired website and plugin on TEST with a completed sale and a placed hologram.

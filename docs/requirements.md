@@ -791,3 +791,9 @@ WHEN a guild trade policy is set, embargoed or cleared, or a targeted player ent
 ### REQ-396 — Accurate finder results for buying and selling
 
 WHEN the finder shows a non-admin BUY shop, Market SHALL identify it as a buying shop and state that capacity and funds are checked when trading. Mixed directions SHALL use a neutral results title.
+
+### Stall of the Week
+
+WHEN PlaceholderAPI is available THE SYSTEM SHALL expose the last closed New York week's official website result without performing network I/O on placeholder resolution.
+
+IF the website reports incomplete coverage or cannot supply the current award response THEN THE SYSTEM SHALL show the applicable pending or unavailable status.

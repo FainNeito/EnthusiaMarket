@@ -116,7 +116,7 @@ class ShopHistoryRecoveryFixtureTest {
                     statement.executeUpdate()
                 }
             }
-            assertEquals(listOf(35, 36), runner.runAll().map { it.version })
+            assertEquals(listOf(36, 37), runner.runAll().map { it.version })
             assertEquals(1, ShopTransactionRepositorySql(ds).findByOwner(owner, 10, 0).size)
             assertTrue(WebsiteSalesArchiveSql(ds).readAfter(0).items.isEmpty())
             ds.connection.use { connection -> connection.createStatement().use { statement ->
