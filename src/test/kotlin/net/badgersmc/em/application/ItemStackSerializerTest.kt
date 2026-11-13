@@ -132,4 +132,16 @@ class ItemStackSerializerTest {
         assertEquals(noDamageSerialized, zeroDamageSerialized,
             "Items with absent-damage and damage=0 must serialize to identical base64")
     }
+
+    @Test fun `legacy redstone damage zero matches vanilla but a custom name does not`() {
+        val vanilla = ItemStack(Material.REDSTONE)
+        val legacy = vanilla.clone()
+        val meta = legacy.itemMeta as Damageable
+        meta.damage = 0
+        legacy.itemMeta = meta
+        kotlin.test.assertTrue(ItemStackMatch.matches(legacy, vanilla))
+        meta.setDisplayName("Custom redstone")
+        legacy.itemMeta = meta
+        kotlin.test.assertFalse(ItemStackMatch.matches(legacy, vanilla))
+    }
 }

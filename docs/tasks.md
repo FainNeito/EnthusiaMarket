@@ -1,6 +1,7 @@
 
 # Tasks — EnthusiaMarket
 
+- [~] WEBSITE-SALES-ATTRIBUTION — REQ-402/403/404/405: preserve sale-time stall and guild IDs through history and legacy-compatible outbox; prepare a bounded authenticated public exporter without guessing historical ownership. Solo-only feed is incomplete; assess binary compatibility, guild eligibility and restore handling before delivery. Evidence: website-sale-attribution-plan.md. TEST recorded one redstone purchase at 11 raw gold and verified one tracker trade across consecutive scheduled polls. The full server rollback rehearsal and a complete qualifying week are still open.
 - [~] SHOP-398 — Add safe sale-time counterparty context to guild shop system payments and reversals; preserve XP, permission, old-record, rollback, and runtime compatibility. Source and draft tests in progress; local and hosted tests, review, mobile preview QA, and native acceptance pending. See shop-counterparty-evidence.md.
 
 - [~] STOCK-386 — Correct stale purchase and bulk availability after sales; retain authoritative transaction checks. TEST previously reproduced a green confirmation after the final item sold, with the repeated payment safely rejected. Focused interaction tests and full local test suite passed (1,021 tests, 14 skipped); native client acceptance and review remain pending. Project-local EARS and state helpers are absent.
@@ -1229,3 +1230,8 @@ No repository-local EARS validator or SPEAR state helper was found; requirements
 ## Finder BUY result presentation (REQ-396)
 
 - Source and regression evidence: [finder-buy-display-verification.md](finder-buy-display-verification.md).
+
+## Stall of the Week
+
+- [x] Bind the display to the website award and verify pending, complete, empty, invalid-week and unavailable responses.
+- [ ] Verify the paired website and plugin on TEST with a completed sale and a placed hologram.

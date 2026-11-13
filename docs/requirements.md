@@ -36,6 +36,28 @@ Each requirement carries a stable ID. Tasks reference requirements by ID. New re
 
 ## Product (what the system is for)
 
+### REQ-402 — Capture sale-time attribution
+
+**Event-driven.** WHEN archive capture is enabled and an eligible completed shop sale is recorded THE SYSTEM SHALL retain its sale-time stall identifier and verified guild identifier without consulting future ownership.
+
+### REQ-403 — Preserve legacy sale history
+
+**Unwanted.** IF a historical transaction or pending version-one outbox record has no sale-time attribution THEN THE SYSTEM SHALL retain it without inventing stall or guild attribution.
+
+### REQ-404 — Durable attributed delivery
+
+**Event-driven.** WHEN an attributed sale is retried after an interrupted history delivery THE SYSTEM SHALL preserve its attribution and existing idempotent receipt semantics.
+
+### REQ-405 — Restrict public sales projection
+
+**Unwanted.** IF a transaction's currency, eligibility or attribution is unverified THEN THE SYSTEM SHALL exclude unsupported fields or records from the public sales feed.
+
+WHEN a sale item differs from its default stack only by an explicit zero-damage value THE SYSTEM SHALL treat it as unmodified for public sale eligibility.
+
+### REQ-406 — Default-off attributed capture
+
+**State-driven.** WHILE archive capture is disabled THE SYSTEM SHALL record shop history through the legacy unattributed version-one outbox path, even if the completed trade event contains sale-time attribution. Enabling the HTTP listener alone SHALL NOT enable capture. Existing attributed pending records SHALL remain readable and SHALL NOT be rewritten or discarded.
+
 ### REQ-001 — Stall marketplace as core product
 
 **Ubiquitous.** THE SYSTEM SHALL expose WorldGuard regions as rentable or ownable market stalls for individual players and guilds.
@@ -771,3 +793,11 @@ WHEN a guild trade policy is set, embargoed or cleared, or a targeted player ent
 ### REQ-396 — Accurate finder results for buying and selling
 
 WHEN the finder shows a non-admin BUY shop, Market SHALL identify it as a buying shop and state that capacity and funds are checked when trading. Mixed directions SHALL use a neutral results title.
+
+### Stall of the Week
+
+WHEN PlaceholderAPI is available THE SYSTEM SHALL expose the last closed New York week's official website result without performing network I/O on placeholder resolution.
+
+IF the website reports incomplete coverage or cannot supply the current award response THEN THE SYSTEM SHALL show the applicable pending or unavailable status.
+
+WHEN the sales exporter runs behind a managed HTTPS proxy THE SYSTEM SHALL allow an explicit IPv4 wildcard bind while retaining loopback as the default and requiring the Market bearer on every request.

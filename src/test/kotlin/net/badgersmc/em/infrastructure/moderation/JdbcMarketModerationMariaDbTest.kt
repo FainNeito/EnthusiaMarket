@@ -51,7 +51,7 @@ class JdbcMarketModerationMariaDbTest {
         })
         createV27UpgradeBaseline()
         val applied = MigrationRunner(dataSource, "migrations", javaClass.classLoader).runAll()
-        assertEquals((28..35).toList(), applied.map { it.version })
+        assertEquals((28..37).toList(), applied.map { it.version })
         createStallAndShop()
     }
 
@@ -310,11 +310,20 @@ class JdbcMarketModerationMariaDbTest {
                 "auctions",
                 "stalls",
                 "guild_sale_xp_journal", "guild_stock_lots", "guild_accounting_receipts",
-                "guild_stock_events", "guild_sale_attribution", "stall_access_settings", "guild_auction_round_wins", "schema_migration",
+                "guild_stock_events", "guild_sale_attribution", "stall_access_settings", "guild_auction_round_wins",
+                "website_public_sales", "website_sales_rejections", "schema_migration",
             ).forEach { table -> connection.prepareStatement("DROP TABLE IF EXISTS $table").use { it.executeUpdate() } }
             createStallsBaseline(connection)
             createShopsBaseline(connection)
             createAuctionsBaseline(connection)
+            connection.createStatement().use { statement ->
+                statement.executeUpdate("""CREATE TABLE shop_transactions (
+                    id BIGINT PRIMARY KEY AUTO_INCREMENT, shop_id BIGINT NOT NULL,
+                    owner VARCHAR(36) NOT NULL, buyer VARCHAR(36) NOT NULL,
+                    direction VARCHAR(16) NOT NULL, item TEXT NOT NULL, quantity INTEGER NOT NULL,
+                    total_price BIGINT NOT NULL, created_at BIGINT NOT NULL, notified INTEGER NOT NULL DEFAULT 0
+                ) ENGINE=InnoDB""")
+            }
             createMigrationBaseline(connection)
         }
     }
