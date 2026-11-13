@@ -1,6 +1,7 @@
 package net.badgersmc.em.infrastructure.persistence
 
 import net.badgersmc.em.domain.shop.ShopTransaction
+import net.badgersmc.em.domain.shop.ShopSaleAttribution
 import net.badgersmc.em.domain.shop.ShopHistoryWindow
 import net.badgersmc.em.domain.shop.SignDirection
 import net.badgersmc.nexus.persistence.DatabaseFactory
@@ -33,6 +34,62 @@ class ShopTransactionRepositorySqlTest {
         shopId = 1, owner = owner, buyer = UUID.randomUUID(), direction = SignDirection.SELL,
         item = "diamond", quantity = 5, totalPrice = 100, createdAt = createdAt, notified = notified,
     )
+
+    @Test fun `historical sale attribution survives persistence`() {
+        val repo = ShopTransactionRepositorySql(ds)
+        val owner = UUID.randomUUID()
+        val attributed = tx(owner, 1000)
+        val guildId = UUID.randomUUID()
+        val receipt = UUID.randomUUID()
+        repo.recordAttributedOnce(receipt, attributed, ShopSaleAttribution("stall17", guildId))
+        repo.recordAttributedOnce(receipt, attributed, ShopSaleAttribution("stall17", guildId))
+        ds.connection.use { connection ->
+            connection.prepareStatement("SELECT sale_stall_id,sale_guild_id FROM shop_transactions").use { query ->
+                query.executeQuery().use { rows ->
+                    assertEquals(true, rows.next())
+                    assertEquals("stall17", rows.getString("sale_stall_id"))
+                    assertEquals(guildId.toString(), rows.getString("sale_guild_id"))
+                    assertEquals(false, rows.next())
+                }
+            }
+        }
+    }
+
+    @Test fun `verified public sale is archived atomically and survives history pruning`() {
+        val repo = ShopTransactionRepositorySql(ds)
+        val sale = tx(UUID.randomUUID(), System.currentTimeMillis())
+        val receipt = UUID.randomUUID()
+        val attribution = ShopSaleAttribution("stall17", null, publicCashEligible = true)
+        repo.recordAttributedOnce(receipt, sale, attribution)
+        repo.recordAttributedOnce(receipt, sale, attribution)
+        val archive = WebsiteSalesArchiveSql(ds)
+        val initial = archive.readAfter(0)
+        assertEquals(1, initial.items.size)
+        assertEquals("stall17", initial.items.single().stall)
+        assertEquals(sale.totalPrice, initial.items.single().gold)
+        repo.prune(sale.createdAt + 1)
+        assertEquals(initial, archive.readAfter(0))
+    }
+
+    @Test fun `invalid public attribution is recorded for review without losing history`() {
+        val repo = ShopTransactionRepositorySql(ds)
+        val owner = UUID.randomUUID()
+        val sale = tx(owner, System.currentTimeMillis()).copy(buyer = owner)
+        val receipt = UUID.randomUUID()
+        repo.recordAttributedOnce(receipt, sale, ShopSaleAttribution("stall17", null, publicCashEligible = true))
+        assertEquals(1, repo.findByOwner(owner, 10, 0).size)
+        assertEquals(emptyList(), WebsiteSalesArchiveSql(ds).readAfter(0).items)
+        ds.connection.use { connection ->
+            connection.prepareStatement("SELECT COUNT(*) FROM shop_history_receipts WHERE recording_id=?").use { query ->
+                query.setString(1, receipt.toString())
+                query.executeQuery().use { rows -> rows.next(); assertEquals(1, rows.getInt(1)) }
+            }
+            connection.prepareStatement("SELECT COUNT(*) FROM website_sales_rejections WHERE recording_id=?").use { query ->
+                query.setString(1, receipt.toString())
+                query.executeQuery().use { rows -> rows.next(); assertEquals(1, rows.getInt(1)) }
+            }
+        }
+    }
 
     @Test fun `window covers owner and buyer but never outsiders or end boundary`() {
         val repo = ShopTransactionRepositorySql(ds)

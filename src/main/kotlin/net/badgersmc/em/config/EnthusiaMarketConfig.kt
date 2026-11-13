@@ -288,6 +288,8 @@ class EnthusiaMarketConfig {
         var notifyEnabled: Boolean = true
         @Comment("Days of shop transaction history to keep; 0 disables pruning.")
         var historyRetentionDays: Int = 30
+        @Comment("Opt in to sale-time archive attribution; requires a reviewed rollback plan for newer pending history records.")
+        var archiveCaptureEnabled: Boolean = false
     }
 
     class LumaGuilds {
