@@ -142,6 +142,13 @@ class LumaGuildsGuildProvider : GuildProvider {
     }
 
 
+    override fun verifiedMembership(player: UUID, guildId: String): Boolean? {
+        val uuid = parseUuid(guildId) ?: return null
+        val source = lookup ?: return null
+        if (source.getGuild(uuid) == null) return null
+        return source.isMember(player, uuid)
+    }
+
     override fun isMember(player: UUID, guildId: String): Boolean {
         val uuid = parseUuid(guildId) ?: return false
         return lookup?.isMember(player, uuid) ?: false

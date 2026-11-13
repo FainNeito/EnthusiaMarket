@@ -13,3 +13,7 @@ bind-address: "127.0.0.1"
 # files instead of the corresponding environment variables.
 token-file: ""
 generation-file: ""
+# UTC instant when continuous award attribution was verified for this generation.
+award-capture-from: ""
+# Pin to the verified external generation for the capture boundary above.
+award-generation: ""

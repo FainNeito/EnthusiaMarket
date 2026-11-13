@@ -12,7 +12,8 @@ import javax.sql.DataSource
 /** Public projection only. The caller owns the transaction and must supply sale-time facts. */
 internal class WebsiteSalesArchiveSql(private val ds: DataSource) : WebsitePublicSaleReader {
     fun insert(connection: Connection, saleId: Long, recordingId: UUID, facts: WebsiteSaleFacts,
-               item: String, guildName: String?, occurredAt: Long) {
+               item: String, guildName: String?, occurredAt: Long,
+               awardOwner: net.badgersmc.em.domain.shop.SaleAwardOwner? = null) {
         require(WebsiteSaleEligibility.accepts(facts)) { "Sale is not verified for public export" }
         require(saleId > 0 && facts.amount <= 1_000_000_000_000L && facts.quantity <= 1_000_000_000)
         require(facts.stallId!!.matches(Regex("[A-Za-z0-9_.:-]{1,80}")))
@@ -28,6 +29,22 @@ internal class WebsiteSalesArchiveSql(private val ds: DataSource) : WebsitePubli
             statement.setLong(7, facts.amount); statement.setLong(8, occurredAt)
             statement.executeUpdate()
         }
+        if (awardOwner != null) {
+            connection.prepareStatement("INSERT INTO website_sale_award_owners VALUES (?,?,?,?)").use { statement ->
+                statement.setLong(1, saleId)
+                statement.setString(2, awardOwner.id.toString())
+                statement.setString(3, awardOwner.name)
+                statement.setString(4, awardOwner.representative.toString())
+                statement.executeUpdate()
+            }
+        }
+    }
+
+    fun hasRejectionsSince(start: Long): Boolean = ds.connection.use { connection ->
+        connection.prepareStatement("SELECT 1 FROM website_sales_rejections WHERE recorded_at>=? LIMIT 1").use {
+            it.setLong(1, start)
+            it.executeQuery().use { rows -> rows.next() }
+        }
     }
 
     override fun readAfter(after: Long): WebsitePublicSalePage {
@@ -37,8 +54,10 @@ internal class WebsiteSalesArchiveSql(private val ds: DataSource) : WebsitePubli
                 statement.executeQuery().use { rows -> if (rows.next()) rows.getLong(1) else 0L }
             }
             require(after <= maximum) { "Cursor is beyond the retained archive" }
-            connection.prepareStatement("""SELECT sale_id,stall_id,guild_name,item_key,quantity,raw_gold,occurred_at,recording_id
-                FROM website_public_sales WHERE sale_id>? ORDER BY sale_id ASC LIMIT 251""".trimIndent()).use { statement ->
+            connection.prepareStatement("""SELECT s.sale_id,s.stall_id,s.guild_name,s.item_key,s.quantity,s.raw_gold,s.occurred_at,s.recording_id,
+                    a.owner_id,a.owner_name,a.representative_id
+                FROM website_public_sales s LEFT JOIN website_sale_award_owners a ON a.sale_id=s.sale_id
+                WHERE s.sale_id>? ORDER BY s.sale_id ASC LIMIT 251""".trimIndent()).use { statement ->
                 statement.setLong(1, after)
                 statement.executeQuery().use { rows ->
                     val items = mutableListOf<WebsitePublicSale>()
@@ -47,7 +66,11 @@ internal class WebsiteSalesArchiveSql(private val ds: DataSource) : WebsitePubli
                         if (items.size == 250) { more = true; break }
                         items += WebsitePublicSale(rows.getLong(1), rows.getString(2), rows.getString(3),
                             rows.getString(4), rows.getInt(5), rows.getLong(6), rows.getLong(7),
-                            UUID.fromString(rows.getString(8)))
+                            UUID.fromString(rows.getString(8)), rows.getString(9)?.let {
+                                net.badgersmc.em.domain.shop.SaleAwardOwner(
+                                    UUID.fromString(it), rows.getString(10), UUID.fromString(rows.getString(11)),
+                                )
+                            })
                     }
                     WebsitePublicSalePage(items, if (more) items.last().id else null, items.lastOrNull()?.id ?: after)
                 }

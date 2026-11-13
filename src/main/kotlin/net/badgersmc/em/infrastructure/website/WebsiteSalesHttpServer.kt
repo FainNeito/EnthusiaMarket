@@ -19,6 +19,7 @@ internal fun salesCurrencyVerified(): Boolean =
 internal class WebsiteSalesHttpServer(private val port: Int, private val token: String,
                                       private val generation: () -> UUID,
                                       private val bindAddress: String = "127.0.0.1",
+                                      private val coverage: () -> Pair<Instant, Instant>? = { null },
                                       private val reader: WebsitePublicSaleReader) : AutoCloseable {
     private val executor = ThreadPoolExecutor(1, 2, 30, TimeUnit.SECONDS, ArrayBlockingQueue(16),
         { task -> Thread(task, "EnthusiaMarket-SalesRead").apply { isDaemon = true } }, ThreadPoolExecutor.AbortPolicy())
@@ -60,6 +61,7 @@ internal class WebsiteSalesHttpServer(private val port: Int, private val token: 
                 respond(exchange, 400, mapOf("error" to "invalid_generation")); return
             }
             if (expected != before) { respond(exchange, 409, mapOf("error" to "generation_changed")); return }
+            val window = runCatching { coverage() }.getOrNull()
             val page = reader.readAfter(after)
             require(page.items.size <= 250 && page.checkpointCursor >= after)
             require(page.items.zipWithNext().all { (left, right) -> left.id < right.id })
@@ -72,11 +74,17 @@ internal class WebsiteSalesHttpServer(private val port: Int, private val token: 
                 require(sale.guild.length <= 80)
                 mapOf("id" to "market-${sale.recordingId}", "stall" to sale.stall, "guild" to sale.guild,
                     "item" to sale.item, "quantity" to sale.quantity, "gold" to sale.gold,
-                    "occurredAt" to Instant.ofEpochMilli(sale.occurredAt).toString(), "direction" to "SELL", "currency" to "RAW_GOLD")
+                    "occurredAt" to Instant.ofEpochMilli(sale.occurredAt).toString(), "direction" to "SELL", "currency" to "RAW_GOLD",
+                    "awardOwner" to sale.awardOwner?.let {
+                        mapOf("id" to it.id.toString(), "name" to it.name, "representative" to it.representative.toString())
+                    })
             }
             if (generation() != before) { respond(exchange, 409, mapOf("error" to "generation_changed")); return }
             respond(exchange, 200, mapOf("protocol" to 2, "generation" to before.toString(), "items" to items, "complete" to false, "nextCursor" to page.nextCursor?.toString(),
-                "checkpointCursor" to page.checkpointCursor.toString()))
+                "checkpointCursor" to page.checkpointCursor.toString(),
+                "awardCoverage" to window?.takeIf { page.nextCursor == null && runCatching { coverage()?.first }.getOrNull() == it.first }?.let {
+                    mapOf("from" to it.first.toString(), "through" to it.second.toString())
+                }))
         } catch (_: Exception) {
             try { respond(exchange, 503, mapOf("error" to "sales_unavailable")) } catch (_: Exception) { /* Client disconnected. */ }
         } finally { exchange.close() }

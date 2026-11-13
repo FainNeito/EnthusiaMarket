@@ -33,7 +33,7 @@ internal class ShopHistoryOutbox(
         val id = UUID.randomUUID()
         val payload = ByteArrayOutputStream().also { buffer ->
             DataOutputStream(buffer).use { output ->
-                output.writeInt(if (attribution == null) 1 else 3)
+                output.writeInt(if (attribution == null) 1 else if (attribution.awardOwner == null) 3 else 4)
                 output.writeUTF(id.toString())
                 output.writeLong(tx.shopId)
                 output.writeUTF(tx.owner.toString())
@@ -50,6 +50,11 @@ internal class ShopHistoryOutbox(
                     output.writeBoolean(attribution.guildId != null)
                     if (attribution.guildId != null) output.writeUTF(attribution.guildId.toString())
                     output.writeBoolean(attribution.publicCashEligible)
+                    attribution.awardOwner?.let { owner ->
+                        output.writeUTF(owner.id.toString())
+                        output.writeUTF(owner.name)
+                        output.writeUTF(owner.representative.toString())
+                    }
                 }
             }
         }.toByteArray()
@@ -103,7 +108,7 @@ internal class ShopHistoryOutbox(
         }
         return DataInputStream(ByteArrayInputStream(payload)).use { input ->
             val version = input.readInt()
-            require(version in 1..3) { "Unsupported history record version" }
+            require(version in 1..4) { "Unsupported history record version" }
             val id = UUID.fromString(input.readUTF())
             require(path.fileName.toString() == "$id.pending") { "History recording id mismatch" }
             val base = ShopTransaction(
@@ -114,8 +119,11 @@ internal class ShopHistoryOutbox(
             val stall = if (version >= 2 && input.readBoolean()) input.readUTF() else null
             val guild = if (version >= 2 && input.readBoolean()) UUID.fromString(input.readUTF()) else null
             val eligible = version >= 3 && input.readBoolean()
-            require(!eligible || (stall != null && guild == null)) { "Invalid public attribution" }
-            val attribution = if (stall == null && guild == null) null else ShopSaleAttribution(stall, guild, eligible)
+            val owner = if (version >= 4) net.badgersmc.em.domain.shop.SaleAwardOwner(
+                UUID.fromString(input.readUTF()), input.readUTF(), UUID.fromString(input.readUTF()),
+            ) else null
+            require(!eligible || (stall != null && (guild == null || owner?.id == guild))) { "Invalid public attribution" }
+            val attribution = if (stall == null && guild == null) null else ShopSaleAttribution(stall, guild, eligible, owner)
             require(input.available() == 0) { "Unexpected trailing history data" }
             Triple(id, base, attribution)
         }

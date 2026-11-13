@@ -22,6 +22,9 @@ open class ShopTransactionRecorder(
     @Suppress("TooGenericExceptionCaught")
     fun onTransaction(event: PostShopTransactionEvent) {
         try {
+            if (config.shop.archiveCaptureEnabled && event.awardCaptureIncomplete) {
+                runCatching { transactions.markCaptureFailure() }
+            }
             val transaction =
                 ShopTransaction(
                     shopId = event.shopId,
@@ -35,8 +38,9 @@ open class ShopTransactionRecorder(
                     notified = config.shop.notifyEnabled && Bukkit.getPlayer(event.landlordId)?.isOnline == true,
                 )
             if (!config.shop.archiveCaptureEnabled || (event.stallId == null && event.guildId == null)) transactions.record(transaction)
-            else transactions.recordAttributed(transaction, ShopSaleAttribution(event.stallId, event.guildId, event.publicCashEligible))
+            else transactions.recordAttributed(transaction, ShopSaleAttribution(event.stallId, event.guildId, event.publicCashEligible, event.awardOwner))
         } catch (e: Exception) {
+            if (config.shop.archiveCaptureEnabled) runCatching { transactions.markCaptureFailure() }
             // History is best-effort: a log write must never disturb the completed trade.
             org.bukkit.Bukkit.getLogger().warning("Failed to record shop transaction: ${e.message}")
         }

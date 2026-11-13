@@ -27,6 +27,8 @@ class PostShopTransactionEvent(
         internal set
     var publicCashEligible: Boolean = false
         internal set
+    internal var awardOwner: net.badgersmc.em.domain.shop.SaleAwardOwner? = null
+    internal var awardCaptureIncomplete = false
     var grossPayment: Long? = null
         internal set
     override fun getHandlers(): HandlerList = handlerList

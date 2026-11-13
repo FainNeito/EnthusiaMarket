@@ -45,7 +45,7 @@ class ShopHistoryMariaDbTest {
                 .bufferedReader().use { it.readText() }
             statement.execute(migration)
             statement.execute(migration) // Reapplication must preserve receipts.
-            for (file in listOf("V036__shop_sale_attribution.sql", "V037__website_public_sales.sql")) {
+            for (file in listOf("V036__shop_sale_attribution.sql", "V037__website_public_sales.sql", "V038__website_sale_award_owners.sql")) {
                 val content = javaClass.classLoader.getResourceAsStream("migrations/$file")!!
                     .bufferedReader().use { it.readText() }
                 content.lineSequence().filterNot { it.trimStart().startsWith("--") }.joinToString("\n")
