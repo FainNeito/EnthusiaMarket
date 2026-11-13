@@ -6,6 +6,10 @@ Market provides `%enthusiamarket_stall_of_the_week%` when PlaceholderAPI is load
 
 On TEST, set `ENTHUSIA_MARKET_STALL_WEEK_URL` to the rehearsal website's HTTPS
 `/api/community/insights?view=stall-week` endpoint before starting Market.
+For an Access-protected rehearsal website, also set
+`ENTHUSIA_MARKET_STALL_WEEK_ACCESS_CLIENT_ID` and
+`ENTHUSIA_MARKET_STALL_WEEK_ACCESS_CLIENT_SECRET` from a service token
+authorized for that endpoint. Configure both values together.
 To exercise sales as well, enable `shop.archiveCaptureEnabled` and
 `website-sales.yml` separately. Configure the TEST raw-gold currency, sales
 token, and generation file as described in `website-sales.yml`. Bind the

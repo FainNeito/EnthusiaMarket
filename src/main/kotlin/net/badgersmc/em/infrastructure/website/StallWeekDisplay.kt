@@ -43,8 +43,8 @@ internal class StallWeekDisplay(
 }
 
 private fun readPublicAward(): String {
-    val endpoint = URI(System.getenv("ENTHUSIA_MARKET_STALL_WEEK_URL")
-        ?: "https://enthusia.info/api/community/insights?view=stall-week")
+    val configuredEndpoint = System.getenv("ENTHUSIA_MARKET_STALL_WEEK_URL")
+    val endpoint = URI(configuredEndpoint ?: "https://enthusia.info/api/community/insights?view=stall-week")
     require(endpoint.scheme == "https" && endpoint.host != null &&
         endpoint.userInfo == null && endpoint.fragment == null)
     val connection = endpoint.toURL().openConnection() as HttpsURLConnection
@@ -52,6 +52,7 @@ private fun readPublicAward(): String {
     connection.readTimeout = 3_000
     connection.instanceFollowRedirects = false
     try {
+        awardAccessHeaders(configuredEndpoint, System.getenv()).forEach(connection::setRequestProperty)
         check(connection.responseCode == 200)
         return connection.inputStream.use { input ->
             val bytes = input.readNBytes(2049)
@@ -61,4 +62,14 @@ private fun readPublicAward(): String {
     } finally {
         connection.disconnect()
     }
+}
+
+internal fun awardAccessHeaders(configuredEndpoint: String?, environment: Map<String, String>): Map<String, String> {
+    val id = environment["ENTHUSIA_MARKET_STALL_WEEK_ACCESS_CLIENT_ID"]
+    val secret = environment["ENTHUSIA_MARKET_STALL_WEEK_ACCESS_CLIENT_SECRET"]
+    if (id == null && secret == null) return emptyMap()
+    val credential = Regex("[!-~]{1,512}")
+    require(configuredEndpoint != null && id != null && secret != null &&
+        credential.matches(id) && credential.matches(secret))
+    return mapOf("CF-Access-Client-Id" to id, "CF-Access-Client-Secret" to secret)
 }
