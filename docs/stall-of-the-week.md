@@ -5,8 +5,16 @@ The website price tracker consumes authenticated, generation-fenced Market sales
 Market provides `%enthusiamarket_stall_of_the_week%` when PlaceholderAPI is loaded. The expansion refreshes the public website award once a minute off the server thread. The award applies to the last closed Monday–Sunday week in America/New_York. During incomplete coverage the placeholder reads `Awaiting verified sales`. A feed error shows `Results unavailable`.
 
 On TEST, set `ENTHUSIA_MARKET_STALL_WEEK_URL` to the rehearsal website's HTTPS
-`/api/community/insights?view=stall-week` endpoint before starting Market. Stand
-at the intended position and run:
+`/api/community/insights?view=stall-week` endpoint before starting Market.
+To exercise sales as well, enable `shop.archiveCaptureEnabled` and
+`website-sales.yml` separately. Configure the TEST raw-gold currency, sales
+token, and generation file as described in `website-sales.yml`. Bind the
+rehearsal worker to the matching TEST generation and its own database.
+Buy a vanilla item from another player's solo SELL shop and compare the
+tracker's trade count before and after the poll. A repeat poll should leave
+the count unchanged.
+
+Stand at the intended hologram position and run:
 
 ```text
 /hologram create text market_week
