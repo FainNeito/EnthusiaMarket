@@ -6,8 +6,10 @@ import net.badgersmc.em.domain.auction.AuctionRepository
 import net.badgersmc.em.domain.auction.AuctionState
 import net.badgersmc.em.domain.auction.Bid
 import net.badgersmc.em.domain.stall.StallId
+import net.badgersmc.em.domain.stall.Stall
 import net.badgersmc.nexus.annotations.Repository
 import java.sql.PreparedStatement
+import java.sql.Connection
 import java.sql.ResultSet
 import java.time.Duration
 import java.time.Instant
@@ -46,17 +48,62 @@ class AuctionRepositorySql(private val ds: DataSource) : AuctionRepository {
 
     override fun create(auction: Auction) {
         ds.connection.use { conn ->
-            conn.prepareStatement(
-                """INSERT INTO auctions
-                   (id, stall_id, state, start_at, end_at, starting_bid,
-                    high_bid_amount, high_bidder, high_placed_at, anti_snipe_sec,
-                    anti_snipe_extend_sec, auction_duration_sec, high_bid_guild_id, opening_round_id)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
-            ).use { ps ->
-                bind(ps, auction)
-                val rows = ps.executeUpdate()
-                if (rows != 1) error("AuctionRepositorySql.create: expected 1 row, affected $rows")
+            insert(conn, auction)
+        }
+    }
+
+    @Suppress("TooGenericExceptionCaught")
+    override fun openImportedLots(lots: List<Pair<Stall, Auction>>): StallId? =
+        ds.connection.use transaction@{ conn ->
+            conn.autoCommit = false
+            try {
+                conn.prepareStatement(
+                    """UPDATE stalls SET state = 'AUCTIONING'
+                       WHERE id = ? AND state = 'UNOWNED' AND owner_type = 'NONE'
+                         AND world = ? AND region_id = ? AND moderation_revision = ?
+                         AND NOT EXISTS (SELECT 1 FROM market_moderation_locks WHERE stall_id = ?)
+                         AND NOT EXISTS (SELECT 1 FROM sell_offers WHERE stall_id = ?)
+                         AND NOT EXISTS (SELECT 1 FROM auctions WHERE stall_id = ? AND state = 'OPEN')"""
+                ).use { update ->
+                    for ((stall, auction) in lots.sortedBy { it.first.id.value }) {
+                        val id = stall.id.value
+                        update.setString(1, id)
+                        update.setString(2, stall.world)
+                        update.setString(3, stall.regionId)
+                        update.setLong(4, stall.moderationRevision)
+                        update.setString(5, id)
+                        update.setString(6, id)
+                        update.setString(7, id)
+                        if (update.executeUpdate() != 1) {
+                            conn.rollback()
+                            return@transaction stall.id
+                        }
+                        insert(conn, auction)
+                    }
+                    conn.commit()
+                    null
+                }
+            } catch (failure: Exception) {
+                try {
+                    conn.rollback()
+                } catch (rollbackFailure: Exception) {
+                    failure.addSuppressed(rollbackFailure)
+                }
+                throw failure
             }
+        }
+
+    private fun insert(conn: Connection, auction: Auction) {
+        conn.prepareStatement(
+            """INSERT INTO auctions
+               (id, stall_id, state, start_at, end_at, starting_bid,
+                high_bid_amount, high_bidder, high_placed_at, anti_snipe_sec,
+                anti_snipe_extend_sec, auction_duration_sec, high_bid_guild_id, opening_round_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+        ).use { ps ->
+            bind(ps, auction)
+            val rows = ps.executeUpdate()
+            if (rows != 1) error("AuctionRepositorySql.create: expected 1 row, affected $rows")
         }
     }
 

@@ -25,6 +25,36 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class AuctionRepositorySqlTest {
+    @Test fun `50 imported lots commit together and a late conflict rolls everything back`() {
+        val stalls = StallRepositorySql(ds)
+        val lots = (1..50).map { number ->
+            val id = "rehearsal_" + number.toString().padStart(2, '0')
+            val stall = Stall(StallId(id), id, "world", StallState.UNOWNED,
+                OwnerRef.unowned(), null, 0, RentTerms.formula(1.0))
+            stalls.create(stall)
+            stall to sampleAuction(id, id, startingBid = 10L + number)
+                .copy(openingRoundId = "rehearsal-opening")
+        }
+        val unrelated = lots.first().first.copy(id = StallId("unrelated"), regionId = "unrelated")
+        stalls.create(unrelated)
+        val (last, lastAuction) = lots.last()
+        stalls.save(last.copy(state = StallState.AUCTIONING))
+        assertEquals(last.id, repo.openImportedLots(lots))
+        assertTrue(lots.all { repo.findByStall(it.first.id).isEmpty() })
+        assertEquals(StallState.UNOWNED, stalls.findById(lots.first().first.id)?.state)
+        stalls.save(last)
+
+        assertNull(repo.openImportedLots(lots))
+        for ((stall, auction) in lots) {
+            assertEquals(auction, repo.findById(auction.id))
+            assertEquals(StallState.AUCTIONING, stalls.findById(stall.id)?.state)
+        }
+        assertEquals(lastAuction, repo.findById(lastAuction.id))
+        assertEquals(StallState.UNOWNED, stalls.findById(unrelated.id)?.state)
+        assertTrue(repo.findByStall(unrelated.id).isEmpty())
+        assertEquals(lots.first().first.id, repo.openImportedLots(lots))
+    }
+
     @Test fun `guild bidder funding survives create and reload`() {
         val guildId = UUID.randomUUID().toString()
         val auction = sampleAuction(highBid = Bid(UUID.randomUUID(), 100, Instant.now(), guildId))

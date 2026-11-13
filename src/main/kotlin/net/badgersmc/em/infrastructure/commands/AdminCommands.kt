@@ -41,6 +41,12 @@ import org.bukkit.plugin.java.JavaPlugin
 import java.util.UUID
 import java.time.Instant
 import net.badgersmc.em.websync.WebsiteSyncService
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.event.ClickEvent
+import net.kyori.adventure.text.format.NamedTextColor
+import java.io.IOException
+import java.nio.file.Files
+import java.util.logging.Level
 
 @Command(name = "em", description = "EnthusiaMarket administrative commands", aliases = ["enthusiamarket"])
 @Suppress("LongParameterList", "TooManyFunctions", "LargeClass")
@@ -51,7 +57,7 @@ class AdminCommands(
     private val auctionService: AuctionLifecycleService,
     private val configManager: ConfigManager,
     private val auctions: AuctionRepository,
-    @Suppress("UnusedPrivateProperty") private val plugin: JavaPlugin,
+    private val plugin: JavaPlugin,
     private val lang: LangService,
     private val nexusScheduler: NexusScheduler,
     private val stallMembers: StallMemberService,
@@ -329,6 +335,62 @@ class AdminCommands(
             is AuctionResult.Failure -> lang.msg("admin.bid.failure", "reason" to result.reason)
             AuctionResult.NotFound -> lang.msg("admin.bid.not_found")
         })
+    }
+
+    private val lotImport = AuctionLotImport()
+
+    @Subcommand("auction preview")
+    @Permission("enthusiamarket.admin")
+    fun auctionPreview(
+        @Context sender: CommandSender,
+        @Arg("file") file: String,
+        @Arg("round") round: String,
+        @Arg("duration") duration: String,
+    ) = runLotCommand(sender) {
+        val actor = AuctionLotImport.actor(sender)
+        lotImport.discard(actor)
+        AuctionLotImport.validateRound(round)
+        val directory = plugin.dataFolder.toPath().resolve("auction-lots")
+        Files.createDirectories(directory)
+        val plan = auctionService.previewImportedLots(AuctionLotImport.read(directory, file), round, duration)
+        val token = lotImport.remember(actor, plan)
+        sender.sendMessage(Component.text("Auction preview • ${plan.lots.size} lots", NamedTextColor.GOLD))
+        sender.sendMessage(Component.text("Opening round ${plan.round} • Duration ${plan.duration}", NamedTextColor.YELLOW))
+        for ((stall, lot) in plan.lots) {
+            sender.sendMessage(Component.text(
+                "${stall.id.value} (${stall.world}/${stall.regionId}) • ${lot.minimumBid} raw gold minimum",
+                NamedTextColor.GRAY,
+            ))
+        }
+        val command = "/em auction confirm $token"
+        sender.sendMessage(Component.text("Review all lots, then run $command within 5 minutes.", NamedTextColor.GOLD)
+            .clickEvent(ClickEvent.suggestCommand(command)))
+    }
+
+    @Subcommand("auction confirm")
+    @Permission("enthusiamarket.admin")
+    fun auctionConfirm(@Context sender: CommandSender, @Arg("token") token: String) = runLotCommand(sender) {
+        val plan = lotImport.consume(AuctionLotImport.actor(sender), token)
+        val ends = auctionService.openImportedLots(plan)
+        val receipt = "Opened ${plan.lots.size} lots in opening round ${plan.round}. Scheduled close $ends."
+        plugin.logger.info("${sender.name}: $receipt")
+        sender.sendMessage(Component.text(receipt, NamedTextColor.GREEN))
+    }
+
+    @Suppress("TooGenericExceptionCaught")
+    private fun runLotCommand(sender: CommandSender, action: () -> Unit) {
+        try {
+            require(!maintenanceFreeze.isFrozen()) { "Market maintenance is active." }
+            action()
+        } catch (failure: IllegalArgumentException) {
+            sender.sendMessage(Component.text(failure.message ?: "Invalid auction import.", NamedTextColor.RED))
+        } catch (failure: IOException) {
+            sender.sendMessage(Component.text("Could not read the UTF-8 auction CSV. Check the server log.", NamedTextColor.RED))
+            plugin.logger.log(Level.WARNING, "Auction import file error", failure)
+        } catch (failure: Exception) {
+            sender.sendMessage(Component.text("Auction import failed. Check the server log and auction state.", NamedTextColor.RED))
+            plugin.logger.log(Level.WARNING, "Auction import failed", failure)
+        }
     }
 
     @Subcommand("auction startall")

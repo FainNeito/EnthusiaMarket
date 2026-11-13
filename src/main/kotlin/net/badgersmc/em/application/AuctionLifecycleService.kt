@@ -252,6 +252,68 @@ class AuctionLifecycleService(
         }
     }
 
+    internal fun previewImportedLots(lots: List<AuctionLot>, round: String, durationText: String): AuctionLotPlan {
+        val duration = requireNotNull(resolveDuration(durationText)) {
+            "Use an ISO-8601 duration between ${config.auction.minDuration} and ${config.auction.maxDuration}."
+        }
+        require(duration.nano == 0) { "Auction duration must be in whole seconds." }
+        return AuctionLotPlan(
+            lots.map { validateImportedLot(it) to it },
+            round,
+            duration,
+            config.auction.antiSnipeWindowDuration,
+            config.auction.antiSnipeExtensionDuration,
+        )
+    }
+
+    internal fun openImportedLots(plan: AuctionLotPlan): Instant {
+        val checked = previewImportedLots(plan.lots.map { it.second }, plan.round, plan.duration.toString())
+        require(checked == plan) { "Stall details or auction settings changed. Preview the file again." }
+        val now = clock.instant()
+        val ends = now.plus(plan.duration)
+        val batch = plan.lots.map { (stall, lot) ->
+            stall to Auction(
+                id = AuctionId(UUID.randomUUID().toString()),
+                stallId = stall.id,
+                state = AuctionState.OPEN,
+                startAt = now,
+                endAt = ends,
+                startingBid = lot.minimumBid,
+                highBid = null,
+                antiSnipeWindow = plan.antiSnipeWindow,
+                antiSnipeExtension = plan.antiSnipeExtension,
+                openingRoundId = plan.round,
+            )
+        }
+        val conflict = auctionRepository.openImportedLots(batch)
+        require(conflict == null) { "Stall ${conflict?.value} changed. No lots were opened." }
+        for ((stall, _) in batch) {
+            (stallRepository as? StallAccessIndex)?.let { index ->
+                index.invalidate(stall.id.value)
+                runCatching { index.refresh(stall.id.value) }.onFailure {
+                    logger.log(Level.WARNING, "Could not refresh auction stall ${stall.id.value}", it)
+                }
+            }
+            fireStateChanged(stall.id.value, StallState.UNOWNED, StallState.AUCTIONING)
+        }
+        return ends
+    }
+
+    private fun validateImportedLot(lot: AuctionLot): Stall {
+        val id = lot.stallId
+        validateStartingBid(lot.minimumBid)?.let { throw IllegalArgumentException("${id.value}: ${it.reason}") }
+        val stall = requireNotNull(stallRepository.findById(id)) { "Unknown stall ${id.value}." }
+        require(stall.id == id) { "Use the registered stall ID ${stall.id.value}." }
+        require(stall.state == StallState.UNOWNED && stall.owner.type == OwnerType.NONE &&
+            !mutationGate.isStallLocked(id.value)
+        ) { "Stall ${id.value} is unavailable." }
+        require(sellOffers.findByStall(id) == null) { "Stall ${id.value} has a sell offer." }
+        require(auctionRepository.findByStall(id).none { it.state == AuctionState.OPEN }) {
+            "Stall ${id.value} already has an unsettled auction."
+        }
+        return stall
+    }
+
     private fun validateStartingBid(startingBid: Long): AuctionResult.Failure? {
         if (startingBid < config.auction.minStartingBid) {
             return AuctionResult.Failure("Starting bid must be at least ${config.auction.minStartingBid}")
