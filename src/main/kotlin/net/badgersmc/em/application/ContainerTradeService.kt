@@ -275,7 +275,7 @@ open class ContainerTradeService(
                         shop.direction, cost, scaledSell, shop.stallId,
                         net.badgersmc.em.infrastructure.website.salesCurrencyVerified(),
                         shop.adminShop, ctx.stallOwnerId?.let { ctx.player.uniqueId == it || ctx.player.uniqueId == ctx.ownerUuid },
-                        !ItemStackMatch.matches(sellStack, ItemStack(sellStack.type)),
+                        sellStack.hasItemMeta() && !ItemStackMatch.matches(sellStack, ItemStack(sellStack.type)),
                         ctx.ownerType != OwnerType.SOLO, null,
                     )
                 )
