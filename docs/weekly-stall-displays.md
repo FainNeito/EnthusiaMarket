@@ -7,4 +7,3 @@ The website reads separately verified player and guild results. The current part
 The automatic displays are opt-in and require separate positions. The existing PlaceholderAPI expansion remains compatible with the legacy solo endpoint. Use the bundled weekly-stall-displays.yml for positions and FancyNpcs 2.12.0 for skins. Retire the old manually placed TEST hologram before configuring an overlapping automatic display.
 
 Verify a player winner, guild winner, missing result, verified no-sales result, missing skin, week rollover, and disable/re-enable in a native client before release. Project-local EARS/state tooling is absent.
-

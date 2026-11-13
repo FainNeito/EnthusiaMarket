@@ -30,4 +30,4 @@ Stand at the intended hologram position and run:
 
 Verify the label after the first refresh and across a week boundary. The official result stays pending until coverage can be proved. Delete a temporary TEST display with `/hologram remove market_week`.
 
-For paired player and guild holograms and NPCs, see [Weekly stall displays](weekly-stall-displays.md). The guild placeholder is %enthusiamarket_guild_stall_of_the_week%.
+For paired player and guild holograms and NPCs, see [Weekly stall displays](weekly-stall-displays.md). The guild placeholder is `%enthusiamarket_guild_stall_of_the_week%`.

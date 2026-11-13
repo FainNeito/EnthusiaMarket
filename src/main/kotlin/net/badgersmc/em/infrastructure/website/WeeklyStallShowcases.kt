@@ -134,4 +134,3 @@ internal class WeeklyStallShowcases private constructor(
             if (world == other.world) distanceSquared(other) else Double.POSITIVE_INFINITY
     }
 }
-
