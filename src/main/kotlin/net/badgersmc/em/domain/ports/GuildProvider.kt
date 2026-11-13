@@ -27,6 +27,8 @@ interface GuildProvider {
 
     /** Public visual data when supported by the backing guild plugin. */
     fun visualById(id: String): GuildVisual? = null
+    /** Null when the backing lookup cannot verify the roster. */
+    fun verifiedMembership(player: UUID, guildId: String): Boolean? = null
     fun isMember(player: UUID, guildId: String): Boolean
     /** REQ-399: extra guild stalls the guild plugin grants (prestige); 0 when unsupported. */
     fun extraGuildStalls(guildId: String): Int = 0

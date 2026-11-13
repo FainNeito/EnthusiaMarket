@@ -41,9 +41,10 @@ class ShopTransactionRepositorySql(private val ds: DataSource) : ShopTransaction
                     if (attribution?.publicCashEligible == true) {
                         val facts = WebsiteSaleFacts(tx.direction, tx.totalPrice, tx.quantity, attribution.stallId,
                             cashCurrencyVerified = true, adminShop = false, ownShop = tx.owner == tx.buyer,
-                            modifiedItem = false, guildOwned = attribution.guildId != null, guildMemberBuyer = null)
+                            modifiedItem = false, guildOwned = attribution.guildId != null, guildMemberBuyer = attribution.awardOwner?.let { false })
                         try {
-                            WebsiteSalesArchiveSql(ds).insert(connection, stored.id, recordingId, facts, tx.item, null, tx.createdAt)
+                            WebsiteSalesArchiveSql(ds).insert(connection, stored.id, recordingId, facts, tx.item, attribution.guildId?.let { attribution.awardOwner?.name },
+                                tx.createdAt, attribution.awardOwner)
                         } catch (_: IllegalArgumentException) {
                             connection.prepareStatement("INSERT INTO website_sales_rejections (recording_id,reason,recorded_at) VALUES (?,?,?)").use { rejected ->
                                 rejected.setString(1, recordingId.toString())

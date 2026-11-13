@@ -85,7 +85,7 @@ class WebsiteSalesArchiveSqlTest {
             val last = archive.readAfter(first.nextCursor!!)
             assertEquals(listOf(251L), last.items.map { it.id })
             assertEquals(null, last.nextCursor)
-            assertEquals(setOf("id", "stall", "guild", "item", "quantity", "gold", "occurredAt", "recordingId"),
+            assertEquals(setOf("id", "stall", "guild", "item", "quantity", "gold", "occurredAt", "recordingId", "awardOwner"),
                 first.items.first().javaClass.declaredFields.filterNot { it.isSynthetic }.map { it.name }.toSet())
         } finally { (ds as? AutoCloseable)?.close() }
     }

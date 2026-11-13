@@ -91,6 +91,24 @@ class ShopTransactionRepositorySqlTest {
         }
     }
 
+    @Test fun `guild award attribution survives outbox retry`() {
+        val repo = ShopTransactionRepositorySql(ds)
+        val sale = tx(UUID.randomUUID(), System.currentTimeMillis())
+        val guild = UUID.randomUUID()
+        val owner = net.badgersmc.em.domain.shop.SaleAwardOwner(guild, "Test Guild", UUID.randomUUID())
+        val directory = java.nio.file.Files.createTempDirectory("guild-award-outbox")
+        val outbox = ShopHistoryOutbox(directory, repo, acknowledge = {})
+        val receipt = outbox.appendAttributed(sale, ShopSaleAttribution("stall17", guild, true, owner))
+        outbox.drain()
+        outbox.drain()
+        val archived = WebsiteSalesArchiveSql(ds).readAfter(0).items.single()
+        assertEquals(receipt, archived.recordingId)
+        assertEquals(owner, archived.awardOwner)
+        assertEquals("Test Guild", archived.guild)
+        java.nio.file.Files.delete(directory.resolve("$receipt.pending"))
+        java.nio.file.Files.delete(directory)
+    }
+
     @Test fun `window covers owner and buyer but never outsiders or end boundary`() {
         val repo = ShopTransactionRepositorySql(ds)
         val viewer = UUID.randomUUID()

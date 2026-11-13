@@ -109,7 +109,7 @@ def inspect_pending(path):
     identifier = read_uuid(reader.utf())
     if path.name != f"{identifier}.pending":
         raise ValueError("record_id_mismatch")
-    if version not in (1, 2, 3):
+    if version not in (1, 2, 3, 4):
         return "unknown_version"
     reader.take(8)  # shop ID
     read_uuid(reader.utf())  # owner
@@ -122,7 +122,14 @@ def inspect_pending(path):
     stall = reader.utf() if version >= 2 and reader.boolean() else None
     guild = read_uuid(reader.utf()) if version >= 2 and reader.boolean() else None
     eligible = reader.boolean() if version >= 3 else False
-    if eligible and (stall is None or guild is not None):
+    owner = None
+    if version >= 4:
+        owner = read_uuid(reader.utf())
+        name = reader.utf().decode("utf-8", errors="surrogatepass")
+        read_uuid(reader.utf())
+        if not name.strip() or len(name) > 48 or any(ord(c) < 32 or 127 <= ord(c) <= 159 for c in name):
+            return "invalid"
+    if eligible and (stall is None or (guild is not None and owner != guild)):
         raise ValueError("invalid_public_attribution")
     if reader.offset != len(payload):
         raise ValueError("unexpected_trailing_data")
@@ -137,7 +144,7 @@ def audit(directory):
     entries = sorted(directory.iterdir(), key=lambda path: path.name)
     if len(entries) > MAX_ENTRIES:
         raise ValueError("too_many_entries")
-    counts = {"version_1": 0, "version_2": 0, "version_3": 0,
+    counts = {"version_1": 0, "version_2": 0, "version_3": 0, "version_4": 0,
               "unknown_version": 0, "invalid": 0, "temporary": 0, "corrupt": 0, "other": 0}
     for path in entries:
         if path.name.endswith(".pending"):

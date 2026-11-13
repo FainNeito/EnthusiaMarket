@@ -34,6 +34,8 @@ internal data class TransactionEventData(
     val guildId: UUID? = null,
     val stallId: String? = null,
     val publicCashEligible: Boolean = false,
+    val awardOwner: net.badgersmc.em.domain.shop.SaleAwardOwner? = null,
+    val awardCaptureIncomplete: Boolean = false,
 )
 
 private data class TradeContext(
@@ -269,18 +271,26 @@ open class ContainerTradeService(
             else saleRewards?.aborted(intent)
         }
         if (result is ContainerTradeResult.Success) {
-            val publicCashEligible = runCatching {
-                net.badgersmc.em.domain.shop.WebsiteSaleEligibility.accepts(
-                    net.badgersmc.em.domain.shop.WebsiteSaleFacts(
-                        shop.direction, cost, scaledSell, shop.stallId,
-                        net.badgersmc.em.infrastructure.website.salesCurrencyVerified(),
-                        shop.adminShop, ctx.stallOwnerId?.let { ctx.player.uniqueId == it || ctx.player.uniqueId == ctx.ownerUuid },
-                        sellStack.hasItemMeta() && !ItemStackMatch.matches(sellStack, ItemStack(sellStack.type)),
-                        ctx.ownerType != OwnerType.SOLO, null,
-                    )
+            val currencyVerified = net.badgersmc.em.infrastructure.website.salesCurrencyVerified()
+            val facts = runCatching {
+                net.badgersmc.em.domain.shop.WebsiteSaleFacts(
+                    shop.direction, cost, scaledSell, shop.stallId, currencyVerified,
+                    shop.adminShop, ctx.stallOwnerId?.let { ctx.player.uniqueId == it || ctx.player.uniqueId == ctx.ownerUuid },
+                    sellStack.hasItemMeta() && !ItemStackMatch.matches(sellStack, ItemStack(sellStack.type)),
+                    ctx.ownerType == OwnerType.GUILD,
+                    ctx.guildId?.let { id -> guildProvider?.verifiedMembership(ctx.player.uniqueId, id.toString()) },
                 )
-            }.getOrDefault(false)
-            publishShopTransaction(TransactionEventData(ctx.player, ctx.ownerUuid, sellStack, scaledSell, cost, shop.id, shop.direction, ctx.guildId, shop.stallId, publicCashEligible))
+            }.getOrNull()
+            val eligible = facts?.let(net.badgersmc.em.domain.shop.WebsiteSaleEligibility::accepts) == true
+            val awardOwner = if (eligible) runCatching { saleAwardOwner(ctx) }.getOrNull() else null
+            val possiblyEligible = facts?.let {
+                net.badgersmc.em.domain.shop.WebsiteSaleEligibility.accepts(it.copy(
+                    ownShop = it.ownShop ?: false, guildMemberBuyer = it.guildMemberBuyer ?: false,
+                ))
+            } ?: (currencyVerified && cost > 0 && !shop.adminShop)
+            publishShopTransaction(TransactionEventData(ctx.player, ctx.ownerUuid, sellStack, scaledSell, cost,
+                shop.id, shop.direction, ctx.guildId, shop.stallId, eligible && (ctx.guildId == null || awardOwner != null),
+                awardOwner, possiblyEligible && awardOwner == null))
         }
         return result
     }
@@ -399,6 +409,21 @@ open class ContainerTradeService(
         return if (stall.owner.type == OwnerType.GUILD) {
             runCatching { UUID.fromString(stall.owner.id) }.getOrNull()
         } else null
+    }
+
+    private fun saleAwardOwner(ctx: TradeContext): net.badgersmc.em.domain.shop.SaleAwardOwner? {
+        val owner = ctx.stallOwnerId ?: return null
+        return when (ctx.ownerType) {
+            OwnerType.SOLO -> Bukkit.getOfflinePlayer(owner).name?.let {
+                net.badgersmc.em.domain.shop.SaleAwardOwner(owner, it, owner)
+            }
+            OwnerType.GUILD -> {
+                val guild = guildProvider?.guildById(owner.toString()) ?: return null
+                val leader = guildProvider.visualById(guild.id)?.leaderId ?: return null
+                net.badgersmc.em.domain.shop.SaleAwardOwner(owner, guild.name, leader)
+            }
+            OwnerType.NONE -> null
+        }
     }
 
     private fun ownerUuid(stall: net.badgersmc.em.domain.stall.Stall): UUID? =

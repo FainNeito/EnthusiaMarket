@@ -123,9 +123,9 @@ open class EnthusiaMarket : JavaPlugin() {
         val ds = DatabaseFactory.open(dbSpec)
         MigrationRunner(ds, resourcePrefix = "migrations", classLoader = this::class.java.classLoader).runAll()
         ctx.registerBean("dataSource", DataSource::class, ds as DataSource)
-        startWebsiteSales(ds)
         shopNotifications = ctx.getBean<net.badgersmc.em.infrastructure.listeners.ShopNotificationStorage>()
         shopHistory = ctx.getBean<net.badgersmc.em.infrastructure.listeners.ShopHistoryStorage>()
+        startWebsiteSales(ds, cfg)
         stallAccounting = ctx.getBean<net.badgersmc.em.infrastructure.listeners.StallAccountingStorage>()
 
         // Stable Staff integration. Register the policy before Nexus constructs any
@@ -613,7 +613,7 @@ open class EnthusiaMarket : JavaPlugin() {
             Bukkit.getScheduler().runTaskTimer(this, Runnable { showcases.render(player, guild) }, 220L, 20L)
         }
     }
-    private fun startWebsiteSales(ds: DataSource) {
+    private fun startWebsiteSales(ds: DataSource, config: EnthusiaMarketConfig) {
         try {
             val file = File(dataFolder, "website-sales.yml")
             if (!file.exists()) saveResource("website-sales.yml", false)
@@ -627,12 +627,22 @@ open class EnthusiaMarket : JavaPlugin() {
                 ?: settings.getString("generation-file"))
                 ?.takeIf { it.isNotBlank() } ?: error("Missing sales generation control file")
             val generation = net.badgersmc.em.infrastructure.website.SalesGenerationFile(java.nio.file.Path.of(generationPath))
-            generation.read() // Fail startup closed when control state is missing or malformed.
+            val configuredGeneration = generation.read() // Fail closed if control state is unavailable.
+            val archive = net.badgersmc.em.infrastructure.persistence.WebsiteSalesArchiveSql(ds)
             val server = net.badgersmc.em.infrastructure.website.WebsiteSalesHttpServer(
                 settings.getInt("port", 8124), token,
                 generation::read,
                 settings.getString("bind-address", "127.0.0.1") ?: "127.0.0.1",
-                net.badgersmc.em.infrastructure.persistence.WebsiteSalesArchiveSql(ds),
+                reader = archive,
+                coverage = {
+                    val through = java.time.Instant.now()
+                    val start = settings.getString("award-capture-from")?.takeIf { it.isNotBlank() }
+                        ?.let { java.time.Instant.parse(it) }
+                    if (config.shop.archiveCaptureEnabled && start != null && start < through &&
+                        settings.getString("award-generation") == configuredGeneration.toString() &&
+                        generation.read() == configuredGeneration && shopHistory?.drained() == true &&
+                        !archive.hasRejectionsSince(start.toEpochMilli())) start to through else null
+                },
             )
             try { server.start(); websiteSales = server } catch (failure: Exception) { server.close(); throw failure }
         } catch (_: Exception) { logger.warning("Website sales feed disabled: invalid configuration or unavailable listener") }

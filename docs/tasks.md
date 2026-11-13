@@ -1,7 +1,7 @@
 
 # Tasks — EnthusiaMarket
 
-- [~] WEEKLY-STALL-DISPLAYS — Add independent closed-week player and guild holograms and representative NPCs. See weekly-stall-displays.md for the award contract, configuration, and native acceptance checklist.
+- [~] WEEKLY-STALL-DISPLAYS — Add independent closed-week player and guild holograms and representative NPCs. Automatic awards use archived sale-time identities and a verified closed-week coverage interval. See weekly-stall-displays.md for configuration and native acceptance.
 
 - [~] WEBSITE-SALES-ATTRIBUTION — REQ-402/403/404/405: preserve sale-time stall and guild IDs through history and legacy-compatible outbox; prepare a bounded authenticated public exporter without guessing historical ownership. Solo-only feed is incomplete; assess binary compatibility, guild eligibility and restore handling before delivery. Evidence: website-sale-attribution-plan.md. TEST recorded one redstone purchase at 11 raw gold and verified one tracker trade across consecutive scheduled polls. The full server rollback rehearsal and a complete qualifying week are still open.
 - [~] SHOP-398 — Add safe sale-time counterparty context to guild shop system payments and reversals; preserve XP, permission, old-record, rollback, and runtime compatibility. Source and draft tests in progress; local and hosted tests, review, mobile preview QA, and native acceptance pending. See shop-counterparty-evidence.md.
