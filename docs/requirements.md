@@ -797,3 +797,5 @@ WHEN the finder shows a non-admin BUY shop, Market SHALL identify it as a buying
 WHEN PlaceholderAPI is available THE SYSTEM SHALL expose the last closed New York week's official website result without performing network I/O on placeholder resolution.
 
 IF the website reports incomplete coverage or cannot supply the current award response THEN THE SYSTEM SHALL show the applicable pending or unavailable status.
+
+WHEN the sales exporter runs behind a managed HTTPS proxy THE SYSTEM SHALL allow an explicit IPv4 wildcard bind while retaining loopback as the default and requiring the Market bearer on every request.

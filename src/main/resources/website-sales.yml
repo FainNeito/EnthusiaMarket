@@ -1,4 +1,4 @@
-# Disabled by default. The listener binds to loopback only.
+# Disabled by default. The default listener binds to loopback.
 # Verify currency and configure dedicated environment variables before enabling:
 # ENTHUSIA_MARKET_SALES_CURRENCY=RAW_GOLD
 # ENTHUSIA_MARKET_SALES_TOKEN=<dedicated secret, at least 32 characters>
@@ -8,3 +8,8 @@
 # Expose through an authenticated HTTPS proxy. Restart after changes.
 enabled: false
 port: 8124
+bind-address: "127.0.0.1"
+# Managed hosting can use -Denthusiamarket.sales.currency=RAW_GOLD and these
+# files instead of the corresponding environment variables.
+token-file: ""
+generation-file: ""

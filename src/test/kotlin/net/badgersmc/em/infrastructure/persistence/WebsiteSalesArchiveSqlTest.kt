@@ -40,7 +40,7 @@ class WebsiteSalesArchiveSqlTest {
         val port = ServerSocket(0).use { it.localPort }
         val token = "test-only-" + "a".repeat(32)
         val generation = UUID.randomUUID()
-        val listener = WebsiteSalesHttpServer(port, token, { generation }, archive)
+        val listener = WebsiteSalesHttpServer(port, token, { generation }, reader = archive)
         listener.start()
         try {
             val request = HttpRequest.newBuilder(URI.create("http://127.0.0.1:$port/api/community/sales?protocol=2&after=0&generation=$generation"))

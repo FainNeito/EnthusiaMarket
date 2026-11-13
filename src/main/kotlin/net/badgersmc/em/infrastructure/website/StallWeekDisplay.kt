@@ -44,6 +44,7 @@ internal class StallWeekDisplay(
 
 private fun readPublicAward(): String {
     val configuredEndpoint = System.getenv("ENTHUSIA_MARKET_STALL_WEEK_URL")
+        ?: System.getProperty("enthusiamarket.stall-week.url")
     val endpoint = URI(configuredEndpoint ?: "https://enthusia.info/api/community/insights?view=stall-week")
     require(endpoint.scheme == "https" && endpoint.host != null &&
         endpoint.userInfo == null && endpoint.fragment == null)

@@ -12,9 +12,13 @@ import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 
-/** Opt-in loopback reader. It must be exposed only through a protected HTTPS proxy. */
+internal fun salesCurrencyVerified(): Boolean =
+    (System.getenv("ENTHUSIA_MARKET_SALES_CURRENCY") ?: System.getProperty("enthusiamarket.sales.currency")) == "RAW_GOLD"
+
+/** Opt-in reader with a loopback default for deployments behind an HTTPS proxy. */
 internal class WebsiteSalesHttpServer(private val port: Int, private val token: String,
                                       private val generation: () -> UUID,
+                                      private val bindAddress: String = "127.0.0.1",
                                       private val reader: WebsitePublicSaleReader) : AutoCloseable {
     private val executor = ThreadPoolExecutor(1, 2, 30, TimeUnit.SECONDS, ArrayBlockingQueue(16),
         { task -> Thread(task, "EnthusiaMarket-SalesRead").apply { isDaemon = true } }, ThreadPoolExecutor.AbortPolicy())
@@ -23,7 +27,8 @@ internal class WebsiteSalesHttpServer(private val port: Int, private val token: 
     fun start() {
         require(port in 1..65535 && token.length in 32..8192 && token.none { it == '\r' || it == '\n' })
         check(server == null)
-        val listener = HttpServer.create(InetSocketAddress("127.0.0.1", port), 16)
+        require(bindAddress == "127.0.0.1" || bindAddress == "0.0.0.0")
+        val listener = HttpServer.create(InetSocketAddress(bindAddress, port), 16)
         try {
             listener.createContext("/api/community/sales", ::handle)
             listener.executor = executor; listener.start(); server = listener

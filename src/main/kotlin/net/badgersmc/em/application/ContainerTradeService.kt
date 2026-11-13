@@ -273,7 +273,7 @@ open class ContainerTradeService(
                 net.badgersmc.em.domain.shop.WebsiteSaleEligibility.accepts(
                     net.badgersmc.em.domain.shop.WebsiteSaleFacts(
                         shop.direction, cost, scaledSell, shop.stallId,
-                        System.getenv("ENTHUSIA_MARKET_SALES_CURRENCY") == "RAW_GOLD",
+                        net.badgersmc.em.infrastructure.website.salesCurrencyVerified(),
                         shop.adminShop, ctx.stallOwnerId?.let { ctx.player.uniqueId == it || ctx.player.uniqueId == ctx.ownerUuid }, sellStack.hasItemMeta(),
                         ctx.ownerType != OwnerType.SOLO, null,
                     )
