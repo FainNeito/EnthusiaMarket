@@ -60,6 +60,9 @@ repositories {
         content { includeGroup("com.github.retrooper") }
     }
 
+    maven("https://api.modrinth.com/maven") {
+        content { includeModule("maven.modrinth", "EeyAn23L") }
+    }
     // Nexus releases — served via JitPack (https://jitpack.io). No token
     // required; the repo at https://github.com/BadgersMC/Nexus is public.
     // jitpack.io is already declared above.
@@ -121,6 +124,7 @@ dependencies {
     implementation("com.google.code.gson:gson:2.11.0")
 
     // PlaceholderAPI expansion — provide-side only; registerNexusExpansions no-ops without PAPI.
+    compileOnly("maven.modrinth:EeyAn23L:53lykMXY") { isTransitive = false }
     compileOnly("me.clip:placeholderapi:2.11.6")
     implementation("$nexusGroup:nexus-papi:$nexusVersion")
 

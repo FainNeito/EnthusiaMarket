@@ -7,14 +7,17 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.TemporalAdjusters
+import java.util.UUID
 import javax.net.ssl.HttpsURLConnection
 
-/** Fetches the same closed-week award the website publishes. Placeholder reads are memory-only. */
+internal data class StallWeekWinner(val stall: String, val ownerName: String, val representative: UUID)
+
+/** Fetches the last closed New York week. Placeholder reads are memory-only. */
 internal class StallWeekDisplay(
     private val clock: Clock = Clock.systemUTC(),
-    private val readAward: () -> String = ::readPublicAward,
+    private val readAward: () -> String = { readPublicAward() },
 ) {
-    private data class Award(val week: LocalDate, val line: String)
+    private data class Award(val week: LocalDate, val line: String, val winner: StallWeekWinner? = null)
 
     @Volatile private var award: Award? = null
 
@@ -22,7 +25,11 @@ internal class StallWeekDisplay(
         award = runCatching { parse(readAward(), previousWeek()) }.getOrNull()
     }
 
-    fun line(): String = award?.takeIf { it.week == previousWeek() }?.line ?: "Results unavailable"
+    fun line(): String = current()?.line ?: "Results unavailable"
+
+    fun winner(): StallWeekWinner? = current()?.winner
+
+    private fun current(): Award? = award?.takeIf { it.week == previousWeek() }
 
     private fun previousWeek(): LocalDate = LocalDate.now(clock.withZone(ZoneId.of("America/New_York")))
         .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).minusWeeks(1)
@@ -35,17 +42,28 @@ internal class StallWeekDisplay(
         if (!coverage.asBoolean) return Award(week, "Awaiting verified sales")
         val winner = response.get("winner") ?: return null
         if (winner.isJsonNull) return Award(week, "No qualifying sales")
-        val name = winner.asJsonObject.getAsJsonPrimitive("name") ?: return null
-        if (!name.isString || !name.asString.matches(Regex("[A-Za-z0-9_-]{1,48}"))) return null
-        val stall = Regex("stall([0-9]+)", RegexOption.IGNORE_CASE).matchEntire(name.asString)
-        return Award(week, stall?.let { "Stall ${it.groupValues[1]}" } ?: name.asString)
+        val data = winner.asJsonObject
+        val stall = data.getAsJsonPrimitive("name")?.takeIf { it.isString }?.asString
+            ?.takeIf { it.matches(Regex("[A-Za-z0-9_.:-]{1,80}")) } ?: return null
+        val label = Regex("stall([0-9]+)", RegexOption.IGNORE_CASE).matchEntire(stall)
+            ?.let { "Stall ${it.groupValues[1]}" } ?: stall
+        if (!data.has("ownerName") && !data.has("representativeUuid")) return Award(week, label)
+        val owner = data.getAsJsonPrimitive("ownerName")?.takeIf { it.isString }?.asString
+            ?.takeIf { it.isNotBlank() && it.length <= 48 && it.none(Char::isISOControl) } ?: return null
+        val identity = data.getAsJsonPrimitive("representativeUuid")?.takeIf { it.isString }?.asString ?: return null
+        val representative = UUID.fromString(identity).takeIf { it.toString() == identity } ?: return null
+        return Award(week, "$label • $owner", StallWeekWinner(label, owner, representative))
+    }
+
+    companion object {
+        fun guild() = StallWeekDisplay { readPublicAward(guild = true) }
     }
 }
-
-private fun readPublicAward(): String {
+private fun readPublicAward(guild: Boolean = false): String {
     val configuredEndpoint = System.getenv("ENTHUSIA_MARKET_STALL_WEEK_URL")
         ?: System.getProperty("enthusiamarket.stall-week.url")
     val endpoint = URI(configuredEndpoint ?: "https://enthusia.info/api/community/insights?view=stall-week")
+        .let { base -> if (guild) URI(base.scheme, base.authority, base.path, "view=guild-stall-week", base.fragment) else base }
     require(endpoint.scheme == "https" && endpoint.host != null &&
         endpoint.userInfo == null && endpoint.fragment == null)
     val connection = endpoint.toURL().openConnection() as HttpsURLConnection
