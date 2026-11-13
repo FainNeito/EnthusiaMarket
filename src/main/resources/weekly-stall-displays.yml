@@ -1,0 +1,15 @@
+# Enable after configuring both positions. Coordinates are the NPC's feet.
+enabled: false
+player:
+  world: ""
+  x: 0.5
+  y: 64
+  z: 0.5
+  yaw: 0
+guild:
+  world: ""
+  x: 4.5
+  y: 64
+  z: 0.5
+  yaw: 0
+

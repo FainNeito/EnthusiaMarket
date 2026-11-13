@@ -35,6 +35,7 @@ open class EnthusiaMarket : JavaPlugin() {
     private var shopHistory: net.badgersmc.em.infrastructure.listeners.ShopHistoryStorage? = null
     private var scheduler: NexusScheduler? = null
     private var websiteSync: net.badgersmc.em.websync.WebsiteSyncService? = null
+    private var weeklyStallShowcases: net.badgersmc.em.infrastructure.website.WeeklyStallShowcases? = null
     private var websiteSales: net.badgersmc.em.infrastructure.website.WebsiteSalesHttpServer? = null
     private var bedrockHeadStore: net.badgersmc.em.websync.heads.BedrockHeadStore? = null
     private var geyserHeadIntegration: AutoCloseable? = null
@@ -374,11 +375,7 @@ open class EnthusiaMarket : JavaPlugin() {
             classLoader = this::class.java.classLoader,
             nexus = ctx,
         )
-        if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            val display = ctx.getBean<net.badgersmc.em.infrastructure.papi.ShopPlaceholders>().stallWeekDisplay
-            Bukkit.getScheduler().runTaskTimerAsynchronously(this, Runnable(display::refresh), 20L, 1200L)
-        }
-
+        startWeeklyStallDisplays(ctx)
         pruneTransactionHistory(ctx, cfg)
 
         // M-16: on guild disband, free its stalls + unbind its shops.
@@ -569,6 +566,7 @@ open class EnthusiaMarket : JavaPlugin() {
     }
 
     override fun onDisable() {
+        runCatching { weeklyStallShowcases?.close() }
         runCatching { websiteSales?.close() }
         net.badgersmc.em.interaction.StallAccessUi.reset()
         net.badgersmc.em.interaction.AuctionBidUi.reset()
@@ -599,6 +597,22 @@ open class EnthusiaMarket : JavaPlugin() {
         projection: net.badgersmc.em.infrastructure.listeners.StallAccessProjection,
     ) { stalls.all().forEach { projection.apply(it, service.current(it)) } }
 
+    private fun startWeeklyStallDisplays(ctx: NexusContext) {
+        val showcases = net.badgersmc.em.infrastructure.website.WeeklyStallShowcases.open(this)
+        weeklyStallShowcases = showcases
+        if (showcases == null && !Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) return
+        val placeholders = ctx.getBean<net.badgersmc.em.infrastructure.papi.ShopPlaceholders>()
+        val player = placeholders.stallWeekDisplay
+        val guild = placeholders.guildStallWeekDisplay
+        Bukkit.getScheduler().runTaskTimerAsynchronously(this, Runnable {
+            player.refresh()
+            guild.refresh()
+            showcases?.prepare(player, guild)
+        }, 20L, 1200L)
+        if (showcases != null) {
+            Bukkit.getScheduler().runTaskTimer(this, Runnable { showcases.render(player, guild) }, 220L, 20L)
+        }
+    }
     private fun startWebsiteSales(ds: DataSource) {
         try {
             val file = File(dataFolder, "website-sales.yml")

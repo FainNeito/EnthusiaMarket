@@ -48,4 +48,19 @@ class StallWeekDisplayTest {
         display.refresh()
         assertEquals("Results unavailable", display.line())
     }
+
+    @Test
+    fun `verified representative is required for a skin and is discarded after feed failure`() {
+        val clock = Clock.fixed(Instant.parse("2026-11-09T05:00:00Z"), ZoneOffset.UTC)
+        val representative = "4a200000-0000-4000-8000-000000000001"
+        var body = """{"week":"2026-11-02","coverageComplete":true,"winner":{"name":"stall69","ownerName":"Example Guild","representativeUuid":"$representative"}}"""
+        val display = StallWeekDisplay(clock) { body }
+        display.refresh()
+        assertEquals("Stall 69 • Example Guild", display.line())
+        assertEquals(representative, display.winner()?.representative.toString())
+        body = body.replace(representative, "1-1-1-1-1")
+        display.refresh()
+        assertEquals("Results unavailable", display.line())
+        assertEquals(null, display.winner())
+    }
 }
