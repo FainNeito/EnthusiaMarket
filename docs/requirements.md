@@ -52,6 +52,8 @@ Each requirement carries a stable ID. Tasks reference requirements by ID. New re
 
 **Unwanted.** IF a transaction's currency, eligibility or attribution is unverified THEN THE SYSTEM SHALL exclude unsupported fields or records from the public sales feed.
 
+WHEN a sale item differs from its default stack only by an explicit zero-damage value THE SYSTEM SHALL treat it as unmodified for public sale eligibility.
+
 ### REQ-406 — Default-off attributed capture
 
 **State-driven.** WHILE archive capture is disabled THE SYSTEM SHALL record shop history through the legacy unattributed version-one outbox path, even if the completed trade event contains sale-time attribution. Enabling the HTTP listener alone SHALL NOT enable capture. Existing attributed pending records SHALL remain readable and SHALL NOT be rewritten or discarded.
