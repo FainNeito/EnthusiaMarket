@@ -796,6 +796,8 @@ WHEN the finder shows a non-admin BUY shop, Market SHALL identify it as a buying
 
 ### Stall of the Week
 
+WHEN an eligible solo sale's stall owner has no name in Paper's current lookup THE SYSTEM SHALL use a safe last-known name from the server profile cache with the same owner UUID, if available. IF neither source yields an unambiguous name THEN THE SYSTEM SHALL preserve the trade and flag the missing attribution.
+
 WHEN PlaceholderAPI is available THE SYSTEM SHALL expose the last closed New York week's official website result without performing network I/O on placeholder resolution.
 
 IF the website reports incomplete coverage or cannot supply the current award response THEN THE SYSTEM SHALL show the applicable pending or unavailable status.
