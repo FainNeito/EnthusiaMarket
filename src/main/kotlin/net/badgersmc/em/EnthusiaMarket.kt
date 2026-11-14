@@ -206,6 +206,10 @@ open class EnthusiaMarket : JavaPlugin() {
             { id, error -> logger.warning("Guild-shop XP delivery needs retry/investigation for sale $id: ${error.javaClass.simpleName}") },
         )
         ctx.registerBean("guildSaleRewards", net.badgersmc.em.domain.ports.GuildSaleRewards::class, saleRewards)
+        val weeklyPlayerNames = net.badgersmc.em.infrastructure.website.WeeklyPlayerNameLookup.load(
+            java.nio.file.Path.of("usercache.json"), { server.getOfflinePlayer(it).name }, logger::warning,
+        )
+        ctx.registerBean("weeklyPlayerNames", net.badgersmc.em.domain.ports.WeeklyPlayerNames::class, weeklyPlayerNames)
         server.scheduler.runTaskTimerAsynchronously(this, Runnable { saleRewards.replay() }, 20L, 200L)
 
         // Shop repository + in-memory container index (REQ-281/282, PERF-4). The hopper-control

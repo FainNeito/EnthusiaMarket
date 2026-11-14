@@ -2,6 +2,7 @@ package net.badgersmc.em.application
 
 import net.badgersmc.em.domain.ports.EconomyProvider
 import net.badgersmc.em.domain.ports.GuildProvider
+import net.badgersmc.em.domain.ports.WeeklyPlayerNames
 import net.badgersmc.em.domain.shop.Shop
 import net.badgersmc.em.domain.stall.OwnerType
 import net.badgersmc.em.domain.stall.StallId
@@ -63,6 +64,7 @@ open class ContainerTradeService(
     private val shopVault: ShopVaultService? = null,
     private val stallAccess: net.badgersmc.em.domain.ports.StallAccessPolicy = net.badgersmc.em.domain.ports.StallAccessPolicy.Open,
     private val saleRewards: net.badgersmc.em.domain.ports.GuildSaleRewards? = null,
+    private val weeklyPlayerNames: WeeklyPlayerNames = WeeklyPlayerNames { Bukkit.getOfflinePlayer(it).name },
 ) {
     private val log = Logger.getLogger(ContainerTradeService::class.java.name)
     private val compensationAlerts = CompensationAlertService()
@@ -414,7 +416,7 @@ open class ContainerTradeService(
     private fun saleAwardOwner(ctx: TradeContext): net.badgersmc.em.domain.shop.SaleAwardOwner? {
         val owner = ctx.stallOwnerId ?: return null
         return when (ctx.ownerType) {
-            OwnerType.SOLO -> Bukkit.getOfflinePlayer(owner).name?.let {
+            OwnerType.SOLO -> weeklyPlayerNames.nameOf(owner)?.let {
                 net.badgersmc.em.domain.shop.SaleAwardOwner(owner, it, owner)
             }
             OwnerType.GUILD -> {
