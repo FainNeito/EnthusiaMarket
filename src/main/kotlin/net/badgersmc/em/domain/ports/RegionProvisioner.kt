@@ -25,4 +25,8 @@ interface RegionProvisioner {
      *         world/region was missing.
      */
     fun provision(world: String, regionId: String, priority: Int): Boolean
+
+    /** Provision a logical stall root and its disjoint WorldGuard pieces as one saved update. */
+    fun provisionGroup(world: String, rootRegionId: String, componentRegionIds: List<String>, priority: Int): Boolean =
+        provision(world, rootRegionId, priority) && componentRegionIds.all { provision(world, it, priority + 1) }
 }

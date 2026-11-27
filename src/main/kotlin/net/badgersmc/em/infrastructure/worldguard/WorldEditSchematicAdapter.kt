@@ -56,7 +56,7 @@ class WorldEditSchematicAdapter(
                 ?: return SchematicService.Result.Failure(
                     IllegalStateException("World '$world' is not loaded")
                 )
-            val boundary = stallRegion(world, regionId)
+            val boundary = stallBoundary(world, regionId)
                 ?: return SchematicService.Result.Failure(
                     IllegalStateException("Region '$regionId' not found in world '$world'")
                 )
@@ -92,7 +92,7 @@ class WorldEditSchematicAdapter(
                 )
             // Validate the region exists up front so a missing region fails fast
             // (synchronously) rather than inside an async paste.
-            val boundary = stallRegion(world, regionId)
+            val boundary = stallBoundary(world, regionId)
                 ?: return SchematicService.Result.Failure(
                     IllegalStateException("Region '$regionId' not found in world '$world'")
                 )
@@ -118,7 +118,7 @@ class WorldEditSchematicAdapter(
         }
     }
 
-    private fun pasteNow(world: String, file: File, boundary: ProtectedRegion) {
+    private fun pasteNow(world: String, file: File, boundary: StallBoundary) {
         val bukkitWorld = Bukkit.getWorld(world) ?: error("World '$world' is not loaded")
         val weWorld = BukkitAdapter.adapt(bukkitWorld)
         val clipboard = WorldEditAdapter.loadSchematic(file)
@@ -129,11 +129,16 @@ class WorldEditSchematicAdapter(
     }
 
     /** Resolve the named WorldGuard stall geometry, or null if absent. */
-    private fun stallRegion(world: String, regionId: String): ProtectedRegion? {
+    private fun stallBoundary(world: String, regionId: String): StallBoundary? {
         val bukkitWorld = Bukkit.getWorld(world) ?: return null
         val container = WorldGuard.getInstance().platform.regionContainer
         val regionManager = container.get(BukkitAdapter.adapt(bukkitWorld)) ?: return null
-        return regionManager.getRegion(regionId)
+        val root = regionManager.getRegion(regionId) ?: return null
+        val pieces = regionManager.regions.values.filter { it.id.startsWith("${regionId}__air_") }
+        val regions = pieces.ifEmpty { listOf(root) }
+        val min = BlockVector3.at(regions.minOf { it.minimumPoint.x() }, regions.minOf { it.minimumPoint.y() }, regions.minOf { it.minimumPoint.z() })
+        val max = BlockVector3.at(regions.maxOf { it.maximumPoint.x() }, regions.maxOf { it.maximumPoint.y() }, regions.maxOf { it.maximumPoint.z() })
+        return StallBoundary(min, max, regions)
     }
 }
 
@@ -142,18 +147,30 @@ private data class SchematicRestore(
     val source: Extent,
     val saved: Region,
     val target: Extent,
-    val boundary: ProtectedRegion,
+    val boundary: StallBoundary,
     val offset: BlockVector3,
     val clipped: Region,
 )
 
 internal fun restoreStallBlocks(source: Extent, saved: Region, target: Extent, boundary: ProtectedRegion) {
+    restoreStallBlocks(source, saved, target, StallBoundary(boundary.minimumPoint, boundary.maximumPoint, listOf(boundary)))
+}
+
+internal data class StallBoundary(
+    val minimumPoint: BlockVector3,
+    val maximumPoint: BlockVector3,
+    val regions: List<ProtectedRegion>,
+) {
+    fun contains(position: BlockVector3): Boolean = regions.any { it.contains(position) }
+}
+
+internal fun restoreStallBlocks(source: Extent, saved: Region, target: Extent, boundary: StallBoundary) {
     val offset = schematicOffset(saved, boundary)
     val clipped = clippedBounds(saved, boundary, offset)
     restoreContainedBlocks(SchematicRestore(source, saved, target, boundary, offset, clipped))
 }
 
-private fun schematicOffset(saved: Region, boundary: ProtectedRegion): BlockVector3 {
+private fun schematicOffset(saved: Region, boundary: StallBoundary): BlockVector3 {
     // FAWE can deserialize a stall capture as a zero-based clipboard. Market captured
     // it from the stall minimum. Only use that anchor when all three dimensions match.
     val sourceMin = saved.minimumPoint.stableCopy()
@@ -165,7 +182,7 @@ private fun schematicOffset(saved: Region, boundary: ProtectedRegion): BlockVect
     return stallMin
 }
 
-private fun clippedBounds(saved: Region, boundary: ProtectedRegion, offset: BlockVector3): CuboidRegion {
+private fun clippedBounds(saved: Region, boundary: StallBoundary, offset: BlockVector3): CuboidRegion {
     val min = saved.minimumPoint.stableCopy().add(offset).getMaximum(boundary.minimumPoint.stableCopy())
     val max = saved.maximumPoint.stableCopy().add(offset).getMinimum(boundary.maximumPoint.stableCopy())
     require(min.x() <= max.x() && min.y() <= max.y() && min.z() <= max.z()) {

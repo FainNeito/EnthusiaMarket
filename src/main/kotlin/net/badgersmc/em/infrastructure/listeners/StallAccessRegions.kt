@@ -14,7 +14,8 @@ open class StallAccessRegions(private val index: StallAccessIndex) {
         val world = location.world ?: return emptyList()
         val manager = WorldGuard.getInstance().platform.regionContainer.get(BukkitAdapter.adapt(world)) ?: return emptyList()
         return manager.getApplicableRegions(BukkitAdapter.asBlockVector(location)).mapNotNull {
-            index.cached(world.name, it.id)
-        }
+            val logicalId = it.id.substringBefore("__air_")
+            index.cached(world.name, logicalId)
+        }.distinctBy { it.id.value }
     }
 }

@@ -25,8 +25,10 @@ interface RegionProvider {
         val minX: Int, val minY: Int, val minZ: Int,
         val maxX: Int, val maxY: Int, val maxZ: Int,
         val claimedColumns: Long? = rectangularColumns(minX, maxX, minZ, maxZ),
+        private val exactClaimedVolume: Long? = null,
     ) {
         val claimedVolume: Long? get() {
+            exactClaimedVolume?.let { return it }
             val columns = claimedColumns ?: return null
             val layers = maxY.toLong() - minY + 1
             return if (columns > 0 && layers > 0 && columns <= Long.MAX_VALUE / layers) columns * layers else null

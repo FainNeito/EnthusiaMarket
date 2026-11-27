@@ -5,91 +5,172 @@ import com.sk89q.worldedit.math.BlockVector2
 import com.sk89q.worldedit.math.BlockVector3
 import com.sk89q.worldguard.WorldGuard
 import com.sk89q.worldguard.protection.managers.RegionManager
+import com.sk89q.worldguard.protection.regions.ProtectedCuboidRegion
 import com.sk89q.worldguard.protection.regions.ProtectedPolygonalRegion
 import com.sk89q.worldguard.protection.regions.ProtectedRegion
 import net.badgersmc.em.config.EnthusiaMarketConfig
 import net.badgersmc.em.domain.ports.RegionProvisioner
 import org.bukkit.Bukkit
 
-/** WorldGuard validation and persistence adapter for the interactive editor. */
+/** Builds a WorldGuard parent stall plus disjoint access cuboids matching its usable air volume. */
 internal class StallRegionWorldGuardWriter(
     private val config: EnthusiaMarketConfig,
     private val provisioner: RegionProvisioner,
 ) {
-    private data class FootprintBounds(val minX: Int, val maxX: Int, val minZ: Int, val maxZ: Int) {
-        val area: Long get() = (maxX.toLong() - minX + 1) * (maxZ.toLong() - minZ + 1)
-    }
-    private data class ParentBoundsCheck(
-        val polygon: ProtectedPolygonalRegion,
-        val parent: ProtectedRegion,
-        val bounds: FootprintBounds,
-        val bottomY: Int,
-        val topY: Int,
-    )
-    private data class RegionPlan(val manager: RegionManager, val previous: ProtectedRegion?, val replacement: ProtectedRegion)
-    private data class PlanResult(val plan: RegionPlan? = null, val error: String? = null)
-
     fun validate(draft: StallRegionDraft): String? {
-        validateDraft(draft)?.let { return it }
-        return validateParentMembership(draft)
+        return validateDraft(draft) ?: validateAirBoundary(draft)
+    }
+
+    private fun validateAirBoundary(draft: StallRegionDraft): String? {
+        val manager = manager(draft) ?: return managerError(draft)
+        val parent = manager.getRegion(config.market.parentRegion) ?: return "stall_region.parent_missing"
+        val footprint = createFootprint(draft) ?: return "stall_region.invalid_polygon"
+        if (!withinScanLimit(draft)) return "stall_region.volume_limit"
+        val blocks = scanAirVolume(draft, footprint)
+        if (blocks.isEmpty()) return "stall_region.no_air"
+        if (blocks.size > MAX_BLOCKS) return "stall_region.volume_limit"
+        val boxes = StallAirVolumeGeometry.cuboids(blocks)
+        if (boxes.isEmpty() || boxes.size > MAX_CUBOIDS) return "stall_region.shape_limit"
+        if (!allBoxesInsideParent(boxes, parent)) return "stall_region.outside_parent"
+        draft.airVolume = boxes
+        return null
     }
 
     private fun validateDraft(draft: StallRegionDraft): String? {
-        if (!validPoints(draft)) return "stall_region.need_polygon"
-        return validateVerticalBounds(draft)
-    }
-
-    private fun validateParentMembership(draft: StallRegionDraft): String? {
-        val manager = manager(draft) ?: return managerError(draft)
-        val parent = manager.getRegion(config.market.parentRegion) ?: return "stall_region.parent_missing"
-        val polygon = createPolygon(draft) ?: return "stall_region.invalid_polygon"
-        val bounds = bounds(draft)
-        return validateFootprint(polygon, parent, bounds, draft)
-    }
-
-    private fun validateFootprint(
-        polygon: ProtectedPolygonalRegion,
-        parent: ProtectedRegion,
-        bounds: FootprintBounds,
-        draft: StallRegionDraft,
-    ): String? = when {
-        bounds.area > MAX_AREA -> "stall_region.area_limit"
-        parentBoundsContain(polygon, parent, bounds, draft) -> null
-        else -> "stall_region.outside_parent"
-    }
-
-    private fun validateVerticalBounds(draft: StallRegionDraft): String? {
+        if (draft.points.size < MIN_POINTS || !StallPolygonGeometry.valid(draft.points)) return "stall_region.need_polygon"
+        if (!withinAreaLimit(draft)) return "stall_region.area_limit"
+        val world = Bukkit.getWorld(draft.world) ?: return "stall_region.world_missing"
         val floor = draft.floorY ?: return "stall_region.mark_floor_first"
         val top = draft.topY ?: return "stall_region.height_required"
-        return if (top <= floor) "stall_region.bad_height" else null
+        if (config.market.stallPriority == Int.MAX_VALUE) return "stall_region.priority_limit"
+        return if (top <= floor || top >= world.maxHeight || floor < world.minHeight) "stall_region.bad_height" else null
     }
 
-    private fun parentBoundsContain(
-        polygon: ProtectedPolygonalRegion,
-        parent: ProtectedRegion,
-        bounds: FootprintBounds,
-        draft: StallRegionDraft,
-    ): Boolean {
-        val bottomY = requireNotNull(draft.floorY) + 1
-        val topY = requireNotNull(draft.topY)
-        val check = ParentBoundsCheck(polygon, parent, bounds, bottomY, topY)
-        return allColumnsInsideParent(check)
+    private fun withinAreaLimit(draft: StallRegionDraft): Boolean {
+        val width = draft.points.maxOf(StallRegionPoint::x).toLong() - draft.points.minOf(StallRegionPoint::x) + 1
+        val depth = draft.points.maxOf(StallRegionPoint::z).toLong() - draft.points.minOf(StallRegionPoint::z) + 1
+        return width * depth <= MAX_AREA
     }
 
-    private fun validPoints(draft: StallRegionDraft): Boolean =
-        draft.points.size >= MIN_POINTS && StallPolygonGeometry.valid(draft.points)
+    private fun withinScanLimit(draft: StallRegionDraft): Boolean {
+        val width = draft.points.maxOf(StallRegionPoint::x).toLong() - draft.points.minOf(StallRegionPoint::x) + 1
+        val depth = draft.points.maxOf(StallRegionPoint::z).toLong() - draft.points.minOf(StallRegionPoint::z) + 1
+        val height = (requireNotNull(draft.topY) - requireNotNull(draft.floorY)).toLong()
+        return width * depth * height <= MAX_BLOCKS
+    }
+
+    private fun scanAirVolume(draft: StallRegionDraft, polygon: ProtectedPolygonalRegion): List<StallAirBlock> {
+        val world = Bukkit.getWorld(draft.world) ?: return emptyList()
+        val floor = requireNotNull(draft.floorY)
+        val top = requireNotNull(draft.topY)
+        val minX = draft.points.minOf(StallRegionPoint::x)
+        val maxX = draft.points.maxOf(StallRegionPoint::x)
+        val minZ = draft.points.minOf(StallRegionPoint::z)
+        val maxZ = draft.points.maxOf(StallRegionPoint::z)
+        val result = ArrayList<StallAirBlock>()
+        for (x in minX..maxX) for (z in minZ..maxZ) {
+            if (polygon.contains(BlockVector3.at(x, floor + 1, z))) appendColumn(draft, x, z, result)
+            if (result.size > MAX_BLOCKS) return result
+        }
+        return result
+    }
+
+    private fun appendColumn(draft: StallRegionDraft, x: Int, z: Int, target: MutableList<StallAirBlock>) {
+        val world = Bukkit.getWorld(draft.world) ?: return
+        val floor = requireNotNull(draft.floorY)
+        val top = requireNotNull(draft.topY)
+        val ceiling = (floor + 1..top).lastOrNull { y -> !world.getBlockAt(x, y, z).type.isAir } ?: return
+        for (y in floor + 1 until ceiling) {
+            if (world.getBlockAt(x, y, z).type.isAir) target += StallAirBlock(x, y, z)
+        }
+    }
+
+    private fun allBoxesInsideParent(boxes: List<StallRegionBox>, parent: ProtectedRegion): Boolean =
+        boxes.all { box ->
+            (box.minX..box.maxX).all { x -> (box.minY..box.maxY).all { y ->
+                (box.minZ..box.maxZ).all { z -> parent.contains(BlockVector3.at(x, y, z)) }
+            } }
+        }
 
     fun save(draft: StallRegionDraft): String {
-        validate(draft)?.let { return it }
-        val manager = manager(draft) ?: return managerError(draft)
-        if (manager.getRegion(draft.id) == null && manager.getRegion(config.market.parentRegion) == null) {
-            return "stall_region.parent_missing"
+        val planResult = createSavePlan(draft)
+        planResult.error?.let { return it }
+        val plan = planResult.plan ?: return "stall_region.save_failed"
+        try {
+            persist(plan, draft)
+            return "stall_region.saved"
+        } catch (_: Exception) {
+            rollback(plan)
+            return "stall_region.save_failed"
         }
-        val result = plan(draft, manager)
-        result.error?.let { return it }
-        val plan = result.plan ?: return "stall_region.invalid_polygon"
-        manager.addRegion(plan.replacement)
-        return persist(draft, plan)
+    }
+
+    private data class SavePlan(
+        val manager: RegionManager,
+        val oldRegions: List<ProtectedRegion>,
+        val root: ProtectedCuboidRegion,
+        val pieces: List<ProtectedCuboidRegion>,
+    )
+    private data class SavePlanResult(val plan: SavePlan? = null, val error: String? = null)
+
+    private fun createSavePlan(draft: StallRegionDraft): SavePlanResult {
+        val manager = manager(draft) ?: return SavePlanResult(error = managerError(draft))
+        val parent = manager.getRegion(config.market.parentRegion) ?: return SavePlanResult(error = "stall_region.parent_missing")
+        val rootPoint = draft.airVolume.firstOrNull()?.let { BlockVector3.at(it.minX, it.minY, it.minZ) }
+            ?: return SavePlanResult(error = "stall_region.no_air")
+        val oldRoot = manager.getRegion(draft.id)
+        val oldPieces = manager.regions.values.filter { it.id.startsWith(piecePrefix(draft.id)) }
+        val root = ProtectedCuboidRegion(draft.id, rootPoint, rootPoint)
+        oldRoot?.let(root::copyFrom)
+        if (oldRoot == null && runCatching { root.parent = parent }.isFailure) {
+            return SavePlanResult(error = "stall_region.parent_invalid")
+        }
+        root.priority = config.market.stallPriority
+        val pieces = draft.airVolume.mapIndexed { index, box -> createPiece(draft.id, index, box, parent, root) }
+        if (pieces.any { it == null }) return SavePlanResult(error = "stall_region.parent_invalid")
+        val oldRegions = listOfNotNull(oldRoot) + oldPieces
+        return SavePlanResult(SavePlan(manager, oldRegions, root, pieces.filterNotNull()))
+    }
+
+    private fun createPiece(
+        stallId: String,
+        index: Int,
+        box: StallRegionBox,
+        parent: ProtectedRegion,
+        root: ProtectedRegion,
+    ): ProtectedCuboidRegion? {
+        val piece = ProtectedCuboidRegion(pieceId(stallId, index),
+            BlockVector3.at(box.minX, box.minY, box.minZ), BlockVector3.at(box.maxX, box.maxY, box.maxZ))
+        piece.copyFrom(root)
+        piece.priority = config.market.stallPriority + 1
+        return piece.takeIf { runCatching { it.parent = parent }.isSuccess }
+    }
+
+    private fun persist(plan: SavePlan, draft: StallRegionDraft) {
+        plan.oldRegions.forEach { plan.manager.removeRegion(it.id) }
+        plan.manager.addRegion(plan.root)
+        plan.pieces.forEach(plan.manager::addRegion)
+        check(provisioner.provisionGroup(
+            draft.world,
+            draft.id,
+            plan.pieces.map(ProtectedRegion::getId),
+            config.market.stallPriority,
+        ))
+    }
+
+    private fun rollback(plan: SavePlan) {
+        (plan.oldRegions.map(ProtectedRegion::getId) + listOf(plan.root.id) + plan.pieces.map(ProtectedRegion::getId))
+            .distinct().forEach(plan.manager::removeRegion)
+        plan.oldRegions.forEach(plan.manager::addRegion)
+        runCatching { plan.manager.save() }
+    }
+
+    private fun createFootprint(draft: StallRegionDraft): ProtectedPolygonalRegion? {
+        val floor = draft.floorY ?: return null
+        val top = draft.topY ?: return null
+        return runCatching {
+            ProtectedPolygonalRegion(draft.id, draft.points.map { BlockVector2.at(it.x, it.z) }, floor + 1, top)
+        }.getOrNull()
     }
 
     private fun manager(draft: StallRegionDraft): RegionManager? {
@@ -100,65 +181,12 @@ internal class StallRegionWorldGuardWriter(
     private fun managerError(draft: StallRegionDraft): String =
         if (Bukkit.getWorld(draft.world) == null) "stall_region.world_missing" else "stall_region.manager_missing"
 
-    private fun createPolygon(draft: StallRegionDraft): ProtectedPolygonalRegion? {
-        val floor = draft.floorY ?: return null
-        val top = draft.topY ?: return null
-        return runCatching {
-            ProtectedPolygonalRegion(draft.id, draft.points.map { BlockVector2.at(it.x, it.z) }, floor + 1, top)
-        }.getOrNull()
-    }
-
-    private fun bounds(draft: StallRegionDraft): FootprintBounds = FootprintBounds(
-        draft.points.minOf { it.x }, draft.points.maxOf { it.x }, draft.points.minOf { it.z }, draft.points.maxOf { it.z },
-    )
-
-    private fun allColumnsInsideParent(check: ParentBoundsCheck): Boolean =
-        (check.bounds.minX..check.bounds.maxX).all { x -> (check.bounds.minZ..check.bounds.maxZ).all { z ->
-        val bottom = BlockVector3.at(x, check.bottomY, z)
-        !check.polygon.contains(bottom) || (check.parent.contains(bottom) && check.parent.contains(BlockVector3.at(x, check.topY, z)))
-    } }
-
-    private fun plan(draft: StallRegionDraft, manager: RegionManager): PlanResult {
-        if (draft.floorY == null) return PlanResult(error = "stall_region.mark_floor_first")
-        if (draft.topY == null) return PlanResult(error = "stall_region.height_required")
-        val previous = manager.getRegion(draft.id)
-        val replacement = createPolygon(draft) ?: return PlanResult(error = "stall_region.invalid_polygon")
-        configureReplacement(replacement, previous, manager)?.let { return PlanResult(error = it) }
-        return PlanResult(RegionPlan(manager, previous, replacement))
-    }
-
-    private fun configureReplacement(
-        replacement: ProtectedPolygonalRegion,
-        previous: ProtectedRegion?,
-        manager: RegionManager,
-    ): String? = if (previous != null) {
-        replacement.copyFrom(previous)
-        null
-    } else {
-        configureNewRegion(replacement, manager)
-    }
-
-    private fun configureNewRegion(replacement: ProtectedPolygonalRegion, manager: RegionManager): String? {
-        val parent = manager.getRegion(config.market.parentRegion) ?: return "stall_region.parent_missing"
-        replacement.priority = config.market.stallPriority
-        return if (runCatching { replacement.parent = parent }.isFailure) "stall_region.parent_invalid" else null
-    }
-
-    private fun persist(draft: StallRegionDraft, plan: RegionPlan): String = try {
-        if (plan.previous == null && !provisioner.provision(draft.world, draft.id, config.market.stallPriority)) {
-            plan.manager.removeRegion(draft.id)
-            return "stall_region.provision_failed"
-        }
-        plan.manager.save()
-        "stall_region.saved"
-    } catch (_: Exception) {
-        if (plan.previous == null) plan.manager.removeRegion(draft.id) else plan.manager.addRegion(plan.previous)
-        runCatching { plan.manager.save() }
-        "stall_region.save_failed"
-    }
-
     companion object {
         private const val MIN_POINTS = 3
+        private const val MAX_BLOCKS = 2_000_000
+        private const val MAX_CUBOIDS = 2_000
         private const val MAX_AREA = 16_384L
+        private fun piecePrefix(id: String) = "${id}__air_"
+        private fun pieceId(id: String, index: Int) = "${piecePrefix(id)}${index.toString().padStart(4, '0')}"
     }
 }

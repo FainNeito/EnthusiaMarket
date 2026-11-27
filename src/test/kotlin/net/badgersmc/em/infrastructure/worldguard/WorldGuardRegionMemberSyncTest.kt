@@ -16,8 +16,10 @@ import kotlin.test.assertFailsWith
 /** Use real WorldGuard domains to cover legacy UUID, player-name and group grants. */
 class WorldGuardRegionMemberSyncTest {
     private val region = ProtectedCuboidRegion("s1", BlockVector3.at(0, 0, 0), BlockVector3.at(10, 10, 10))
+    private val airPiece = ProtectedCuboidRegion("s1__air_0000", BlockVector3.at(1, 1, 1), BlockVector3.at(2, 2, 2))
     private val sync = object : WorldGuardRegionMemberSync() {
         override fun findRegion(world: String, regionId: String) = region
+        override fun findRegions(world: String, regionId: String) = listOf(region, airPiece)
     }
     private val former = UUID.randomUUID()
 
@@ -29,6 +31,8 @@ class WorldGuardRegionMemberSyncTest {
         region.members.addPlayer(former)
         region.members.addPlayer("formerMember")
         region.members.addGroup("oldMembers")
+        airPiece.owners.addPlayer(former)
+        airPiece.members.addPlayer(former)
     }
 
     @AfterTest fun stop() { unmockkStatic(Bukkit::class) }
@@ -39,12 +43,16 @@ class WorldGuardRegionMemberSyncTest {
         assertEquals(setOf(current), region.owners.uniqueIds)
         assertEquals(1, region.owners.size())
         assertEquals(0, region.members.size())
+        assertEquals(setOf(current), airPiece.owners.uniqueIds)
+        assertEquals(0, airPiece.members.size())
     }
 
     @Test fun `forfeiture and empty guild sync clear all domain entry types`() {
         sync.clearOwnersAndMembers("world", "s1")
         assertEquals(0, region.owners.size())
         assertEquals(0, region.members.size())
+        assertEquals(0, airPiece.owners.size())
+        assertEquals(0, airPiece.members.size())
         region.owners.addPlayer(former)
         region.members.addPlayer(former)
         sync.syncGuildMembers("world", "s1", emptySet())
@@ -63,5 +71,7 @@ class WorldGuardRegionMemberSyncTest {
         assertEquals(0, region.owners.size())
         assertEquals(setOf(current), region.members.uniqueIds)
         assertEquals(1, region.members.size())
+        assertEquals(0, airPiece.owners.size())
+        assertEquals(setOf(current), airPiece.members.uniqueIds)
     }
 }
