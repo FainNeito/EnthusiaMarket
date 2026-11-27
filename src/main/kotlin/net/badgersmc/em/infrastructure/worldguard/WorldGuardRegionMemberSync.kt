@@ -12,19 +12,19 @@ import java.util.UUID
 open class WorldGuardRegionMemberSync : RegionMemberSync {
 
     override fun addMember(world: String, regionId: String, player: UUID) {
-        withRegion(world, regionId) { region ->
+        withStallRegions(world, regionId) { region ->
             region.members.addPlayer(player)
         }
     }
 
     override fun removeMember(world: String, regionId: String, player: UUID) {
-        withRegion(world, regionId) { region ->
+        withStallRegions(world, regionId) { region ->
             region.members.removePlayer(player)
         }
     }
 
     override fun setOwner(world: String, regionId: String, player: UUID) {
-        withRegion(world, regionId) { region ->
+        withStallRegions(world, regionId) { region ->
             // Replace, don't append — a stall transfer shouldn't leave
             // the previous owner with build rights. Use the domain
             // clear-then-add pattern WG exposes via DefaultDomain.
@@ -37,26 +37,41 @@ open class WorldGuardRegionMemberSync : RegionMemberSync {
     }
 
     override fun clearOwnersAndMembers(world: String, regionId: String) {
-        withRegion(world, regionId) { region ->
+        withStallRegions(world, regionId) { region ->
             region.owners.removeAll()
             region.members.removeAll()
         }
     }
 
     override fun syncGuildMembers(world: String, regionId: String, memberUuids: Set<UUID>) {
-        withRegion(world, regionId) { region ->
+        withStallRegions(world, regionId) { region ->
             region.owners.removeAll()
             region.members.removeAll()
             memberUuids.forEach { region.members.addPlayer(it) }
         }
     }
 
-    private inline fun withRegion(
+    private inline fun withStallRegions(
         world: String,
         regionId: String,
         block: (com.sk89q.worldguard.protection.regions.ProtectedRegion) -> Unit,
     ) {
-        block(findRegion(world, regionId))
+        findRegions(world, regionId).forEach(block)
+    }
+
+    protected open fun findRegions(
+        world: String,
+        regionId: String,
+    ): List<com.sk89q.worldguard.protection.regions.ProtectedRegion> {
+        val root = findRegion(world, regionId)
+        // Unit adapters may provide only a root region. In production a loaded root implies
+        // that the WorldGuard manager is available and its air-volume children are queried.
+        if (Bukkit.getWorld(world) == null) return listOf(root)
+        val bukkitWorld = checkNotNull(Bukkit.getWorld(world)) { "RegionMemberSync: world $world not loaded" }
+        val manager = checkNotNull(WorldGuard.getInstance().platform.regionContainer.get(BukkitAdapter.adapt(bukkitWorld))) {
+            "RegionMemberSync: no region manager for $world"
+        }
+        return listOf(root) + manager.regions.values.filter { it.id.startsWith("${regionId}__air_") }
     }
 
     /** Keep platform lookup separate from mutations of WorldGuard's access domains. */

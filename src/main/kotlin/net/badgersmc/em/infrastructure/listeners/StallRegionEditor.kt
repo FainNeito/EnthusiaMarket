@@ -28,6 +28,7 @@ internal data class StallRegionDraft(
     val points: MutableList<StallRegionPoint> = mutableListOf(),
     var floorY: Int? = null,
     var topY: Int? = null,
+    var airVolume: List<StallRegionBox> = emptyList(),
     var revision: Int = 0,
     var previewedRevision: Int? = null,
     var previewedAt: Instant? = null,
@@ -145,7 +146,12 @@ class StallRegionEditor(
         if (active(player) && player.hasPermission(REGION_PERMISSION)) event.isCancelled = true
     }
 
-    private fun invalidate(draft: StallRegionDraft) { draft.revision++; draft.previewedRevision = null; draft.previewedAt = null }
+    private fun invalidate(draft: StallRegionDraft) {
+        draft.revision++
+        draft.previewedRevision = null
+        draft.previewedAt = null
+        draft.airVolume = emptyList()
+    }
 
     companion object {
         private const val PREVIEW_TTL_SECONDS = 30L

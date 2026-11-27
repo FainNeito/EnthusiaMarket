@@ -54,8 +54,37 @@ class WorldGuardRegionProvisioner(
         return true
     }
 
+    override fun provisionGroup(
+        world: String,
+        rootRegionId: String,
+        componentRegionIds: List<String>,
+        priority: Int,
+    ): Boolean {
+        val bukkitWorld = Bukkit.getWorld(world) ?: return false
+        val regionManager = WorldGuard.getInstance().platform.regionContainer.get(BukkitAdapter.adapt(bukkitWorld)) ?: return false
+        val root = regionManager.getRegion(rootRegionId) ?: return false
+        val components = componentRegionIds.map { regionManager.getRegion(it) ?: return false }
+        applyFlags(root, priority)
+        restoreAccessFlags(world, rootRegionId, root)
+        // The logical root is only an ID and access roster. Its one marker block is never usable.
+        root.setFlag(Flags.BUILD, StateFlag.State.DENY)
+        root.setFlag(Flags.BUILD.regionGroupFlag, RegionGroup.ALL)
+        components.forEach { region ->
+            applyFlags(region, priority + 1)
+            restoreAccessFlags(world, region.id, region)
+        }
+        return try {
+            regionManager.save()
+            true
+        } catch (e: com.sk89q.worldguard.protection.managers.storage.StorageException) {
+            log.warning("RegionProvisioner: group save failed for $rootRegionId: ${e.message}")
+            false
+        }
+    }
+
     private fun restoreAccessFlags(world: String, regionId: String, region: ProtectedRegion) {
-        val stall = accessIndex?.cached(world, regionId) ?: return
+        val stallId = regionId.substringBefore("__air_")
+        val stall = accessIndex?.cached(world, stallId) ?: return
         val settings = accessSettings?.current(stall) ?: return
         accessProjection?.stamp(region, settings)
     }
