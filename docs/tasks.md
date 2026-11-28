@@ -1,6 +1,8 @@
 
 # Tasks — EnthusiaMarket
 
+- [~] **FLOODGATE-412** — Source fallback and regression are complete; the clean 1,275-test suite passes with 17 environment skips, the shaded JAR builds and Java 21 Detekt passes. Hosted PR review, merge and Build activation remain separate gates. See `floodgate-optional-detection-verification.md`.
+
 - Market text uses the Balanced palette for chat, menus, signs and weekly showcases. Shop creation spells out the selected direction. Verify stock locale upgrades, preserved overrides and repeat startup with BalancedLocaleUpgradeTest. Native Java and Bedrock visual acceptance remains pending.
 
 - [~] WEEKLY-STALL-DISPLAYS — Add independent closed-week player and guild holograms and representative NPCs. Automatic awards use archived sale-time identities and a verified closed-week coverage interval. See weekly-stall-displays.md for configuration and native acceptance.

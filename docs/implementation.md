@@ -221,6 +221,8 @@ The V029 reconciliation is the release-time companion to the runtime invariants 
 2. Bedrock dispatcher checks `FloodgateApi.isFloodgatePlayer(uuid)`.
 3. If true → render Cumulus form; else → Bukkit inventory GUI.
 
+Floodgate is optional on servers without Bedrock clients. If its API cannot link at menu detection time, `PlatformDetectionService` treats the player as Java and retains the ordinary inventory-menu path (REQ-412).
+
 ### 4.6 Hopper control hot path (REQ-281/282)
 
 1. `InventoryMoveItemEvent` fires (once per hopper transfer tick, the highest-frequency event on the server).
