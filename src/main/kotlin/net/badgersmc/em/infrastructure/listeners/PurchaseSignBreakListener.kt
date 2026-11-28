@@ -63,6 +63,5 @@ open class PurchaseSignBreakListener(
         player.sendMessage(lang.msg("purchase_sign.msg.broken", "stall" to sign.stallId.value))
     }
 
-    private fun isSignMaterial(m: Material): Boolean =
-        Tag.SIGNS.isTagged(m) || Tag.WALL_SIGNS.isTagged(m)
+    private fun isSignMaterial(m: Material): Boolean = Tag.ALL_SIGNS.isTagged(m)
 }

@@ -1,6 +1,13 @@
 
 # Tasks — EnthusiaMarket
 
+## Hanging purchase signs (REQ-414)
+
+- [x] Spec/prove: Paper 26.2 documents `Tag.ALL_SIGNS` as the all-sign material tag; prior click/break filters used `Tag.SIGNS` plus `Tag.WALL_SIGNS` and did not explicitly cover hanging variants.
+- [x] Engine/refine: click and break listeners now use `Tag.ALL_SIGNS`. Regression drives right-click events for both `OAK_HANGING_SIGN` and `OAK_WALL_HANGING_SIGN` through the real listener and verifies they are routed and cancelled.
+- [x] Run full suite, detekt and shaded build. Evidence: `purchase-sign-hanging-verification.md`.
+- [x] Review/merge fork PR after multi-floor requirement IDs were reconciled. Build deployment and native client verification remain separate.
+
 - [~] **FLOODGATE-412** — Source fallback and regression are complete; the clean 1,275-test suite passes with 17 environment skips, the shaded JAR builds and Java 21 Detekt passes. Hosted PR review, merge and Build activation remain separate gates. See `floodgate-optional-detection-verification.md`.
 
 - Market text uses the Balanced palette for chat, menus, signs and weekly showcases. Shop creation spells out the selected direction. Verify stock locale upgrades, preserved overrides and repeat startup with BalancedLocaleUpgradeTest. Native Java and Bedrock visual acceptance remains pending.

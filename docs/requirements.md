@@ -855,3 +855,8 @@ WHEN a personal or guild stall tenancy ends, THE SYSTEM SHALL remove its owner-m
 **Event-driven.** WHEN a staff member adds floor outlines to a stall draft, THE SYSTEM SHALL retain each outline's independent floor height and horizontal polygon, scan air above each floor to the shared top height, deduplicate overlapping selected blocks, and preview and save their union as one logical stall in one confirmation.
 
 **Unwanted.** IF any floor outline is incomplete or invalid, the shared top does not clear every floor, the combined volume exceeds safety limits, or any component falls outside the Market parent, THEN THE SYSTEM SHALL reject preview/confirmation without changing existing WorldGuard state.
+## REQ-414 — Hanging purchase signs
+
+**Event-driven.** WHEN a player right-clicks a registered purchase sign made from any supported sign material, including ceiling or wall hanging signs, THE SYSTEM SHALL route the interaction through the same purchase, rent extension, auction, or moderation flow as a standing or wall sign. WHEN an authorized player breaks a registered hanging purchase sign, THE SYSTEM SHALL remove its registration and fire the existing broken-sign event.
+
+**Unwanted.** IF a sign is not registered as a purchase sign, THEN THE SYSTEM SHALL preserve normal sign interaction and breaking behavior.

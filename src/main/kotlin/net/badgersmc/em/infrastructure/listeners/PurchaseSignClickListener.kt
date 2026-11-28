@@ -189,6 +189,5 @@ open class PurchaseSignClickListener(
         player.sendMessage(msg)
     }
 
-    private fun isSignMaterial(m: Material): Boolean =
-        Tag.SIGNS.isTagged(m) || Tag.WALL_SIGNS.isTagged(m)
+    private fun isSignMaterial(m: Material): Boolean = Tag.ALL_SIGNS.isTagged(m)
 }
