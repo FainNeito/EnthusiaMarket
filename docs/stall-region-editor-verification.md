@@ -23,7 +23,9 @@ Staff need an in-game way to trace an irregular stall interior, see the selected
 - Scanner regressions cover two disjoint footprints at different elevations, including an upper overhang, and overlapping outlines whose shared air must be deduplicated.
 - Full suite on final source: 1,277 tests, 0 failures, 0 errors, 17 skipped. `detekt` passes with Java 22. `shadowJar` passes with Java 25. `git diff --check` passes.
 - Local unmerged artifact `EnthusiaMarket-1.0.0.jar`, SHA-256 `AA290D9D6B08CF9E7EC56D6DC6367FE989A0633A3B80EAC11D2E3360AC562C22`.
-- This update is based on fork `main` SHA `0a521733dfc91e6eb7e57216fac1c67d72fae100` in branch `codex/multifloor-stall-interiors`. It has not been pushed, merged, installed, or activated.
+- This update is based on fork `main` SHA `0a521733dfc91e6eb7e57216fac1c67d72fae100` in branch `codex/multifloor-stall-interiors`, commit `a5f40d1a460beb106ddb5b4833009203b7a16bc3`.
+- PR [#42](https://github.com/FainNeito/EnthusiaMarket/pull/42) is open and mergeable, with no submitted reviews or inline review threads. Exact-head GitHub build, security, and diagnostics checks passed; CodeRabbit was skipped because the repository requires manual review.
+- Build and TEST installation, runtime verification, and native Minecraft acceptance remain pending. The local artifact has not been uploaded or activated.
 
 - Focused polygon geometry tests: 2 passed, 0 failed.
 - Full test suite on the final editor code: 1,192 tests, 0 failures, 0 errors, 14 skipped.
