@@ -1,5 +1,9 @@
 # Implementation — EnthusiaMarket
 
+## Hanging purchase signs (REQ-414)
+
+The purchase-sign click and break listeners use Paper's `Tag.ALL_SIGNS` material tag so ceiling and wall hanging signs follow the same registered-sign routing and cleanup behavior as ordinary signs. Unregistered signs remain untouched.
+
 ## In-game irregular stall region editor (REQ-410)
 
 `/em region edit <stallId>` opens a temporary, operator-only selection in the configured Market world. Left-click solid floor blocks to add polygon corners; right-click or `/em region undo` removes the latest corner from the active floor. Use `/em region addfloor` after completing an outline to start another level, and `/em region removefloor` to discard the active level. Each outline has its own floor height; `/em region height <topY>` sets the shared inclusive maximum scan height. Each footprint contributes air above its marked floor, so upper levels may extend beyond the lower footprint. Overlapping air is deduplicated. For each footprint column, the editor finds the highest solid block within the range and selects every air block below it. `/em region preview` privately renders disjoint cuboid outlines for 30 seconds. One `/em region confirm` after the latest preview writes the entire union; any edit requires another preview. `/em region cancel` discards the draft. The canonical stall ID is a one-block denied marker; exact air volume is stored as `__air_####` child cuboids. Member and owner updates, stall lookup, volume measurement and schematic restore clipping treat those pieces as one stall. Region volume is captured before tenancy cleanup and restored only within the saved component regions. A newly created WorldGuard region still needs `/em import` to register in Market storage.

@@ -49,9 +49,15 @@ class PurchaseSignClickListenerTest {
         MockBukkit.unmock()
     }
 
-    private fun signBlock(world: String = "world", x: Int = 10, y: Int = 64, z: Int = 20): Block {
+    private fun signBlock(
+        world: String = "world",
+        x: Int = 10,
+        y: Int = 64,
+        z: Int = 20,
+        material: Material = Material.OAK_SIGN,
+    ): Block {
         val block = mockk<Block>(relaxed = true)
-        every { block.type } returns Material.OAK_SIGN
+        every { block.type } returns material
         val w = block.world
         every { w.name } returns world
         every { block.x } returns x
@@ -186,6 +192,29 @@ class PurchaseSignClickListenerTest {
         listener.onClick(event)
 
         assertTrue(event.isCancelled, "Event should be cancelled to prevent vanilla sign editing")
+    }
+
+    @Test
+    fun `right-clicking either hanging purchase sign opens the purchase flow`() {
+        val signs = mockk<PurchaseSignRepository>(relaxed = true)
+        val stalls = mockk<StallRepository>(relaxed = true)
+        val buyout = mockk<StallBuyoutService>(relaxed = true)
+        val purchaseSign = purchaseSign("stall_01", 500)
+        val stall = unownedStall()
+        val player = mockk<Player>(relaxed = true)
+        every { player.uniqueId } returns UUID.randomUUID()
+        every { player.hasPermission("enthusiamarket.stall.buyout") } returns true
+        every { signs.findAt("world", any(), any(), any()) } returns purchaseSign
+        every { stalls.findById(StallId("stall_01")) } returns stall
+        val (listener, menuCalls) = listenerWithRecording(signs, stalls, buyout)
+
+        listOf(Material.OAK_HANGING_SIGN, Material.OAK_WALL_HANGING_SIGN).forEach { material ->
+            val event = interactEvent(player, signBlock(material = material))
+            listener.onClick(event)
+            assertTrue(event.isCancelled, "$material click should be routed by Market")
+        }
+
+        assertTrue(menuCalls.size == 2, "Both hanging sign variants should open the purchase menu")
     }
 
     @Test
