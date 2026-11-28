@@ -47,6 +47,8 @@ class StallRepositorySql(private val ds: DataSource) : StallRepository {
         }
     }
 
+    override fun deleteIfUnowned(id: StallId): StallRepository.DeleteResult = StallDeletionSql.delete(ds, id)
+
     override fun save(stall: Stall) {
         ds.connection.use { conn -> conn.inMarketTransaction { save(conn, stall) } }
     }
@@ -207,6 +209,37 @@ class StallRepositorySql(private val ds: DataSource) : StallRepository {
     }
 }
 
+private object StallDeletionSql {
+    fun delete(ds: DataSource, id: StallId): StallRepository.DeleteResult = try {
+        ds.connection.use { conn -> conn.inMarketTransaction { deleteUnowned(conn, id) } }
+    } catch (failure: java.sql.SQLException) {
+        if (failure.sqlState?.startsWith("23") == true) StallRepository.DeleteResult.REFERENCED else throw failure
+    }
+
+    private fun deleteUnowned(conn: Connection, id: StallId): StallRepository.DeleteResult {
+        val state = conn.prepareStatement("SELECT state FROM stalls WHERE id = ?").use { ps ->
+            ps.setString(1, id.value)
+            ps.executeQuery().use { rs -> if (rs.next()) rs.getString(1) else null }
+        } ?: return StallRepository.DeleteResult.NOT_FOUND
+        if (state != StallState.UNOWNED.name) return StallRepository.DeleteResult.NOT_UNOWNED
+        if (hasStallReferences(conn, id)) return StallRepository.DeleteResult.REFERENCED
+        val removed = conn.prepareStatement("DELETE FROM stalls WHERE id = ? AND state = ? AND NOT EXISTS (SELECT 1 FROM market_moderation_locks WHERE stall_id = ?)").use { ps ->
+            ps.setString(1, id.value)
+            ps.setString(2, StallState.UNOWNED.name)
+            ps.setString(3, id.value)
+            ps.executeUpdate()
+        }
+        return if (removed == 1) StallRepository.DeleteResult.DELETED else StallRepository.DeleteResult.NOT_UNOWNED
+    }
+
+    private fun hasStallReferences(conn: Connection, id: StallId): Boolean = STALL_REFERENCE_QUERIES.any { sql ->
+        conn.prepareStatement(sql).use { ps ->
+            ps.setString(1, id.value)
+            ps.executeQuery().use { it.next() }
+        }
+    }
+}
+
 /** Database encodings kept separate from repository orchestration. */
 private object StallSqlCodec {
     fun encodeMembers(members: Set<UUID>): String = members.joinToString(",") { it.toString() }
@@ -231,6 +264,21 @@ private object StallSqlCodec {
 private const val INSERT_RENT_PAYMENT = """INSERT INTO rent_ledger
     (stall_id, charged_at, amount, paid, payer_type, payer_id, covered_from, covered_until)
     VALUES (?, ?, ?, 1, ?, ?, ?, ?)"""
+
+private val STALL_REFERENCE_QUERIES = listOf(
+    "SELECT 1 FROM auctions WHERE stall_id = ?",
+    "SELECT 1 FROM signs WHERE stall_id = ?",
+    "SELECT 1 FROM sales_ledger WHERE stall_id = ?",
+    "SELECT 1 FROM rent_ledger WHERE stall_id = ?",
+    "SELECT 1 FROM grace_events WHERE stall_id = ?",
+    "SELECT 1 FROM favorites WHERE stall_id = ?",
+    "SELECT 1 FROM sell_offers WHERE stall_id = ?",
+    "SELECT 1 FROM purchase_signs WHERE stall_id = ?",
+    "SELECT 1 FROM market_moderation_operations WHERE stall_id = ?",
+    "SELECT 1 FROM market_moderation_locks WHERE stall_id = ?",
+    "SELECT 1 FROM stall_access_settings WHERE stall_id = ?",
+    "SELECT 1 FROM guild_auction_round_wins WHERE stall_id = ?",
+)
 
 private fun PreparedStatement.setInstant(index: Int, value: java.time.Instant?) {
     if (value == null) setNull(index, java.sql.Types.INTEGER) else setLong(index, value.toEpochMilli())

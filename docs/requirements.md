@@ -1,6 +1,15 @@
 
 # Requirements — EnthusiaMarket
 
+## REQ-415 - Safe stall-region removal and non-overlap
+
+**Unwanted.** IF an operator edits a stall air volume that intersects another
+registered stall interior THEN THE SYSTEM SHALL reject the edit without
+changing either region. WHEN an operator removes a Market stall region THE
+SYSTEM SHALL remove only an `UNOWNED` stall with no persisted references,
+remove its exact WorldGuard root and air-piece regions, and restore the
+WorldGuard regions if the Market record cannot be removed.
+
 ## REQ-394 - Optional history pages
 
 **Event-driven.** WHEN a player invokes shop history, all, today, or a complete

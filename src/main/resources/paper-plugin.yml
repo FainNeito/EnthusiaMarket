@@ -124,7 +124,7 @@ permissions:
     description: Manage website synchronization
   enthusiamarket.admin.region:
     default: op
-    description: Create and edit WorldGuard stall region geometry
+    description: Create, edit, and delete unowned WorldGuard stall regions
   enthusiamarket.auction.bid:
     default: true
     description: Bid in an auction

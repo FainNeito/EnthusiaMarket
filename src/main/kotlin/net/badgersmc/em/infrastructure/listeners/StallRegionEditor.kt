@@ -2,6 +2,9 @@ package net.badgersmc.em.infrastructure.listeners
 
 import net.badgersmc.em.config.EnthusiaMarketConfig
 import net.badgersmc.em.domain.ports.RegionProvisioner
+import net.badgersmc.em.domain.stall.StallId
+import net.badgersmc.em.domain.stall.StallRepository
+import net.badgersmc.em.domain.stall.StallState
 import net.badgersmc.nexus.annotations.Component
 import net.badgersmc.nexus.i18n.LangService
 import org.bukkit.Bukkit
@@ -40,6 +43,7 @@ internal data class StallRegionDraft(
 class StallRegionEditor(
     private val config: EnthusiaMarketConfig,
     provisioner: RegionProvisioner,
+    private val stalls: StallRepository,
     private val lang: LangService,
     plugin: Plugin,
 ) : Listener {
@@ -138,6 +142,14 @@ class StallRegionEditor(
         if (drafts.remove(player.uniqueId) == null) return "stall_region.not_editing"
         renderer.stop(player)
         return "stall_region.cancelled"
+    }
+
+    fun delete(id: String): String {
+        if (!id.matches(Regex("${Regex.escape(config.market.regionPrefix)}[0-9]+"))) return "stall_region.bad_id"
+        val stall = stalls.findById(StallId(id)) ?: return "stall_region.market_missing"
+        if (stall.world != config.market.world || stall.regionId != id) return "stall_region.market_mismatch"
+        if (stall.state != StallState.UNOWNED) return "stall_region.not_unowned"
+        return writer.delete(id) { stalls.deleteIfUnowned(stall.id) }
     }
 
     @EventHandler

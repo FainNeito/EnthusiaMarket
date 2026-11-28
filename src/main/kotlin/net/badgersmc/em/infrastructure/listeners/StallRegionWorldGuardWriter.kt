@@ -10,6 +10,7 @@ import com.sk89q.worldguard.protection.regions.ProtectedPolygonalRegion
 import com.sk89q.worldguard.protection.regions.ProtectedRegion
 import net.badgersmc.em.config.EnthusiaMarketConfig
 import net.badgersmc.em.domain.ports.RegionProvisioner
+import net.badgersmc.em.domain.stall.StallRepository
 import org.bukkit.Bukkit
 
 /** Builds a WorldGuard parent stall plus disjoint access cuboids matching its usable air volume. */
@@ -27,13 +28,14 @@ internal class StallRegionWorldGuardWriter(
         val footprints = draft.layers.map { layer -> createFootprint(draft.id, layer, requireNotNull(draft.topY)) }
         if (footprints.any { it == null }) return "stall_region.invalid_polygon"
         if (!withinScanLimit(draft)) return "stall_region.volume_limit"
-        return saveValidatedAirVolume(draft, footprints.filterNotNull(), parent)
+        return saveValidatedAirVolume(draft, footprints.filterNotNull(), parent, manager)
     }
 
     private fun saveValidatedAirVolume(
         draft: StallRegionDraft,
         footprints: List<ProtectedPolygonalRegion>,
         parent: ProtectedRegion,
+        manager: RegionManager,
     ): String? {
         val blocks = scanAirVolume(draft, footprints)
         if (blocks.isEmpty()) return "stall_region.no_air"
@@ -41,8 +43,43 @@ internal class StallRegionWorldGuardWriter(
         val boxes = StallAirVolumeGeometry.cuboids(blocks)
         if (boxes.isEmpty() || boxes.size > MAX_CUBOIDS) return "stall_region.shape_limit"
         if (!allBoxesInsideParent(boxes, parent)) return "stall_region.outside_parent"
+        if (overlapsAnotherStall(draft, boxes, manager)) return "stall_region.overlap"
         draft.airVolume = boxes
         return null
+    }
+
+    private fun overlapsAnotherStall(draft: StallRegionDraft, boxes: List<StallRegionBox>, manager: RegionManager): Boolean {
+        return StallRegionOverlap.overlaps(
+            draft.id, config.market.regionPrefix, config.market.parentRegion, boxes, manager.regions.values,
+        )
+    }
+
+    /** Remove only a canonical stall root and its exact air-piece children. */
+    fun delete(id: String, deleteMarketRecord: () -> StallRepository.DeleteResult): String {
+        val world = Bukkit.getWorld(config.market.world) ?: return "stall_region.world_missing"
+        val manager = WorldGuard.getInstance().platform.regionContainer.get(BukkitAdapter.adapt(world))
+            ?: return "stall_region.manager_missing"
+        val exactChildren = manager.regions.values.filter { it.id.startsWith("${id}__air_") }
+        val previous = listOfNotNull(manager.getRegion(id)) + exactChildren
+        previous.forEach { manager.removeRegion(it.id) }
+        try {
+            manager.save()
+        } catch (_: Exception) {
+            previous.forEach(manager::addRegion)
+            return if (runCatching { manager.save() }.isSuccess) "stall_region.delete_failed"
+            else "stall_region.delete_restore_failed"
+        }
+        val outcome = try { deleteMarketRecord() } catch (_: Exception) { StallRepository.DeleteResult.REFERENCED }
+        if (outcome != StallRepository.DeleteResult.DELETED) {
+            previous.forEach(manager::addRegion)
+            if (runCatching { manager.save() }.isFailure) return "stall_region.delete_restore_failed"
+        }
+        return when (outcome) {
+            StallRepository.DeleteResult.DELETED -> "stall_region.deleted"
+            StallRepository.DeleteResult.NOT_FOUND -> "stall_region.market_missing"
+            StallRepository.DeleteResult.NOT_UNOWNED -> "stall_region.not_unowned"
+            StallRepository.DeleteResult.REFERENCED -> "stall_region.in_use"
+        }
     }
 
     private fun validateDraft(draft: StallRegionDraft): String? {
@@ -187,5 +224,34 @@ internal class StallRegionWorldGuardWriter(
         private const val MAX_AREA = 16_384L
         private fun piecePrefix(id: String) = "${id}__air_"
         private fun pieceId(id: String, index: Int) = "${piecePrefix(id)}${index.toString().padStart(4, '0')}"
+    }
+}
+
+internal object StallRegionOverlap {
+    fun overlaps(
+        editedStallId: String,
+        prefix: String,
+        parentRegionId: String,
+        boxes: List<StallRegionBox>,
+        regions: Collection<ProtectedRegion>,
+    ): Boolean {
+        val stallPattern = Regex("${Regex.escape(prefix)}[0-9]+(?:__air_[0-9]+)?")
+        val matching = regions.filter { it.id != parentRegionId && stallPattern.matches(it.id) }
+        val rootsWithPieces = matching.filter { it.id.contains("__air_") }.map { it.id.substringBefore("__air_") }.toSet()
+        val occupied = matching.filter { region ->
+            val rootId = region.id.substringBefore("__air_")
+            rootId != editedStallId && (region.id.contains("__air_") || rootId !in rootsWithPieces)
+        }
+        return boxes.any { box -> occupied.any { region -> intersects(box, region) } }
+    }
+
+    internal fun intersects(box: StallRegionBox, region: ProtectedRegion): Boolean {
+        val minX = maxOf(box.minX, region.minimumPoint.x()); val maxX = minOf(box.maxX, region.maximumPoint.x())
+        val minY = maxOf(box.minY, region.minimumPoint.y()); val maxY = minOf(box.maxY, region.maximumPoint.y())
+        val minZ = maxOf(box.minZ, region.minimumPoint.z()); val maxZ = minOf(box.maxZ, region.maximumPoint.z())
+        if (minX > maxX || minY > maxY || minZ > maxZ) return false
+        return (minX..maxX).any { x -> (minY..maxY).any { y ->
+            (minZ..maxZ).any { z -> region.contains(BlockVector3.at(x, y, z)) }
+        } }
     }
 }

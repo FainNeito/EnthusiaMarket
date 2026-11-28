@@ -818,6 +818,14 @@ stall_region:
   provision_failed: "<prefix><red>Market flags could not be applied. The new region was removed.</red>"
   save_failed: "<prefix><red>WorldGuard could not save the region. The previous region was restored where possible.</red>"
   saved: "<prefix><green>Stall region saved. Run /em import to register a new stall in Market.</green>"
+  overlap: "<prefix><red>This interior overlaps another stall region. Adjust the outline before confirming.</red>"
+  deleted: "<prefix><green>Unowned stall region and Market registration removed.</green>"
+  market_missing: "<prefix><gray>That stall is not registered in Market.</gray>"
+  market_mismatch: "<prefix><red>The Market record does not match this world's canonical region. No regions were changed.</red>"
+  not_unowned: "<prefix><red>Only an unowned stall can be deleted. Clear its ownership through the normal Market process first.</red>"
+  in_use: "<prefix><red>Market could not remove this stall because stored records still reference it.</red>"
+  delete_failed: "<prefix><red>WorldGuard could not save the removal. Its previous regions were restored.</red>"
+  delete_restore_failed: "<prefix><red>WorldGuard removal failed and region restoration also failed. Check the server log and WorldGuard data before further edits.</red>"
   cancelled: "<prefix><gray>Region draft cancelled. WorldGuard was not changed.</gray>"
 
 auction_payer:

@@ -892,6 +892,13 @@ class AdminCommands(
         sender.sendMessage(lang.msg(editor.begin(player, stallId)))
     }
 
+    @Subcommand("region delete")
+    @Permission("enthusiamarket.admin.region")
+    fun regionDelete(@Context sender: CommandSender, @Arg("stallId") @Suggests("stallRegionIds") stallId: String) {
+        val editor = regionEditor ?: run { sender.sendMessage(lang.msg("stall_region.unavailable")); return }
+        sender.sendMessage(lang.msg(editor.delete(stallId)))
+    }
+
     @Subcommand("region height")
     @Permission("enthusiamarket.admin.region")
     fun regionHeight(@Context sender: CommandSender, @Arg("topY") topY: Int) {
@@ -930,7 +937,8 @@ class AdminCommands(
         sender.sendMessage(lang.msg(action(editor)))
     }
 
-    fun stallRegionIds(): List<String> = regionProvider.listByPrefix(config.market.world, config.market.regionPrefix).map { it.id }
+    fun stallRegionIds(): List<String> = (regionProvider.listByPrefix(config.market.world, config.market.regionPrefix).map { it.id } +
+        stalls.all().map { it.id.value }).distinct().sorted()
 
     // ----- Guild trade policy -----
 
