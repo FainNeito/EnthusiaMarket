@@ -318,3 +318,7 @@ REQ-393 similarly registers an explicit player-name-only trust handler that dele
 REQ-395 keeps owner-list availability presentation separate from trade eligibility: BUY entries explain live capacity/funds checks, admin entries use localized Unlimited stock, and finite SELL/TRADE counts retain stock division. Localized status components are serialized as MiniMessage before entering Nexus's parsed string placeholder, preserving existing styles and templates without component debug output. See [owner-display-verification.md](owner-display-verification.md).
 
 Weekly solo award attribution reads the stall owner's current Paper name on the trade thread. At startup an infrastructure adapter reads the server profile cache once for last-known names, keyed by exact UUID. Ambiguous names are ignored. The captured UUID remains the stall owner and NPC representative even when the shop was created by a different player.
+
+## Safe stall region removal and overlap rejection (REQ-415)
+
+/em region delete <stallId> removes the exact canonical WorldGuard root and __air_ children and unregisters the Market stall only when its state is UNOWNED. The repository refuses deletion when SQL foreign keys or retained access/auction-award references exist. WorldGuard state is restored if Market unregistering fails. Region edits reject air volumes intersecting another registered stall footprint.

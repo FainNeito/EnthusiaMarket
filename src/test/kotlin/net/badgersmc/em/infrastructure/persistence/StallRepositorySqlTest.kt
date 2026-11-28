@@ -6,6 +6,7 @@ import net.badgersmc.em.domain.stall.OwnerRef
 import net.badgersmc.em.domain.stall.RentTerms
 import net.badgersmc.em.domain.stall.Stall
 import net.badgersmc.em.domain.stall.StallId
+import net.badgersmc.em.domain.stall.StallRepository
 import net.badgersmc.em.domain.stall.StallState
 import java.util.UUID
 import javax.sql.DataSource
@@ -83,6 +84,35 @@ class StallRepositorySqlTest {
 
     @Test fun `unknown id returns null`() {
         assertNull(repo.findById(StallId("nope")))
+    }
+
+    @Test fun `delete removes only an unowned stall with no references`() {
+        val stall = newUnowned("delete-me")
+        repo.create(stall)
+        assertEquals(StallRepository.DeleteResult.DELETED, repo.deleteIfUnowned(stall.id))
+        assertNull(repo.findById(stall.id))
+    }
+
+    @Test fun `delete refuses owned stall`() {
+        val stall = newUnowned("owned").copy(state = StallState.OWNED, owner = OwnerRef.solo(UUID.randomUUID()))
+        repo.create(stall)
+        assertEquals(StallRepository.DeleteResult.NOT_UNOWNED, repo.deleteIfUnowned(stall.id))
+        assertNotNull(repo.findById(stall.id))
+    }
+
+    @Test fun `delete refuses stalls with retained references`() {
+        val stall = newUnowned("referenced")
+        repo.create(stall)
+        ds.connection.use { conn -> conn.prepareStatement(
+            "INSERT INTO favorites (player_uuid, stall_id, favorited_at) VALUES (?, ?, ?)"
+        ).use { ps ->
+            ps.setString(1, UUID.randomUUID().toString())
+            ps.setString(2, stall.id.value)
+            ps.setLong(3, 1)
+            ps.executeUpdate()
+        } }
+        assertEquals(StallRepository.DeleteResult.REFERENCED, repo.deleteIfUnowned(stall.id))
+        assertNotNull(repo.findById(stall.id))
     }
 
     @Test fun `byState filters correctly`() {

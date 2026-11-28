@@ -74,6 +74,12 @@ class DirtyTrackingStallRepository(
         notify(stall.id.value)
     }
 
+    override fun deleteIfUnowned(id: StallId): StallRepository.DeleteResult {
+        val result = delegate.deleteIfUnowned(id)
+        if (result == StallRepository.DeleteResult.DELETED) notify(id.value)
+        return result
+    }
+
     private fun notify(stallId: String) {
         try { dirty.markDirty(stallId) } catch (_: Exception) { failures.report("notify", stallId) }
     }

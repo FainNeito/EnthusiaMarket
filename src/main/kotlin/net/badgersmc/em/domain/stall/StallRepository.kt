@@ -10,6 +10,7 @@ data class RentPayment(
 )
 
 interface StallRepository {
+    enum class DeleteResult { DELETED, NOT_FOUND, NOT_UNOWNED, REFERENCED }
     fun findById(id: StallId): Stall?
     fun findByIds(ids: Collection<StallId>): Map<StallId, Stall> =
         ids.mapNotNull { id -> findById(id)?.let { id to it } }.toMap()
@@ -26,4 +27,6 @@ interface StallRepository {
     /** Notify projections after another repository commits a stall state change. */
     fun onExternalStateCommit(id: StallId) = Unit
     fun create(stall: Stall)
+    /** Remove a vacant stall only when no persisted records still reference it. */
+    fun deleteIfUnowned(id: StallId): DeleteResult = DeleteResult.REFERENCED
 }

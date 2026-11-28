@@ -45,6 +45,15 @@ class StallAccessIndex(private val delegate: StallRepository) : StallRepository 
     @Synchronized override fun create(stall: Stall) { delegate.create(stall); publish(stall) }
     @Synchronized override fun save(stall: Stall) { delegate.save(stall); publish(stall) }
 
+    @Synchronized override fun deleteIfUnowned(id: StallId): StallRepository.DeleteResult {
+        val result = delegate.deleteIfUnowned(id)
+        if (result == StallRepository.DeleteResult.DELETED) {
+            snapshots.remove(id.value)?.let { byRegion.remove(it.world to it.regionId, id.value) }
+            stale.remove(id.value)
+        }
+        return result
+    }
+
     @Synchronized override fun savePaidExtension(stall: Stall, payment: RentPayment) {
         delegate.savePaidExtension(stall, payment)
         publish(stall)
