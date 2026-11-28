@@ -836,9 +836,9 @@ WHEN a personal or guild stall tenancy ends, THE SYSTEM SHALL remove its owner-m
 
 ## REQ-410 — In-game irregular stall region editor
 
-**Event-driven.** WHEN an authorized operator starts `/em region edit <stallId>` THE SYSTEM SHALL let the operator mark a polygon by clicking solid floor blocks in the configured Market world, undo points, set the inclusive top Y bound, and privately preview the resulting polygon-prism outline in game before saving. The floor block and all stall structure blocks below the selected top bound SHALL remain outside the usable region; the lower region bound SHALL begin one block above the marked floor.
+**Event-driven.** WHEN an authorized operator starts `/em region edit <stallId>` THE SYSTEM SHALL let the operator mark one or more horizontal polygons by clicking solid floor blocks in the configured Market world, undo points on the active floor, add or remove floor outlines, set the shared inclusive top Y bound, and privately preview the combined interior in game before saving. Each polygon SHALL begin one block above its own marked floor and contribute air blocks up to the shared top, allowing upper floor outlines to extend beyond lower outlines.
 
-**Unwanted.** IF the target ID does not match the configured stall prefix, the selection is degenerate, self-intersecting, exceeds the point limit, crosses worlds or floor heights, lacks an explicit valid top bound, or is outside the Market parent region THEN THE SYSTEM SHALL refuse to save and leave WorldGuard unchanged. Saving SHALL require an explicit confirmation after the latest preview; edits invalidate that preview. Replacing geometry SHALL preserve existing WorldGuard owners, members, flags, priority and parent. A newly created region SHALL use the configured Market parent and standard Market flags. Editing SHALL not alter blocks or register/import the stall into Market storage automatically.
+**Unwanted.** IF the target ID does not match the configured stall prefix, any individual outline is degenerate, self-intersecting, exceeds its point or floor limit, crosses worlds or contains corners at different heights, the shared top is not above every floor, or any selected air block is outside the Market parent region THEN THE SYSTEM SHALL refuse to save and leave WorldGuard unchanged. Saving SHALL require an explicit confirmation after the latest preview; edits invalidate that preview. Replacing geometry SHALL preserve existing WorldGuard owners, members, flags, priority and parent. A newly created region SHALL use the configured Market parent and standard Market flags. Editing SHALL not alter blocks or register/import the stall into Market storage automatically.
 
 ## REQ-411 — Air-volume stall boundaries
 
@@ -849,3 +849,9 @@ WHEN a personal or guild stall tenancy ends, THE SYSTEM SHALL remove its owner-m
 ## REQ-412 — Optional Floodgate menu detection
 
 **Event-driven.** WHEN a player opens a Market menu and the optional Floodgate API is absent or fails to link, THE SYSTEM SHALL treat the player as a Java client and open the existing Java menu without failing the interaction. WHEN Floodgate is available, existing Bedrock detection and Cumulus menu routing SHALL remain unchanged.
+
+## REQ-413 — Multi-floor stall interior selection
+
+**Event-driven.** WHEN a staff member adds floor outlines to a stall draft, THE SYSTEM SHALL retain each outline's independent floor height and horizontal polygon, scan air above each floor to the shared top height, deduplicate overlapping selected blocks, and preview and save their union as one logical stall in one confirmation.
+
+**Unwanted.** IF any floor outline is incomplete or invalid, the shared top does not clear every floor, the combined volume exceeds safety limits, or any component falls outside the Market parent, THEN THE SYSTEM SHALL reject preview/confirmation without changing existing WorldGuard state.

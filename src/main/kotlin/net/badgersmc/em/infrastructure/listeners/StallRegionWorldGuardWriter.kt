@@ -24,9 +24,18 @@ internal class StallRegionWorldGuardWriter(
     private fun validateAirBoundary(draft: StallRegionDraft): String? {
         val manager = manager(draft) ?: return managerError(draft)
         val parent = manager.getRegion(config.market.parentRegion) ?: return "stall_region.parent_missing"
-        val footprint = createFootprint(draft) ?: return "stall_region.invalid_polygon"
+        val footprints = draft.layers.map { layer -> createFootprint(draft.id, layer, requireNotNull(draft.topY)) }
+        if (footprints.any { it == null }) return "stall_region.invalid_polygon"
         if (!withinScanLimit(draft)) return "stall_region.volume_limit"
-        val blocks = scanAirVolume(draft, footprint)
+        return saveValidatedAirVolume(draft, footprints.filterNotNull(), parent)
+    }
+
+    private fun saveValidatedAirVolume(
+        draft: StallRegionDraft,
+        footprints: List<ProtectedPolygonalRegion>,
+        parent: ProtectedRegion,
+    ): String? {
+        val blocks = scanAirVolume(draft, footprints)
         if (blocks.isEmpty()) return "stall_region.no_air"
         if (blocks.size > MAX_BLOCKS) return "stall_region.volume_limit"
         val boxes = StallAirVolumeGeometry.cuboids(blocks)
@@ -37,52 +46,44 @@ internal class StallRegionWorldGuardWriter(
     }
 
     private fun validateDraft(draft: StallRegionDraft): String? {
-        if (draft.points.size < MIN_POINTS || !StallPolygonGeometry.valid(draft.points)) return "stall_region.need_polygon"
+        if (draft.layers.isEmpty() || draft.layers.any { !StallRegionDraftValidation.validLayer(it) }) return "stall_region.need_polygon"
         if (!withinAreaLimit(draft)) return "stall_region.area_limit"
         val world = Bukkit.getWorld(draft.world) ?: return "stall_region.world_missing"
-        val floor = draft.floorY ?: return "stall_region.mark_floor_first"
+        if (draft.layers.any { it.floorY == null }) return "stall_region.mark_floor_first"
         val top = draft.topY ?: return "stall_region.height_required"
         if (config.market.stallPriority == Int.MAX_VALUE) return "stall_region.priority_limit"
-        return if (top <= floor || top >= world.maxHeight || floor < world.minHeight) "stall_region.bad_height" else null
+        return if (draft.layers.any { top <= requireNotNull(it.floorY) || requireNotNull(it.floorY) < world.minHeight } || top >= world.maxHeight) "stall_region.bad_height" else null
     }
 
     private fun withinAreaLimit(draft: StallRegionDraft): Boolean {
-        val width = draft.points.maxOf(StallRegionPoint::x).toLong() - draft.points.minOf(StallRegionPoint::x) + 1
-        val depth = draft.points.maxOf(StallRegionPoint::z).toLong() - draft.points.minOf(StallRegionPoint::z) + 1
-        return width * depth <= MAX_AREA
+        return draft.layers.all { layer ->
+            val width = layer.points.maxOf(StallRegionPoint::x).toLong() - layer.points.minOf(StallRegionPoint::x) + 1
+            val depth = layer.points.maxOf(StallRegionPoint::z).toLong() - layer.points.minOf(StallRegionPoint::z) + 1
+            width * depth <= MAX_AREA
+        }
     }
 
     private fun withinScanLimit(draft: StallRegionDraft): Boolean {
-        val width = draft.points.maxOf(StallRegionPoint::x).toLong() - draft.points.minOf(StallRegionPoint::x) + 1
-        val depth = draft.points.maxOf(StallRegionPoint::z).toLong() - draft.points.minOf(StallRegionPoint::z) + 1
-        val height = (requireNotNull(draft.topY) - requireNotNull(draft.floorY)).toLong()
-        return width * depth * height <= MAX_BLOCKS
+        val top = requireNotNull(draft.topY).toLong()
+        val estimated = draft.layers.sumOf { layer ->
+            val width = layer.points.maxOf(StallRegionPoint::x).toLong() - layer.points.minOf(StallRegionPoint::x) + 1
+            val depth = layer.points.maxOf(StallRegionPoint::z).toLong() - layer.points.minOf(StallRegionPoint::z) + 1
+            width * depth * (top - requireNotNull(layer.floorY))
+        }
+        return estimated <= MAX_BLOCKS
     }
 
-    private fun scanAirVolume(draft: StallRegionDraft, polygon: ProtectedPolygonalRegion): List<StallAirBlock> {
+    private fun scanAirVolume(draft: StallRegionDraft, polygons: List<ProtectedPolygonalRegion>): List<StallAirBlock> {
         val world = Bukkit.getWorld(draft.world) ?: return emptyList()
-        val floor = requireNotNull(draft.floorY)
         val top = requireNotNull(draft.topY)
-        val minX = draft.points.minOf(StallRegionPoint::x)
-        val maxX = draft.points.maxOf(StallRegionPoint::x)
-        val minZ = draft.points.minOf(StallRegionPoint::z)
-        val maxZ = draft.points.maxOf(StallRegionPoint::z)
-        val result = ArrayList<StallAirBlock>()
-        for (x in minX..maxX) for (z in minZ..maxZ) {
-            if (polygon.contains(BlockVector3.at(x, floor + 1, z))) appendColumn(draft, x, z, result)
-            if (result.size > MAX_BLOCKS) return result
-        }
-        return result
-    }
-
-    private fun appendColumn(draft: StallRegionDraft, x: Int, z: Int, target: MutableList<StallAirBlock>) {
-        val world = Bukkit.getWorld(draft.world) ?: return
-        val floor = requireNotNull(draft.floorY)
-        val top = requireNotNull(draft.topY)
-        val ceiling = (floor + 1..top).lastOrNull { y -> !world.getBlockAt(x, y, z).type.isAir } ?: return
-        for (y in floor + 1 until ceiling) {
-            if (world.getBlockAt(x, y, z).type.isAir) target += StallAirBlock(x, y, z)
-        }
+        return StallAirVolumeScanner.scan(
+            draft.layers, top, MAX_BLOCKS,
+            contains = { layer, x, z ->
+                val index = draft.layers.indexOf(layer)
+                polygons[index].contains(BlockVector3.at(x, requireNotNull(layer.floorY) + 1, z))
+            },
+            isAir = { x, y, z -> world.getBlockAt(x, y, z).type.isAir },
+        )
     }
 
     private fun allBoxesInsideParent(boxes: List<StallRegionBox>, parent: ProtectedRegion): Boolean =
@@ -165,11 +166,10 @@ internal class StallRegionWorldGuardWriter(
         runCatching { plan.manager.save() }
     }
 
-    private fun createFootprint(draft: StallRegionDraft): ProtectedPolygonalRegion? {
-        val floor = draft.floorY ?: return null
-        val top = draft.topY ?: return null
+    private fun createFootprint(id: String, layer: StallRegionLayer, top: Int): ProtectedPolygonalRegion? {
+        val floor = layer.floorY ?: return null
         return runCatching {
-            ProtectedPolygonalRegion(draft.id, draft.points.map { BlockVector2.at(it.x, it.z) }, floor + 1, top)
+            ProtectedPolygonalRegion(id, layer.points.map { BlockVector2.at(it.x, it.z) }, floor + 1, top)
         }.getOrNull()
     }
 
@@ -182,7 +182,6 @@ internal class StallRegionWorldGuardWriter(
         if (Bukkit.getWorld(draft.world) == null) "stall_region.world_missing" else "stall_region.manager_missing"
 
     companion object {
-        private const val MIN_POINTS = 3
         private const val MAX_BLOCKS = 2_000_000
         private const val MAX_CUBOIDS = 2_000
         private const val MAX_AREA = 16_384L

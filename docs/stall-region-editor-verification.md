@@ -8,13 +8,22 @@ Staff need an in-game way to trace an irregular stall interior, see the selected
 
 - `/em region edit <stallId>` starts a private draft for an existing region ID or configured stall prefix and numeric ID.
 - Left-click solid floor blocks to add polygon corners. Right-click removes the most recent corner; `/em region undo` does the same.
-- `/em region height <topY>` sets the inclusive top of usable air. The polygon starts at floor Y + 1.
+- `/em region addfloor` starts another horizontal outline once the current one is valid. `/em region removefloor` discards the active outline while keeping at least one.
+- Each outline records its own floor Y and may extend beyond the other floors. `/em region height <topY>` sets the inclusive shared top; each outline starts at its floor Y + 1.
 - `/em region preview` privately draws the selected polygon at its bottom and top, with vertical edges. The preview is valid for 30 seconds.
 - `/em region confirm` writes only after a current preview and revalidation. Existing WorldGuard metadata is copied to replacement geometry; new regions are parented and provisioned through the configured market integration.
 - `/em region cancel` discards the draft. The editor also clears on quit or world change, and cancels breaking/damaging blocks during selection.
 - The writer checks polygon validity, configured parent containment for every occupied column, height, area, ID prefix, and WorldGuard save/provision failures.
+- The writer unions and deduplicates air blocks scanned from all floor outlines. A single fresh preview and confirmation applies to the full multi-floor stall.
 
 ## Proof and verification
+
+### Multi-floor editor update
+
+- Scanner regressions cover two disjoint footprints at different elevations, including an upper overhang, and overlapping outlines whose shared air must be deduplicated.
+- Full suite on final source: 1,277 tests, 0 failures, 0 errors, 17 skipped. `detekt` passes with Java 22. `shadowJar` passes with Java 25. `git diff --check` passes.
+- Local unmerged artifact `EnthusiaMarket-1.0.0.jar`, SHA-256 `AA290D9D6B08CF9E7EC56D6DC6367FE989A0633A3B80EAC11D2E3360AC562C22`.
+- This update is based on fork `main` SHA `0a521733dfc91e6eb7e57216fac1c67d72fae100` in branch `codex/multifloor-stall-interiors`. It has not been pushed, merged, installed, or activated.
 
 - Focused polygon geometry tests: 2 passed, 0 failed.
 - Full test suite on the final editor code: 1,192 tests, 0 failures, 0 errors, 14 skipped.
