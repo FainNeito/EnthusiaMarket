@@ -845,3 +845,7 @@ WHEN a personal or guild stall tenancy ends, THE SYSTEM SHALL remove its owner-m
 **Event-driven.** WHEN an authorized operator previews or saves an edited stall boundary, THE SYSTEM SHALL represent every air block inside the marked stall footprint up to the selected maximum height, following the stall's actual roof and interior shape. Solid building blocks SHALL remain outside the usable boundary. WorldGuard component regions SHALL behave as one logical Market stall for ownership, guild membership, protection, lookup, import, and sellback restore clipping.
 
 **Unwanted.** IF any part of the selected air volume is outside the Market parent, cannot be represented within configured WorldGuard limits, or cannot be saved atomically, THEN THE SYSTEM SHALL leave the existing logical stall and its access unchanged. The private preview SHALL outline the actual air volume, not a bounding prism, and confirmation SHALL remain required after each edit.
+
+## REQ-412 — Optional Floodgate menu detection
+
+**Event-driven.** WHEN a player opens a Market menu and the optional Floodgate API is absent or fails to link, THE SYSTEM SHALL treat the player as a Java client and open the existing Java menu without failing the interaction. WHEN Floodgate is available, existing Bedrock detection and Cumulus menu routing SHALL remain unchanged.

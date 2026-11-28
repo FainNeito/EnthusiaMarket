@@ -11,9 +11,19 @@ import org.geysermc.floodgate.api.FloodgateApi
 class PlatformDetectionService {
 
     fun isBedrockPlayer(player: Player): Boolean {
-        return try {
+        return detectFloodgatePlayer {
             FloodgateApi.getInstance().isFloodgatePlayer(player.uniqueId)
+        }
+    }
+
+    internal fun detectFloodgatePlayer(detection: () -> Boolean): Boolean {
+        return try {
+            detection()
         } catch (_: Exception) {
+            false
+        } catch (_: LinkageError) {
+            // Floodgate is an optional companion plugin. Missing API classes
+            // must fall back to the Java menu instead of breaking sign use.
             false
         }
     }
