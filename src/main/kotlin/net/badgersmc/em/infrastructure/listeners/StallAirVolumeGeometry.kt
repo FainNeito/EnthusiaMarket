@@ -13,6 +13,31 @@ internal data class StallRegionBox(
     val maxZ: Int,
 )
 
+/** Scans and unions each floor's interior columns while retaining its own floor elevation. */
+internal object StallAirVolumeScanner {
+    fun scan(
+        layers: List<StallRegionLayer>,
+        topY: Int,
+        maxBlocks: Int,
+        contains: (StallRegionLayer, Int, Int) -> Boolean,
+        isAir: (Int, Int, Int) -> Boolean,
+    ): List<StallAirBlock> {
+        val selected = linkedSetOf<StallAirBlock>()
+        for (layer in layers) {
+            val floor = requireNotNull(layer.floorY)
+            for (x in layer.points.minOf(StallRegionPoint::x)..layer.points.maxOf(StallRegionPoint::x)) {
+                for (z in layer.points.minOf(StallRegionPoint::z)..layer.points.maxOf(StallRegionPoint::z)) {
+                    if (!contains(layer, x, z)) continue
+                    val ceiling = (floor + 1..topY).lastOrNull { y -> !isAir(x, y, z) } ?: continue
+                    for (y in floor + 1 until ceiling) if (isAir(x, y, z)) selected += StallAirBlock(x, y, z)
+                    if (selected.size > maxBlocks) return selected.toList()
+                }
+            }
+        }
+        return selected.toList()
+    }
+}
+
 /** Compresses a voxel set into disjoint cuboids without filling any gaps. */
 internal object StallAirVolumeGeometry {
     private data class HorizontalRect(val minX: Int, val maxX: Int, val minZ: Int, val maxZ: Int)

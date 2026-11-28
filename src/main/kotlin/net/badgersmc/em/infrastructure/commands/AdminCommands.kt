@@ -904,6 +904,14 @@ class AdminCommands(
     @Permission("enthusiamarket.admin.region")
     fun regionUndo(@Context sender: CommandSender) = regionCommand(sender) { it.undo(sender as Player) }
 
+    @Subcommand("region addfloor")
+    @Permission("enthusiamarket.admin.region")
+    fun regionAddFloor(@Context sender: CommandSender) = regionCommand(sender) { it.addFloor(sender as Player) }
+
+    @Subcommand("region removefloor")
+    @Permission("enthusiamarket.admin.region")
+    fun regionRemoveFloor(@Context sender: CommandSender) = regionCommand(sender) { it.removeFloor(sender as Player) }
+
     @Subcommand("region preview")
     @Permission("enthusiamarket.admin.region")
     fun regionPreview(@Context sender: CommandSender) = regionCommand(sender) { it.preview(sender as Player) }

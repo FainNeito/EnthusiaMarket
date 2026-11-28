@@ -2,8 +2,47 @@ package net.badgersmc.em.infrastructure.listeners
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class StallAirVolumeGeometryTest {
+    @Test
+    fun `unions independent floor outlines including an upper floor overhang`() {
+        val lower = StallRegionLayer(mutableListOf(
+            StallRegionPoint(0, 0), StallRegionPoint(1, 0), StallRegionPoint(1, 1), StallRegionPoint(0, 1),
+        ), floorY = 0)
+        val upper = StallRegionLayer(mutableListOf(
+            StallRegionPoint(2, 0), StallRegionPoint(3, 0), StallRegionPoint(3, 1), StallRegionPoint(2, 1),
+        ), floorY = 3)
+
+        val selected = StallAirVolumeScanner.scan(listOf(lower, upper), topY = 6, maxBlocks = 100,
+            contains = { layer, x, z -> x in layer.points.minOf(StallRegionPoint::x)..layer.points.maxOf(StallRegionPoint::x) && z in 0..1 },
+            isAir = { x, y, _ -> y in 1..5 && !(x >= 2 && y == 3) && y != 6 },
+        ).toSet()
+
+        assertEquals(28, selected.size)
+        assertTrue((0..1).all { x -> (1..5).all { y -> StallAirBlock(x, y, 0) in selected } })
+        assertTrue((2..3).all { x -> (4..5).all { y -> StallAirBlock(x, y, 0) in selected } })
+        assertTrue((2..3).none { x -> StallAirBlock(x, 1, 0) in selected })
+    }
+
+    @Test
+    fun `deduplicates air shared by overlapping floor outlines`() {
+        val lower = StallRegionLayer(mutableListOf(
+            StallRegionPoint(0, 0), StallRegionPoint(1, 0), StallRegionPoint(1, 1), StallRegionPoint(0, 1),
+        ), floorY = 0)
+        val upper = StallRegionLayer(mutableListOf(
+            StallRegionPoint(1, 0), StallRegionPoint(2, 0), StallRegionPoint(2, 1), StallRegionPoint(1, 1),
+        ), floorY = 3)
+
+        val selected = StallAirVolumeScanner.scan(listOf(lower, upper), topY = 6, maxBlocks = 100,
+            contains = { layer, x, z -> x in layer.points.minOf(StallRegionPoint::x)..layer.points.maxOf(StallRegionPoint::x) && z in 0..1 },
+            isAir = { x, y, _ -> y in 1..5 && !(x >= 1 && y == 3) && y != 6 },
+        )
+
+        assertEquals(22, selected.size)
+        assertEquals(1, selected.count { it == StallAirBlock(1, 4, 0) })
+    }
+
     @Test
     fun `merges a rectangular air volume into one cuboid`() {
         val blocks = buildList {
